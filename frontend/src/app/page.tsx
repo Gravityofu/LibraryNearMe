@@ -1,65 +1,61 @@
-import Image from "next/image";
+// 이 파일은 홈페이지의 첫 화면입니다.
+// 함수 앞에 async가 붙어 있어서, 화면을 그리기 전에
+// 주방(NestJS)에서 도서관 데이터를 먼저 받아옵니다.
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+// 도서관 데이터의 모양을 미리 알려줍니다. (3단계에서 만든 표와 같은 모양)
+type Library = {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  primaryColor: string;
+};
+
+// 주방의 주소입니다. 나중에 배포할 때 이 주소만 실제 서버 주소로 바꾸면 됩니다.
+const API_URL = "http://localhost:3001";
+
+// 주방에 가서 도서관 설정을 받아오는 함수입니다.
+async function getLibrary(): Promise<Library | null> {
+  const res = await fetch(`${API_URL}/library`, { cache: "no-store" });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// 실제 홈페이지 화면을 그리는 부분입니다.
+export default async function Home() {
+  const library = await getLibrary();
+
+  // 도서관 데이터가 없을 때(또는 주방이 꺼졌을 때)를 대비한 안내 화면입니다.
+  if (!library) {
+    return (
+      <main style={{ padding: "2rem", textAlign: "center" }}>
+        도서관 설정을 불러오지 못했습니다. 주방(백엔드) 서버가 켜져 있는지 확인해 주세요.
       </main>
-    </div>
+    );
+  }
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "1rem",
+        fontFamily: "sans-serif",
+      }}
+    >
+      {/* 도서관 이름을, 데이터베이스에 저장된 대표 색상으로 표시합니다 */}
+      <h1
+        style={{
+          fontSize: "3rem",
+          fontWeight: "bold",
+          color: library.primaryColor,
+        }}
+      >
+        {library.name}
+      </h1>
+      <p style={{ color: "#666" }}>도서관 홈페이지에 오신 것을 환영합니다</p>
+    </main>
   );
 }
