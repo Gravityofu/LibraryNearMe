@@ -72,7 +72,7 @@ export default function SiteSidebar({
           <div key={group.key} className="border-b border-neutral-100 last:border-b-0">
             <button
               onClick={() => toggle(i)}
-              className="flex w-full items-center justify-between px-2 py-2.5 text-sm font-semibold"
+              className="cursor-pointer flex w-full items-center justify-between px-2 py-2.5 text-sm font-semibold"
             >
               {t(group.key)}
               <span
