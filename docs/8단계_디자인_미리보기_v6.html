@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디자인 미리보기 v6</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','Malgun Gothic',sans-serif; background:#e8e4dc; padding:32px 16px; color:#1f1f1f; }
+  .label { max-width:1415px; margin:0 auto 12px; font-size:14px; font-weight:700; color:#555; }
+  .note { max-width:1415px; margin:0 auto 12px; font-size:12.5px; color:#777; }
+  .frame { max-width:1415px; margin:0 auto 48px; background:#F9F6F0; border:1px solid #d8d3c8; border-radius:12px; overflow:hidden; box-shadow:0 3px 16px rgba(0,0,0,.07); }
+
+  /* ===== 홈 3단 (좌우 230px 고정, 가운데만 넓어짐) ===== */
+  .home { display:grid; grid-template-columns:230px 1fr 230px; gap:20px; padding:22px; align-items:start; }
+
+  /* 왼쪽 주 메뉴 */
+  .menu-panel { background:#fff; border:1px solid #eae4d8; border-radius:10px; padding:14px; }
+  .brand { text-align:left; font-size:19px; font-weight:800; color:#2563eb; padding:8px 8px 14px; }
+  .auth-btn { display:block; width:100%; text-align:center; background:#383838; color:#F9F6F0; font-size:13.5px; font-weight:600; padding:11px 0; border-radius:8px; text-decoration:none; }
+  .m-group { border-bottom:1px solid #f1ece2; }
+  .m-group:first-of-type { margin-top:16px; }
+  .m-group:last-child { border-bottom:none; }
+  .m-head { display:flex; justify-content:space-between; align-items:center; padding:11px 8px; font-size:14px; font-weight:600; cursor:pointer; user-select:none; }
+  .m-head .arw { font-size:10px; color:#aaa; transition:transform .15s; }
+  .m-group.open .arw { transform:rotate(90deg); }
+  .submenu { display:none; padding:2px 0 8px; }
+  .m-group.open .submenu { display:block; }
+  .submenu a { display:block; padding:7px 16px; font-size:13px; color:#666; text-decoration:none; border-radius:6px; }
+  .submenu a:hover { background:#f6f2ea; color:#1f1f1f; }
+  .submenu a.active { background:#eef2ff; color:#2563eb; font-weight:600; }
+
+  /* 가운데 바디 */
+  .banner { height:250px; border-radius:12px; background:linear-gradient(120deg,#c9d6ef 0%,#e8dfd0 55%,#d8c9b6 100%); display:flex; align-items:center; justify-content:center; border:1px solid #e6ded0; }
+  .banner .cap { background:rgba(0,0,0,.28); color:#fff; font-size:12px; padding:6px 12px; border-radius:20px; }
+  .searchwrap { margin-top:20px; position:relative; }
+  .searchwrap .ic { position:absolute; left:22px; top:50%; transform:translateY(-50%); font-size:17px; color:#b3ab9c; }
+  .searchwrap input { width:100%; height:54px; border:1px solid #ddd6c9; border-radius:999px; padding:0 24px 0 50px; font-size:15px; background:#fff; color:#333; }
+  .searchwrap input::placeholder { color:#b3ab9c; }
+  .search-hint { margin-top:8px; font-size:12px; color:#b0a998; text-align:center; }
+  .welcome { margin-top:26px; text-align:center; color:#8a8578; font-size:13.5px; line-height:1.8; }
+
+  /* 오른쪽 최근 글: 게시판마다 박스 하나씩 아래로 쌓임 */
+  .posts-col { display:flex; flex-direction:column; gap:14px; }
+  .board-box { background:#fff; border:1px solid #eae4d8; border-radius:10px; padding:14px; }
+  .board-box h4 { font-size:13px; font-weight:800; margin:2px 4px 10px; display:flex; align-items:center; gap:6px; }
+  .board-box h4 .more { margin-left:auto; font-size:11px; font-weight:500; color:#c3bcab; }
+  .row { display:flex; gap:8px; align-items:baseline; padding:7px 4px; border-top:1px solid #f4efe6; font-size:12.5px; }
+  .row:first-of-type { border-top:none; }
+  .row .t { color:#4a4a4a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .d { margin-left:auto; flex-shrink:0; color:#c1bbae; font-size:11px; }
+
+  /* ===== 관리자 ===== */
+  .admin { display:flex; min-height:440px; }
+  .a-side { width:210px; background:#383838; color:#F9F6F0; padding:24px 18px; }
+  .a-side .ttl { font-weight:800; font-size:15px; margin-bottom:22px; color:#F9F6F0; }
+  .a-menu { display:flex; flex-direction:column; gap:4px; }
+  .a-menu a { padding:10px 12px; border-radius:8px; font-size:13.5px; text-decoration:none; color:rgba(249,246,240,.62); }
+  .a-menu a.on { background:rgba(249,246,240,.14); color:#F9F6F0; font-weight:700; }
+  .a-side .back { margin-top:26px; padding-top:16px; border-top:1px solid rgba(249,246,240,.18); font-size:12.5px; color:rgba(249,246,240,.6); }
+  .a-content { flex:1; padding:36px; background:#F9F6F0; }
+  .card { background:#fff; border:1px solid #eae4d8; border-radius:12px; max-width:420px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+  .card h2 { font-size:16px; margin-bottom:18px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:#444; }
+  .field .input { height:38px; border:1px solid #e2ddd2; border-radius:8px; background:#fbfaf7; display:flex; align-items:center; padding:0 12px; font-size:13.5px; color:#333; }
+  .swatch { width:56px; height:36px; border-radius:8px; background:#2563eb; border:1px solid #e2ddd2; }
+  .savebtn { margin-top:6px; width:100%; height:40px; border:none; border-radius:8px; background:#1f1f1f; color:#fff; font-size:14px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="label">① 홈페이지 첫 페이지 — 가로 10% 더 넓힘 · 로고 왼쪽 정렬 · '전체 메뉴' 글자 삭제</div>
+<div class="note">왼쪽 큰 메뉴를 클릭하면 하위 메뉴가 펼쳐집니다. 검색창은 버튼 없이 Enter로 검색. 오른쪽은 게시판마다 박스 하나씩.</div>
+<div class="frame">
+  <div class="home">
+
+    <!-- 왼쪽 주 메뉴 -->
+    <div class="menu-panel">
+      <div class="brand">무지개 도서관</div>
+      <a class="auth-btn">로그인 / 회원가입</a>
+
+      <div class="m-group open">
+        <div class="m-head" onclick="tog(this)">자료검색 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a class="active">통합 검색</a>
+          <a>신착 자료</a>
+          <a>인기 자료</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">도서관 이용 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>이용 안내</a>
+          <a>오시는 길</a>
+          <a>운영 시간</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">커뮤니티 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>공지사항</a>
+          <a>자유게시판</a>
+          <a>독서모임</a>
+          <a>자료 신청</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">내 서재 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>대출 현황</a>
+          <a>예약 현황</a>
+          <a>모바일 회원증</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">도서관 소개 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>인사말</a>
+          <a>시설 안내</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 가운데 바디 -->
+    <div class="body-col">
+      <div class="banner"><span class="cap">대표 이미지 · 관리자 페이지에서 변경 가능</span></div>
+      <div class="searchwrap">
+        <span class="ic">🔍</span>
+        <input placeholder="검색어를 입력하고 Enter를 누르세요" readonly>
+      </div>
+      <div class="search-hint">Enter를 누르면 바로 검색됩니다 (검색 버튼 없음)</div>
+      <div class="welcome">책과 사람을 잇는 공간, 무지개 도서관입니다.<br>왼쪽 메뉴에서 원하는 서비스를 골라보세요.</div>
+    </div>
+
+    <!-- 오른쪽 최근 글: 게시판마다 박스 하나씩 -->
+    <div class="posts-col">
+      <div class="board-box">
+        <h4>공지사항 <span class="more">더보기 ›</span></h4>
+        <div class="row"><span class="t">7월 독서모임 신청 안내</span><span class="d">07-15</span></div>
+        <div class="row"><span class="t">8월 휴관일 안내</span><span class="d">07-12</span></div>
+        <div class="row"><span class="t">신착 도서 입고 안내</span><span class="d">07-10</span></div>
+        <div class="row"><span class="t">여름 독서 이벤트 당첨자</span><span class="d">07-08</span></div>
+        <div class="row"><span class="t">홈페이지 개편 안내</span><span class="d">07-05</span></div>
+      </div>
+      <div class="board-box">
+        <h4>자유게시판 <span class="more">더보기 ›</span></h4>
+        <div class="row"><span class="t">이 책 정말 인생책이에요</span><span class="d">07-14</span></div>
+        <div class="row"><span class="t">요즘 읽는 소설 추천해요</span><span class="d">07-13</span></div>
+        <div class="row"><span class="t">도서관 카페 너무 좋네요</span><span class="d">07-11</span></div>
+        <div class="row"><span class="t">주말 자리 여유 있나요?</span><span class="d">07-09</span></div>
+        <div class="row"><span class="t">첫 방문 후기 남깁니다</span><span class="d">07-07</span></div>
+      </div>
+      <div class="board-box">
+        <h4>독서모임 <span class="more">더보기 ›</span></h4>
+        <div class="row"><span class="t">함께 읽어요: 데미안</span><span class="d">07-13</span></div>
+        <div class="row"><span class="t">8월 모임 주제 투표</span><span class="d">07-10</span></div>
+        <div class="row"><span class="t">지난 모임 후기 모음</span><span class="d">07-06</span></div>
+        <div class="row"><span class="t">신규 회원 환영합니다</span><span class="d">07-04</span></div>
+        <div class="row"><span class="t">모임 장소 변경 안내</span><span class="d">07-02</span></div>
+      </div>
+      <div class="note" style="padding:0 4px;">↑ 게시판 수만큼 박스가 계속 아래로 (지금은 3개 예시). 관리자에서 박스별 노출 여부 선택 예정.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="label">② 관리자 페이지 — 왼쪽 메뉴 짙은 회색 + 아이보리 글씨 (그대로)</div>
+<div class="frame">
+  <div class="admin">
+    <div class="a-side">
+      <div class="ttl">관리자</div>
+      <div class="a-menu">
+        <a class="on">도서관 설정</a>
+        <a>도서 관리 (준비 중)</a>
+        <a>회원 관리 (준비 중)</a>
+        <a>대출/반납 (준비 중)</a>
+      </div>
+      <div class="back">← 홈페이지로</div>
+    </div>
+    <div class="a-content">
+      <div class="card">
+        <h2>도서관 설정</h2>
+        <div class="field"><label>도서관 이름</label><div class="input">무지개 도서관</div></div>
+        <div class="field"><label>대표 색상</label><div class="swatch"></div></div>
+        <button class="savebtn">저장하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function tog(el){ el.parentElement.classList.toggle('open'); }
+</script>
+
+</body>
+</html>

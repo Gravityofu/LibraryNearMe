@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공통 레이아웃 미리보기</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','Malgun Gothic',sans-serif; background:#e8e4dc; padding:32px 16px; color:#1a1a1a; }
+  .label { max-width:960px; margin:0 auto 12px; font-size:14px; font-weight:700; color:#555; }
+  .frame { max-width:960px; margin:0 auto 48px; background:#F9F6F0; border:1px solid #d8d3c8; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+
+  /* ---------- 홈페이지 ---------- */
+  .site-header { display:flex; justify-content:space-between; align-items:center; padding:18px 40px; border-bottom:1px solid #e3ddd2; }
+  .logo { font-weight:800; font-size:17px; color:#2563eb; }
+  .nav { display:flex; gap:24px; font-size:13.5px; color:#444; }
+  .hero { text-align:center; padding:72px 24px 56px; }
+  .hero h1 { font-size:34px; font-weight:800; color:#2563eb; letter-spacing:-0.5px; }
+  .hero p { margin-top:14px; color:#666; font-size:15px; }
+  .searchbar { margin:36px auto 0; max-width:520px; display:flex; gap:8px; }
+  .searchbar input { flex:1; height:48px; border:1px solid #ddd6c9; border-radius:10px; padding:0 18px; font-size:15px; background:#fff; color:#999; }
+  .searchbar button { height:48px; padding:0 26px; border:none; border-radius:10px; background:#2563eb; color:#fff; font-size:15px; font-weight:600; }
+  .info { display:grid; grid-template-columns:1fr 1fr 1fr; gap:32px; padding:20px 60px 64px; text-align:left; }
+  .info h3 { font-size:14.5px; font-weight:700; margin-bottom:8px; }
+  .info p { font-size:13px; color:#777; line-height:1.7; }
+  .site-footer { border-top:1px solid #e3ddd2; padding:26px 40px; font-size:12.5px; color:#8a8578; }
+  .site-footer b { color:#555; display:block; margin-bottom:4px; font-size:13px; }
+
+  /* ---------- 관리자 ---------- */
+  .admin-body { display:flex; min-height:420px; }
+  .sidebar { width:200px; border-right:1px solid #e3ddd2; padding:26px 22px; }
+  .sidebar .title { font-weight:800; font-size:15px; margin-bottom:22px; }
+  .menu { display:flex; flex-direction:column; gap:14px; font-size:13.5px; }
+  .menu .on { font-weight:700; color:#1a1a1a; }
+  .menu .off { color:#b3ac9d; }
+  .sidebar .back { margin-top:28px; padding-top:16px; border-top:1px solid #e3ddd2; font-size:12.5px; color:#8a8578; }
+  .content { flex:1; padding:36px; }
+  .card { background:#fff; border:1px solid #eae4d8; border-radius:12px; max-width:420px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+  .card h2 { font-size:16px; margin-bottom:18px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:#444; }
+  .field .input { height:38px; border:1px solid #e2ddd2; border-radius:8px; background:#fbfaf7; display:flex; align-items:center; padding:0 12px; font-size:13.5px; color:#333; }
+  .swatch { width:56px; height:36px; border-radius:8px; background:#2563eb; border:1px solid #e2ddd2; }
+  .savebtn { margin-top:6px; width:100%; height:40px; border:none; border-radius:8px; background:#1a1a1a; color:#fff; font-size:14px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="label">① 홈페이지 (검색창 중심 · 담백형 · 헤더/바디/푸터 단일색 #F9F6F0)</div>
+<div class="frame">
+  <div class="site-header">
+    <div class="logo">무지개 도서관</div>
+    <div class="nav"><span>자료검색</span><span>로그인</span><span>회원가입</span></div>
+  </div>
+  <div class="hero">
+    <h1>무지개 도서관</h1>
+    <p>책과 사람을 잇는 공간입니다.</p>
+    <div class="searchbar">
+      <input value="찾고 싶은 책 제목이나 지은이를 입력하세요" readonly>
+      <button>검색</button>
+    </div>
+  </div>
+  <div class="info">
+    <div><h3>이용 안내</h3><p>1인 5권까지, 14일 동안 대출할 수 있습니다. 홈페이지에서 예약과 연장이 가능합니다.</p></div>
+    <div><h3>운영 시간</h3><p>화–일 09:00–18:00<br>매주 월요일·법정 공휴일 휴관</p></div>
+    <div><h3>공지사항</h3><p>독서 모임, 문화 행사, 휴관 안내 등 도서관 소식이 이 자리에 표시됩니다.</p></div>
+  </div>
+  <div class="site-footer"><b>무지개 도서관</b>ⓒ 2026 무지개 도서관. 책과 사람을 잇습니다.</div>
+</div>
+
+<div class="label">② 관리자 페이지 (왼쪽 세로 메뉴 · 같은 배경색, 카드만 흰색)</div>
+<div class="frame">
+  <div class="admin-body">
+    <div class="sidebar">
+      <div class="title">관리자</div>
+      <div class="menu">
+        <span class="on">도서관 설정</span>
+        <span class="off">도서 관리 (준비 중)</span>
+        <span class="off">회원 관리 (준비 중)</span>
+        <span class="off">대출/반납 (준비 중)</span>
+      </div>
+      <div class="back">← 홈페이지로</div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <h2>도서관 설정</h2>
+        <div class="field"><label>도서관 이름</label><div class="input">무지개 도서관</div></div>
+        <div class="field"><label>대표 색상</label><div class="swatch"></div></div>
+        <button class="savebtn">저장하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디자인 미리보기 v2</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','Malgun Gothic',sans-serif; background:#e8e4dc; padding:32px 16px; color:#1f1f1f; }
+  .label { max-width:1080px; margin:0 auto 12px; font-size:14px; font-weight:700; color:#555; }
+  .note { max-width:1080px; margin:0 auto 12px; font-size:12.5px; color:#777; }
+  .frame { max-width:1080px; margin:0 auto 48px; background:#F9F6F0; border:1px solid #d8d3c8; border-radius:12px; overflow:hidden; box-shadow:0 3px 16px rgba(0,0,0,.07); }
+
+  /* ===== 홈페이지 상단 바 ===== */
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:14px 28px; border-bottom:1px solid #e3ddd2; background:#F9F6F0; }
+  .logo { font-weight:800; font-size:18px; color:#2563eb; }
+  .top-links { display:flex; gap:18px; font-size:13px; color:#666; }
+
+  /* ===== 홈 3단 레이아웃 ===== */
+  .home { display:grid; grid-template-columns:200px 1fr 260px; gap:20px; padding:22px; }
+
+  /* 왼쪽 주 메뉴 */
+  .menu-panel { background:#fff; border:1px solid #eae4d8; border-radius:10px; padding:10px; height:fit-content; }
+  .menu-panel .ph { font-size:12px; font-weight:700; color:#b0a998; padding:6px 8px 10px; }
+  .m-group { border-bottom:1px solid #f1ece2; }
+  .m-group:last-child { border-bottom:none; }
+  .m-head { display:flex; justify-content:space-between; align-items:center; padding:11px 8px; font-size:14px; font-weight:600; cursor:pointer; user-select:none; }
+  .m-head .arw { font-size:10px; color:#aaa; transition:transform .15s; }
+  .m-group.open .arw { transform:rotate(90deg); }
+  .submenu { display:none; padding:2px 0 8px; }
+  .m-group.open .submenu { display:block; }
+  .submenu a { display:block; padding:7px 16px; font-size:13px; color:#666; text-decoration:none; border-radius:6px; }
+  .submenu a:hover { background:#f6f2ea; color:#1f1f1f; }
+  .submenu a.active { background:#eef2ff; color:#2563eb; font-weight:600; }
+
+  /* 가운데 바디 */
+  .banner { height:210px; border-radius:12px; background:linear-gradient(120deg,#c9d6ef 0%,#e8dfd0 55%,#d8c9b6 100%); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; border:1px solid #e6ded0; }
+  .banner .cap { background:rgba(0,0,0,.28); color:#fff; font-size:12px; padding:6px 12px; border-radius:20px; }
+  .searchwrap { margin-top:18px; position:relative; }
+  .searchwrap .ic { position:absolute; left:18px; top:50%; transform:translateY(-50%); font-size:17px; color:#b3ab9c; }
+  .searchwrap input { width:100%; height:54px; border:1px solid #ddd6c9; border-radius:12px; padding:0 18px 0 46px; font-size:15px; background:#fff; color:#333; }
+  .searchwrap input::placeholder { color:#b3ab9c; }
+  .search-hint { margin-top:8px; font-size:12px; color:#b0a998; text-align:center; }
+  .welcome { margin-top:26px; text-align:center; color:#8a8578; font-size:13.5px; line-height:1.8; }
+
+  /* 오른쪽 최근 글 */
+  .side-panel { background:#fff; border:1px solid #eae4d8; border-radius:10px; padding:14px; height:fit-content; }
+  .side-panel h4 { font-size:13px; font-weight:800; margin:2px 4px 12px; }
+  .post { display:flex; gap:8px; align-items:baseline; padding:8px 4px; border-top:1px solid #f4efe6; font-size:12.5px; }
+  .post:first-of-type { border-top:none; }
+  .tag { flex-shrink:0; font-size:10.5px; font-weight:700; color:#2563eb; background:#eef2ff; padding:2px 6px; border-radius:5px; }
+  .post .t { color:#444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .post .d { margin-left:auto; flex-shrink:0; color:#bbb; font-size:11px; }
+
+  /* ===== 관리자 ===== */
+  .admin { display:flex; min-height:440px; }
+  .a-side { width:210px; background:#383838; color:#F9F6F0; padding:24px 18px; }
+  .a-side .ttl { font-weight:800; font-size:15px; margin-bottom:22px; color:#F9F6F0; }
+  .a-menu { display:flex; flex-direction:column; gap:4px; }
+  .a-menu a { padding:10px 12px; border-radius:8px; font-size:13.5px; text-decoration:none; color:rgba(249,246,240,.62); }
+  .a-menu a.on { background:rgba(249,246,240,.14); color:#F9F6F0; font-weight:700; }
+  .a-side .back { margin-top:26px; padding-top:16px; border-top:1px solid rgba(249,246,240,.18); font-size:12.5px; color:rgba(249,246,240,.6); }
+  .a-content { flex:1; padding:36px; background:#F9F6F0; }
+  .card { background:#fff; border:1px solid #eae4d8; border-radius:12px; max-width:420px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+  .card h2 { font-size:16px; margin-bottom:18px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:#444; }
+  .field .input { height:38px; border:1px solid #e2ddd2; border-radius:8px; background:#fbfaf7; display:flex; align-items:center; padding:0 12px; font-size:13.5px; color:#333; }
+  .swatch { width:56px; height:36px; border-radius:8px; background:#2563eb; border:1px solid #e2ddd2; }
+  .savebtn { margin-top:6px; width:100%; height:40px; border:none; border-radius:8px; background:#1f1f1f; color:#fff; font-size:14px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="label">① 홈페이지 첫 페이지 — 왼쪽 주 메뉴(펼침) · 가운데 사진+검색 · 오른쪽 게시판 최근 글</div>
+<div class="note">왼쪽의 큰 메뉴를 클릭하면 하위 메뉴가 펼쳐집니다 (직접 눌러보세요). 검색창은 버튼 없이 Enter로 검색.</div>
+<div class="frame">
+  <div class="topbar">
+    <div class="logo">무지개 도서관</div>
+    <div class="top-links"><span>로그인</span><span>회원가입</span></div>
+  </div>
+  <div class="home">
+
+    <!-- 왼쪽 주 메뉴 -->
+    <div class="menu-panel">
+      <div class="ph">전체 메뉴</div>
+      <div class="m-group open">
+        <div class="m-head" onclick="tog(this)">자료검색 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a class="active">통합 검색</a>
+          <a>신착 자료</a>
+          <a>인기 자료</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">도서관 이용 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>이용 안내</a>
+          <a>오시는 길</a>
+          <a>운영 시간</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">커뮤니티 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>공지사항</a>
+          <a>자유게시판</a>
+          <a>독서모임</a>
+          <a>자료 신청</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">내 서재 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>대출 현황</a>
+          <a>예약 현황</a>
+          <a>모바일 회원증</a>
+        </div>
+      </div>
+      <div class="m-group">
+        <div class="m-head" onclick="tog(this)">도서관 소개 <span class="arw">▸</span></div>
+        <div class="submenu">
+          <a>인사말</a>
+          <a>시설 안내</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 가운데 바디 -->
+    <div class="body-col">
+      <div class="banner"><span class="cap">대표 이미지 · 관리자 페이지에서 변경 가능</span></div>
+      <div class="searchwrap">
+        <span class="ic">🔍</span>
+        <input placeholder="검색어를 입력하고 Enter를 누르세요" readonly>
+      </div>
+      <div class="search-hint">Enter를 누르면 바로 검색됩니다 (검색 버튼 없음)</div>
+      <div class="welcome">책과 사람을 잇는 공간, 무지개 도서관입니다.<br>왼쪽 메뉴에서 원하는 서비스를 골라보세요.</div>
+    </div>
+
+    <!-- 오른쪽 최근 글 -->
+    <div class="side-panel">
+      <h4>게시판 최근 글</h4>
+      <div class="post"><span class="tag">공지</span><span class="t">7월 독서모임 신청 안내</span><span class="d">07-15</span></div>
+      <div class="post"><span class="tag">자유</span><span class="t">이 책 정말 인생책이에요</span><span class="d">07-14</span></div>
+      <div class="post"><span class="tag">모임</span><span class="t">함께 읽어요: 데미안</span><span class="d">07-13</span></div>
+      <div class="post"><span class="tag">공지</span><span class="t">8월 휴관일 안내</span><span class="d">07-12</span></div>
+      <div class="post"><span class="tag">신청</span><span class="t">신간 도서 신청합니다</span><span class="d">07-11</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="label">② 관리자 페이지 — 왼쪽 메뉴를 짙은 회색 + 아이보리 글씨로</div>
+<div class="frame">
+  <div class="admin">
+    <div class="a-side">
+      <div class="ttl">관리자</div>
+      <div class="a-menu">
+        <a class="on">도서관 설정</a>
+        <a>도서 관리 (준비 중)</a>
+        <a>회원 관리 (준비 중)</a>
+        <a>대출/반납 (준비 중)</a>
+      </div>
+      <div class="back">← 홈페이지로</div>
+    </div>
+    <div class="a-content">
+      <div class="card">
+        <h2>도서관 설정</h2>
+        <div class="field"><label>도서관 이름</label><div class="input">무지개 도서관</div></div>
+        <div class="field"><label>대표 색상</label><div class="swatch"></div></div>
+        <button class="savebtn">저장하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function tog(el){ el.parentElement.classList.toggle('open'); }
+</script>
+
+</body>
+</html>
