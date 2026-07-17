@@ -22,6 +22,8 @@ model Library {
   createdAt    DateTime @default(now())
 
   users        User[]             // 이 도서관에 속한 사용자들 (연결고리)
+  materials    Material[]   // ← 추가
+  copies       Copy[]       // ← 추가
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -69,4 +71,64 @@ enum UserStatus {
   ACTIVE      // 활성
   PENDING     // 대기 (이전됐지만 아직 활성화 안 함 등)
   SUSPENDED   // 정지 / 탈퇴
+}
+
+// 자료 정보 (서지 레코드) — 조제님의 table1
+model Material {
+  id         Int      @id @default(autoincrement())
+
+  libraryId  Int
+  library    Library  @relation(fields: [libraryId], references: [id])
+
+  type       String   // 자료 종류 코드 (book, dvd, article, ...) — 다음 단계에서 목록 연결
+  title      String   // 서명(제목)
+  creator    String?  // 저자 / 제작자
+  publisher  String?  // 발행처(출판사)
+  pubYear    String?  // 발행년 (문자열로: "2024" 등)
+  isbn       String?  // ISBN
+  callNumber String?  // 청구기호 (자료 단위)
+  summary    String?  // 요약 / 설명
+  coverUrl   String?  // 표지 이미지 주소
+  onlineUrl  String?  // 온라인 자료 접근 주소
+  marcRaw    String?  // 원본 KORMARC (도서·DVD만 채워짐)
+  extra      Json?    // 종류별 특수 정보 (예: 보드게임 인원수)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  copies     Copy[]   // 이 자료에 속한 실물 부수들
+
+  @@index([libraryId])
+}
+
+// 실물 개별 자료 (소장 부수) — 조제님의 table2
+model Copy {
+  id             Int        @id @default(autoincrement())
+
+  libraryId      Int
+  library        Library    @relation(fields: [libraryId], references: [id])
+  materialId     Int
+  material       Material   @relation(fields: [materialId], references: [id])
+
+  registrationNo String     // 등록번호(고유번호) — 도서관 안에서 고유
+  specialCode    String?    // 별치기호 (예: 아동, 그림)
+  shelfNo        String?    // 서가번호
+  location       String?    // 소장처 (예: 2층 문학)
+  status         CopyStatus @default(AVAILABLE) // 상태
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([libraryId, registrationNo]) // 같은 도서관 안에서 등록번호 중복 금지
+  @@index([materialId])
+}
+
+// 부수 상태 (대출/제적 기능 만들 때 더 다듬을 예정)
+enum CopyStatus {
+  AVAILABLE   // 비치(대출 가능)
+  ON_LOAN     // 대출중
+  RESERVED    // 예약 대기
+  REPAIR      // 보수중
+  LOST        // 분실
+  WITHDRAWN   // 제적
 }
