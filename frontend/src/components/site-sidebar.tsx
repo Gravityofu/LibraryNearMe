@@ -2,33 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useI18n } from "@/components/language-provider";
+import LanguageToggle from "@/components/language-toggle";
 
-// 왼쪽 메뉴 구성 (하위 페이지는 앞으로 하나씩 진짜 링크로 연결됩니다)
+// 이제 글자 대신 '이름표(키)'를 씁니다.
 const MENU = [
-  { title: "자료검색", items: [
-    { label: "통합 검색", href: "/" },
-    { label: "신착 자료", href: "#" },
-    { label: "인기 자료", href: "#" },
+  { key: "nav.search", items: [
+    { key: "nav.search.all", href: "/" },
+    { key: "nav.search.new", href: "#" },
+    { key: "nav.search.popular", href: "#" },
   ]},
-  { title: "도서관 이용", items: [
-    { label: "이용 안내", href: "#" },
-    { label: "오시는 길", href: "#" },
-    { label: "운영 시간", href: "#" },
+  { key: "nav.use", items: [
+    { key: "nav.use.guide", href: "#" },
+    { key: "nav.use.location", href: "#" },
+    { key: "nav.use.hours", href: "#" },
   ]},
-  { title: "커뮤니티", items: [
-    { label: "공지사항", href: "#" },
-    { label: "자유게시판", href: "#" },
-    { label: "독서모임", href: "#" },
-    { label: "자료 신청", href: "#" },
+  { key: "nav.community", items: [
+    { key: "nav.community.notice", href: "#" },
+    { key: "nav.community.free", href: "#" },
+    { key: "nav.community.club", href: "#" },
+    { key: "nav.community.request", href: "#" },
   ]},
-  { title: "내 서재", items: [
-    { label: "대출 현황", href: "#" },
-    { label: "예약 현황", href: "#" },
-    { label: "모바일 회원증", href: "#" },
+  { key: "nav.myshelf", items: [
+    { key: "nav.myshelf.loans", href: "#" },
+    { key: "nav.myshelf.reservations", href: "#" },
+    { key: "nav.myshelf.card", href: "#" },
   ]},
-  { title: "도서관 소개", items: [
-    { label: "인사말", href: "#" },
-    { label: "시설 안내", href: "#" },
+  { key: "nav.about", items: [
+    { key: "nav.about.greeting", href: "#" },
+    { key: "nav.about.facilities", href: "#" },
   ]},
 ];
 
@@ -39,7 +41,7 @@ export default function SiteSidebar({
   name: string;
   primaryColor?: string;
 }) {
-  // 열려 있는 메뉴 번호 목록 (처음엔 0번=자료검색만 열림)
+  const { t } = useI18n();
   const [open, setOpen] = useState<number[]>([0]);
 
   function toggle(i: number) {
@@ -50,32 +52,29 @@ export default function SiteSidebar({
 
   return (
     <aside className="rounded-xl border border-neutral-200 bg-white p-3.5">
-      {/* 로고 (왼쪽 정렬) */}
-      <Link
-        href="/"
-        className="block px-2 pb-3.5 pt-2 text-lg font-extrabold"
-        style={{ color: primaryColor }}
-      >
-        {name}
-      </Link>
+      {/* 로고 + 언어 토글 */}
+      <div className="flex items-center justify-between px-2 pb-3.5 pt-2">
+        <Link href="/" className="text-lg font-extrabold" style={{ color: primaryColor }}>
+          {name}
+        </Link>
+        <LanguageToggle />
+      </div>
 
-      {/* 로그인/회원가입 단일 버튼 (짙은 회색 + 아이보리 글씨) */}
       <Link
         href="/login"
         className="block rounded-lg bg-[#383838] py-2.5 text-center text-sm font-semibold text-[#F9F6F0]"
       >
-        로그인 / 회원가입
+        {t("auth.button")}
       </Link>
 
-      {/* 아코디언 메뉴 */}
       <nav className="mt-4">
         {MENU.map((group, i) => (
-          <div key={group.title} className="border-b border-neutral-100 last:border-b-0">
+          <div key={group.key} className="border-b border-neutral-100 last:border-b-0">
             <button
               onClick={() => toggle(i)}
               className="flex w-full items-center justify-between px-2 py-2.5 text-sm font-semibold"
             >
-              {group.title}
+              {t(group.key)}
               <span
                 className={`text-[10px] text-neutral-400 transition-transform ${
                   open.includes(i) ? "rotate-90" : ""
@@ -88,11 +87,11 @@ export default function SiteSidebar({
               <div className="pb-2">
                 {group.items.map((item) => (
                   <Link
-                    key={item.label}
+                    key={item.key}
                     href={item.href}
                     className="block rounded-md px-4 py-1.5 text-[13px] text-neutral-600 hover:bg-neutral-50"
                   >
-                    {item.label}
+                    {t(item.key)}
                   </Link>
                 ))}
               </div>
