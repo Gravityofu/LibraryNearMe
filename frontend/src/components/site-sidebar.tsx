@@ -76,7 +76,7 @@ export default function SiteSidebar({
             >
               {t(group.key)}
               <span
-                className={`text-[10px] text-neutral-400 transition-transform ${
+                className={`text-[0.625rem] text-neutral-400 transition-transform ${
                   open.includes(i) ? "rotate-90" : ""
                 }`}
               >
@@ -89,7 +89,7 @@ export default function SiteSidebar({
                   <Link
                     key={item.key}
                     href={item.href}
-                    className="block rounded-md px-4 py-1.5 text-[13px] text-neutral-600 hover:bg-neutral-50"
+                    className="block rounded-md px-4 py-1.5 text-[0.8125rem] text-neutral-600 hover:bg-neutral-50"
                   >
                     {t(item.key)}
                   </Link>

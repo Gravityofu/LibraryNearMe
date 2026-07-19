@@ -29,7 +29,7 @@ export default function SearchBox() {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder={t("home.searchPlaceholder")}
-          className="h-[54px] w-full rounded-full border border-[#ddd6c9] bg-white pl-12 pr-6 text-[15px] outline-none focus:border-neutral-400"
+          className="h-[54px] w-full rounded-full border border-[#ddd6c9] bg-white pl-12 pr-6 text-[0.9375rem] outline-none focus:border-neutral-400"
         />
       </div>
       <p className="mt-2 text-center text-xs text-neutral-400">{hint}</p>

@@ -32,19 +32,19 @@ export default function RecentPosts() {
     <div className="flex flex-col gap-3.5">
       {BOARDS.map((board) => (
         <div key={board.name} className="rounded-xl border border-neutral-200 bg-white p-3.5">
-          <h4 className="mb-2.5 flex items-center px-1 text-[13px] font-extrabold">
+          <h4 className="mb-2.5 flex items-center px-1 text-[0.8125rem] font-extrabold">
             {board.name}
-            <span className="ml-auto text-[11px] font-normal text-neutral-400">
+            <span className="ml-auto text-[0.6875rem] font-normal text-neutral-400">
               {t("posts.more")}
             </span>
           </h4>
           {board.posts.map((p, idx) => (
             <div
               key={idx}
-              className="flex items-baseline gap-2 border-t border-neutral-100 px-1 py-1.5 text-[12.5px] first:border-t-0"
+              className="flex items-baseline gap-2 border-t border-neutral-100 px-1 py-1.5 text-[0.78125rem] first:border-t-0"
             >
               <span className="truncate text-neutral-600">{p.title}</span>
-              <span className="ml-auto shrink-0 text-[11px] text-neutral-400">{p.date}</span>
+              <span className="ml-auto shrink-0 text-[0.6875rem] text-neutral-400">{p.date}</span>
             </div>
           ))}
         </div>
