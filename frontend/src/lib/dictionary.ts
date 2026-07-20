@@ -72,6 +72,10 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.saving": "저장 중...",
     "admin.settings.saved": "✅ 저장되었습니다!",
     "admin.settings.saveFail": "저장에 실패했습니다.",
+
+    "auth.greeting": "{name}님, 안녕하세요",
+    "auth.logout": "로그아웃",
+    "auth.adminPage": "관리자 페이지",
   },
   en: {
     "auth.button": "Login / Sign up",
@@ -143,5 +147,9 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.saving": "Saving...",
     "admin.settings.saved": "✅ Saved!",
     "admin.settings.saveFail": "Save failed.",
+
+    "auth.greeting": "Hello, {name}",
+    "auth.logout": "Logout",
+    "auth.adminPage": "Admin Page",
   },
 };

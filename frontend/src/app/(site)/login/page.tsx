@@ -1,22 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/components/language-provider";
+import { useNotify } from "@/components/notify-provider";
+import { useAuth } from "@/components/auth-provider";
 
 const API_URL = "http://localhost:3001";
 
 export default function LoginPage() {
   const { t } = useI18n();
+  const { notify } = useNotify();
+  const { login } = useAuth();
+  const router = useRouter();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
 
   async function handleLogin() {
-    setStatus(t("login.loading"));
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -24,12 +28,14 @@ export default function LoginPage() {
     });
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userName", data.user.name);
-      setStatus(t("login.welcome").replace("{name}", data.user.name));
+      login({ token: data.token, userName: data.user.name, role: data.user.role });
+      notify(t("login.welcome").replace("{name}", data.user.name), "success");
+      // 로그인 버튼을 눌렀던 그 페이지로 돌아갑니다.
+      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/";
+      router.push(redirect);
     } else {
       const data = await res.json().catch(() => null);
-      setStatus("❌ " + (data?.message || t("login.fail")));
+      notify("❌ " + (data?.message || t("login.fail")), "error");
     }
   }
 
@@ -51,7 +57,6 @@ export default function LoginPage() {
           <Button className="cursor-pointer" onClick={handleLogin}>
             {t("login.submit")}
           </Button>
-          <p className="text-sm text-muted-foreground">{status}</p>
         </CardContent>
       </Card>
     </main>

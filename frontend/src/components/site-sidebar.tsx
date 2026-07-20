@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
+import { useAuth } from "@/components/auth-provider";
 import LanguageToggle from "@/components/language-toggle";
 
-// 이제 글자 대신 '이름표(키)'를 씁니다.
 const MENU = [
   { key: "nav.search", items: [
     { key: "nav.search.all", href: "/" },
@@ -42,6 +43,8 @@ export default function SiteSidebar({
   primaryColor?: string;
 }) {
   const { t } = useI18n();
+  const { isLoggedIn, userName, role, logout } = useAuth();
+  const pathname = usePathname();
   const [open, setOpen] = useState<number[]>([0]);
 
   function toggle(i: number) {
@@ -49,6 +52,8 @@ export default function SiteSidebar({
       prev.includes(i) ? prev.filter((n) => n !== i) : [...prev, i]
     );
   }
+
+  const isStaff = role === "ADMIN" || role === "SUPER";
 
   return (
     <aside className="rounded-xl border border-neutral-200 bg-white p-3.5">
@@ -60,19 +65,45 @@ export default function SiteSidebar({
         <LanguageToggle />
       </div>
 
-      <Link
-        href="/login"
-        className="block rounded-lg bg-[#383838] py-2.5 text-center text-sm font-semibold text-[#F9F6F0]"
-      >
-        {t("auth.button")}
-      </Link>
+      {/* 로그인 상태에 따라 다르게 */}
+      {isLoggedIn ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between rounded-lg bg-neutral-100 px-3 py-2.5 text-sm">
+            <span className="font-medium">
+              {t("auth.greeting").replace("{name}", userName ?? "")}
+            </span>
+            <button
+              onClick={logout}
+              className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-800"
+            >
+              {t("auth.logout")}
+            </button>
+          </div>
+          {isStaff && (
+            <Link
+              href="/admin"
+              className="block rounded-lg bg-[#383838] py-2.5 text-center text-sm font-semibold text-[#F9F6F0]"
+            >
+              {t("auth.adminPage")}
+            </Link>
+          )}
+        </div>
+      ) : (
+        <Link
+          href={`/login?redirect=${encodeURIComponent(pathname)}`}
+          className="block rounded-lg bg-[#383838] py-2.5 text-center text-sm font-semibold text-[#F9F6F0]"
+        >
+          {t("auth.button")}
+        </Link>
+      )}
 
+      {/* 아코디언 메뉴 */}
       <nav className="mt-4">
         {MENU.map((group, i) => (
           <div key={group.key} className="border-b border-neutral-100 last:border-b-0">
             <button
               onClick={() => toggle(i)}
-              className="cursor-pointer flex w-full items-center justify-between px-2 py-2.5 text-sm font-semibold"
+              className="flex w-full cursor-pointer items-center justify-between px-2 py-2.5 text-sm font-semibold"
             >
               {t(group.key)}
               <span
