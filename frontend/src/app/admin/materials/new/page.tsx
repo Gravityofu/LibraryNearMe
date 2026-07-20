@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNotify } from "@/components/notify-provider";
 
 const API_URL = "http://localhost:3001";
 
@@ -21,7 +22,7 @@ export default function NewMaterialPage() {
   const [token, setToken] = useState<string | null>(null);
   const [type, setType] = useState("");
   const [form, setForm] = useState(EMPTY);
-  const [status, setStatus] = useState("");
+  const { notify } = useNotify();
 
   useEffect(() => {
     setToken(localStorage.getItem("token"));
@@ -34,7 +35,6 @@ export default function NewMaterialPage() {
   }
 
   async function handleSave() {
-    setStatus("저장 중...");
     const res = await fetch(`${API_URL}/materials`, {
       method: "POST",
       headers: {
@@ -44,11 +44,11 @@ export default function NewMaterialPage() {
       body: JSON.stringify({ type, ...form }),
     });
     if (res.ok) {
-      setStatus("✅ 등록되었습니다.");
+      notify("✅ 등록되었습니다.", "success");
       setForm(EMPTY);
     } else {
       const data = await res.json().catch(() => null);
-      setStatus("❌ " + (data?.message || "등록에 실패했습니다."));
+      notify("❌ " + (data?.message || "등록에 실패했습니다."), "error");
     }
   }
 
@@ -104,7 +104,6 @@ export default function NewMaterialPage() {
             <Field label="표지 이미지 주소" value={form.coverUrl} onChange={(v) => set("coverUrl", v)} />
             <Field label="온라인 접근 주소" value={form.onlineUrl} onChange={(v) => set("onlineUrl", v)} />
             <Button className="cursor-pointer" onClick={handleSave}>등록하기</Button>
-            <p className="text-sm text-muted-foreground">{status}</p>
           </CardContent>
         </Card>
       )}

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/components/language-provider";
+import { useNotify } from "@/components/notify-provider";
 
 const API_URL = "http://localhost:3001";
 
@@ -16,20 +17,19 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("");
+  const { notify } = useNotify();
 
   async function handleSignup() {
-    setStatus(t("signup.loading"));
     const res = await fetch(`${API_URL}/users`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ loginId, password, name, phone, email }),
     });
     if (res.ok) {
-      setStatus(t("signup.success"));
+      notify(t("signup.success"), "success");
     } else {
       const data = await res.json().catch(() => null);
-      setStatus("❌ " + (data?.message || t("signup.fail")));
+      notify("❌ " + (data?.message || t("signup.fail")), "error");
     }
   }
 
@@ -63,7 +63,6 @@ export default function SignupPage() {
           <Button className="cursor-pointer" onClick={handleSignup}>
             {t("signup.submit")}
           </Button>
-          <p className="text-sm text-muted-foreground">{status}</p>
         </CardContent>
       </Card>
     </main>

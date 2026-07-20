@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/components/language-provider";
+import { useNotify } from "@/components/notify-provider";
 
 const API_URL = "http://localhost:3001";
 
@@ -15,7 +16,7 @@ export default function AdminPage() {
   const [checked, setChecked] = useState(false);
   const [name, setName] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
-  const [status, setStatus] = useState("");
+  const { notify } = useNotify();
 
   useEffect(() => {
     setToken(localStorage.getItem("token"));
@@ -31,7 +32,6 @@ export default function AdminPage() {
   }, []);
 
   async function handleSave() {
-    setStatus(t("admin.settings.saving"));
     const res = await fetch(`${API_URL}/library`, {
       method: "PATCH",
       headers: {
@@ -41,10 +41,10 @@ export default function AdminPage() {
       body: JSON.stringify({ name, primaryColor }),
     });
     if (res.ok) {
-      setStatus(t("admin.settings.saved"));
+      notify(t("admin.settings.saved"), "success");
     } else {
       const data = await res.json().catch(() => null);
-      setStatus("❌ " + (data?.message || t("admin.settings.saveFail")));
+      notify("❌ " + (data?.message || t("admin.settings.saveFail")), "error");
     }
   }
 
@@ -86,7 +86,6 @@ export default function AdminPage() {
           <Button className="cursor-pointer" onClick={handleSave}>
             {t("admin.settings.save")}
           </Button>
-          <p className="text-sm text-muted-foreground">{status}</p>
         </CardContent>
       </Card>
     </main>
