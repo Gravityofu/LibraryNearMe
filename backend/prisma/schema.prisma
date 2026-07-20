@@ -33,6 +33,9 @@ model User {
   libraryId     Int                          // 어느 도서관 소속인지
   library       Library    @relation(fields: [libraryId], references: [id])
 
+  createdMaterials Material[]   // 이 사서가 등록한 자료들
+  createdCopies    Copy[]       // 이 사서가 등록한 실물들
+
   loginId       String?                      // 아이디(도서관 내 고유). 이전 회원은 나중에 설정 → 비어도 됨
   passwordHash  String?                      // 암호화된 비밀번호. 소셜·이전 회원 대비 비어도 됨
 
@@ -73,35 +76,43 @@ enum UserStatus {
   SUSPENDED   // 정지 / 탈퇴
 }
 
-// 자료 정보 (서지 레코드) — 조제님의 table1
+// 자료 정보 (서지 레코드)
 model Material {
-  id         Int      @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
 
-  libraryId  Int
-  library    Library  @relation(fields: [libraryId], references: [id])
+  libraryId   Int
+  library     Library  @relation(fields: [libraryId], references: [id])
 
-  type       String   // 자료 종류 코드 (book, dvd, article, ...) — 다음 단계에서 목록 연결
-  title      String   // 서명(제목)
-  creator    String?  // 저자 / 제작자
-  publisher  String?  // 발행처(출판사)
-  pubYear    String?  // 발행년 (문자열로: "2024" 등)
-  isbn       String?  // ISBN
-  callNumber String?  // 청구기호 (자료 단위)
-  summary    String?  // 요약 / 설명
-  coverUrl   String?  // 표지 이미지 주소
-  onlineUrl  String?  // 온라인 자료 접근 주소
-  marcRaw    String?  // 원본 KORMARC (도서·DVD만 채워짐)
-  extra      Json?    // 종류별 특수 정보 (예: 보드게임 인원수)
+  type        String   // 자료 종류 코드 (book, dvd, thesis, ...)
+  title       String   // 서명 — MARC 245 ▼a
+  creator     String?  // 저자 — MARC 100(있으면) / 없으면 245 ▼d
+  publisher   String?  // 발행처 — MARC 260 ▼b
+  pubYear     String?  // 발행년 — MARC 260 ▼c
+  isbn        String?  // ISBN — MARC 020 ▼a
+  classNumber String?  // 분류기호 — MARC 056 (책·DVD 자동추출, 비도서는 선택 입력)
+  format      String?  // 형태(크기·파일형식) — MARC 300
+  subject     String?  // 주제어 — MARC 653
+  language    String?  // 언어 — MARC 041
+  summary     String?  // 요약/설명 — MARC 500 ▼a
+  coverUrl    String?  // 표지 이미지 주소
+  onlineUrl   String?  // 온라인 접근 주소
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  marc        Json?    // 구조화된 MARC(태그 목록) — 책·DVD 서지 원본(편집본)
+  marcRaw     String?  // KOLIS-NET 원본 문자열 그대로 보관
+  extra       Json?    // 종류별 특수 정보
 
-  copies     Copy[]   // 이 자료에 속한 실물 부수들
+  createdById Int?     // 이 자료를 등록한 사서
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  copies      Copy[]
 
   @@index([libraryId])
 }
 
-// 실물 개별 자료 (소장 부수) — 조제님의 table2
+// 실물 개별 자료 (소장 부수) — 실물이 있는 모든 종류에 등록
 model Copy {
   id             Int        @id @default(autoincrement())
 
@@ -110,16 +121,21 @@ model Copy {
   materialId     Int
   material       Material   @relation(fields: [materialId], references: [id])
 
-  registrationNo String     // 등록번호(고유번호) — 도서관 안에서 고유
-  specialCode    String?    // 별치기호 (예: 아동, 그림)
+  registrationNo String     // 등록번호(고유번호) — 도서관 내 고유
+  callNumber     String?    // 청구기호 (이용자가 자료 찾는 번호, 시리즈·COPY 번호 포함)
+  specialCode    String?    // 별치기호
   shelfNo        String?    // 서가번호
   location       String?    // 소장처 (예: 2층 문학)
-  status         CopyStatus @default(AVAILABLE) // 상태
+  memo           String?    // 메모
+  status         CopyStatus @default(AVAILABLE)
+
+  createdById    Int?       // 이 실물을 등록한 사서
+  createdBy      User?      @relation(fields: [createdById], references: [id])
 
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  @@unique([libraryId, registrationNo]) // 같은 도서관 안에서 등록번호 중복 금지
+  @@unique([libraryId, registrationNo])
   @@index([materialId])
 }
 
