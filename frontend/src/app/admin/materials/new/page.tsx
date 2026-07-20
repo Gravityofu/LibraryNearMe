@@ -1,51 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/material-types";
-import { useI18n } from "@/components/language-provider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNotify } from "@/components/notify-provider";
+import MarcEditor, { DEFAULT_FIELDS, MarcField } from "@/components/marc-editor";
 
-const API_URL = "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const EMPTY = {
-  title: "", creator: "", publisher: "", pubYear: "", isbn: "",
-  classNumber: "", format: "", subject: "", language: "",
-  summary: "", coverUrl: "", onlineUrl: "",
-};
+// 비도서 간단 폼에서 쓰는 칸들
+const SIMPLE_FIELDS = [
+  { key: "title", label: "제목", required: true },
+  { key: "creator", label: "저자·제작자" },
+  { key: "publisher", label: "발행처" },
+  { key: "pubYear", label: "발행년" },
+  { key: "isbn", label: "ISBN·식별번호" },
+  { key: "classNumber", label: "분류기호" },
+  { key: "format", label: "형태" },
+  { key: "subject", label: "주제어" },
+  { key: "language", label: "언어" },
+  { key: "summary", label: "설명" },
+];
 
 export default function NewMaterialPage() {
-  const { lang } = useI18n();
-  const [token, setToken] = useState<string | null>(null);
-  const [type, setType] = useState("");
-  const [form, setForm] = useState(EMPTY);
   const { notify } = useNotify();
 
-  useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, []);
+  const [type, setType] = useState("book");
+  const [marc, setMarc] = useState<MarcField[]>(DEFAULT_FIELDS);
+  const [form, setForm] = useState<Record<string, string>>({});
 
-  const selected = MATERIAL_TYPES.find((t) => t.code === type);
-
-  function set(key: string, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  const selected = MATERIAL_TYPES.find((m) => m.code === type);
+  const usesMarc = selected?.usesMarc ?? false;
 
   async function handleSave() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      notify("❌ 로그인이 필요합니다.", "error");
+      return;
+    }
+
+    const body = usesMarc ? { type, marc } : { type, ...form };
+
     const res = await fetch(`${API_URL}/materials`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ type, ...form }),
+      body: JSON.stringify(body),
     });
+
     if (res.ok) {
       notify("✅ 등록되었습니다.", "success");
-      setForm(EMPTY);
+      setForm({});
+      setMarc(DEFAULT_FIELDS);
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || "등록에 실패했습니다."), "error");
@@ -53,78 +60,56 @@ export default function NewMaterialPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-xl font-bold">자료 등록</h1>
+    <div className="mx-auto max-w-3xl">
+      <h1 className="mb-4 text-lg font-bold">자료 등록</h1>
 
-      {/* 1) 종류 선택 */}
-      <div className="mb-6">
-        <Label htmlFor="type">자료 종류</Label>
+      {/* 자료 종류 선택 */}
+      <label className="mb-4 block">
+        <span className="mb-1 block text-sm text-neutral-500">자료 종류</span>
         <select
-          id="type"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="mt-1 block w-full cursor-pointer rounded-md border border-neutral-300 bg-white p-2 text-sm"
+          className="w-48 cursor-pointer rounded-lg border px-3 py-2 text-sm"
         >
-          <option value="">— 종류를 선택하세요 —</option>
-          {MATERIAL_TYPES.map((t) => (
-            <option key={t.code} value={t.code}>
-              {lang === "ko" ? t.nameKo : t.nameEn}
+          {MATERIAL_TYPES.map((m) => (
+            <option key={m.code} value={m.code}>
+              {m.nameKo ?? m.code}
             </option>
           ))}
         </select>
-      </div>
+      </label>
 
-      {/* 2-a) 책·DVD → 다음 단계 안내 */}
-      {selected?.usesMarc && (
-        <Card>
-          <CardContent className="p-6 text-sm text-neutral-500">
-            책·DVD는 MARC 편집기로 등록합니다. 그 화면은 다음 단계(12-3)에서
-            만들어요. 지금은 다른 종류(비도서)로 등록을 시험해 보세요.
-          </CardContent>
-        </Card>
+      {usesMarc ? (
+        <div>
+          <p className="mb-2 text-sm text-neutral-500">
+            MARC 편집기 — ▼ 버튼으로 서브필드 구분자를 넣고, 그 뒤에 코드(a, b …)와 내용을 적어요.
+          </p>
+          <MarcEditor fields={marc} onChange={setMarc} />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {SIMPLE_FIELDS.map((f) => (
+            <label key={f.key} className="block">
+              <span className="mb-1 block text-sm text-neutral-500">
+                {f.label}
+                {f.required && " *"}
+              </span>
+              <input
+                value={form[f.key] ?? ""}
+                onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </label>
+          ))}
+        </div>
       )}
 
-      {/* 2-b) 비도서 → 간단 폼 */}
-      {selected && !selected.usesMarc && (
-        <Card>
-          <CardHeader>
-            <CardTitle>서지 정보 입력</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <Field label="제목 *" value={form.title} onChange={(v) => set("title", v)} />
-            <Field label="저자 / 제작자" value={form.creator} onChange={(v) => set("creator", v)} />
-            <Field label="발행처" value={form.publisher} onChange={(v) => set("publisher", v)} />
-            <Field label="발행년" value={form.pubYear} onChange={(v) => set("pubYear", v)} />
-            <Field label="ISBN(또는 유사 번호)" value={form.isbn} onChange={(v) => set("isbn", v)} />
-            <Field label="분류기호" value={form.classNumber} onChange={(v) => set("classNumber", v)} />
-            <Field label="형태(크기·형식)" value={form.format} onChange={(v) => set("format", v)} />
-            <Field label="주제어" value={form.subject} onChange={(v) => set("subject", v)} />
-            <Field label="언어" value={form.language} onChange={(v) => set("language", v)} />
-            <Field label="요약 / 설명" value={form.summary} onChange={(v) => set("summary", v)} />
-            <Field label="표지 이미지 주소" value={form.coverUrl} onChange={(v) => set("coverUrl", v)} />
-            <Field label="온라인 접근 주소" value={form.onlineUrl} onChange={(v) => set("onlineUrl", v)} />
-            <Button className="cursor-pointer" onClick={handleSave}>등록하기</Button>
-          </CardContent>
-        </Card>
-      )}
-    </main>
-  );
-}
-
-// 라벨 + 입력칸 한 줄을 만드는 작은 도우미
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} />
+      <button
+        onClick={handleSave}
+        className="mt-5 cursor-pointer rounded-lg bg-[#383838] px-5 py-2.5 text-sm font-semibold text-[#F9F6F0]"
+      >
+        저장
+      </button>
     </div>
   );
 }

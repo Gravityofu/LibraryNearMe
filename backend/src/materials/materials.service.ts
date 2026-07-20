@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { extractColumns } from "./marc.util";
 
 const ALLOWED_TYPES = [
   'book', 'dvd', 'article', 'thesis', 'law', 'video', 'music',
@@ -27,35 +28,36 @@ type BibData = {
 export class MaterialsService {
   constructor(private prisma: PrismaService) {}
 
-  // 서지 정보(Material) 하나 저장. userId = 등록한 사서
-  async createBibliographic(userId: number, libraryId: number, data: BibData) {
-    if (!data.type || !ALLOWED_TYPES.includes(data.type)) {
-      throw new BadRequestException('올바른 자료 종류를 선택해 주세요.');
-    }
-    if (!data.title) {
-      throw new BadRequestException('제목은 필수입니다.');
+  async createBibliographic(userId: number, libraryId: number, data: any) {
+    const { type, marc } = data;
+    if (!type) {
+      throw new BadRequestException("자료 종류를 선택하세요.");
     }
 
-    const material = await this.prisma.material.create({
+    let fields: any;
+    if (Array.isArray(marc) && marc.length > 0) {
+      // 책·DVD: MARC에서 각 칸을 자동으로 뽑고, 원본도 함께 저장
+      fields = extractColumns(marc);
+      fields.marc = marc;
+    } else {
+      // 비도서: 폼에서 받은 값 그대로
+      const { type: _t, marc: _m, ...rest } = data;
+      fields = rest;
+    }
+
+    if (!fields.title || !String(fields.title).trim()) {
+      throw new BadRequestException(
+        "제목(서명)은 필수입니다. MARC라면 245 ▼a를 확인하세요.",
+      );
+    }
+
+    return this.prisma.material.create({
       data: {
         libraryId,
-        type: data.type,
-        title: data.title,
-        creator: data.creator || undefined,
-        publisher: data.publisher || undefined,
-        pubYear: data.pubYear || undefined,
-        isbn: data.isbn || undefined,
-        classNumber: data.classNumber || undefined,
-        format: data.format || undefined,
-        subject: data.subject || undefined,
-        language: data.language || undefined,
-        summary: data.summary || undefined,
-        coverUrl: data.coverUrl || undefined,
-        onlineUrl: data.onlineUrl || undefined,
-        createdById: userId, // ← 로그인한 사서 기록
+        type,
+        createdById: userId,
+        ...fields,
       },
     });
-
-    return { id: material.id };
   }
 }
