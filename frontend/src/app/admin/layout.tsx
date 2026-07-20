@@ -27,7 +27,9 @@ export default function AdminLayout({
           <Link href="/admin" className="rounded-lg bg-white/10 px-3 py-2.5 font-bold">
             {t("admin.menu.settings")}
           </Link>
-          <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.books")}</span>
+          <Link href="/admin/materials/new" className="rounded-lg px-3 py-2.5 text-[#F9F6F0] hover:bg-white/10">
+            {t("admin.menu.books")}
+          </Link>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.members")}</span>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.loans")}</span>
         </nav>

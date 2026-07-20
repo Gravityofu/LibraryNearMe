@@ -9,13 +9,15 @@ import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
+import { MaterialsController } from './materials/materials.controller';
+import { MaterialsService } from './materials/materials.service';
 
 @Module({
   imports: [
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' }, // 토큰은 7일간 유효
+      signOptions: { expiresIn: '7d' },
     }),
   ],
   controllers: [
@@ -23,6 +25,7 @@ import { AuthService } from './auth/auth.service';
     LibraryController,
     UsersController,
     AuthController,
+    MaterialsController,
   ],
   providers: [
     AppService,
@@ -30,6 +33,7 @@ import { AuthService } from './auth/auth.service';
     LibraryService,
     UsersService,
     AuthService,
+    MaterialsService,
   ],
 })
 export class AppModule {}

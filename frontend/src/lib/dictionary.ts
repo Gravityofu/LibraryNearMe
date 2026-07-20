@@ -58,7 +58,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
 
     "admin.title": "관리자",
     "admin.menu.settings": "도서관 설정",
-    "admin.menu.books": "도서 관리 (준비 중)",
+    "admin.menu.books": "자료 관리",
     "admin.menu.members": "회원 관리 (준비 중)",
     "admin.menu.loans": "대출/반납 (준비 중)",
     "admin.backHome": "← 홈페이지로",
@@ -129,7 +129,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
 
     "admin.title": "Admin",
     "admin.menu.settings": "Library Settings",
-    "admin.menu.books": "Book Management (soon)",
+    "admin.menu.books": "Materials",
     "admin.menu.members": "Member Management (soon)",
     "admin.menu.loans": "Loans/Returns (soon)",
     "admin.backHome": "← To Homepage",
