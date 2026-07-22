@@ -8,14 +8,16 @@ export type MarcField = { tag: string; ind1: string; ind2: string; value: string
 export const DEFAULT_FIELDS: MarcField[] = [
   { tag: "245", ind1: "0", ind2: "0", value: "▼a" },   // 서명·저자
   { tag: "100", ind1: "1", ind2: " ", value: "▼a" },   // 저자
-  { tag: "260", ind1: " ", ind2: " ", value: "▼a▼b▼c" }, // 발행사항
+  { tag: "260", ind1: " ", ind2: " ", value: "▼a ▼b ▼c" }, // 발행사항
   { tag: "020", ind1: " ", ind2: " ", value: "▼a" },   // ISBN
-  { tag: "056", ind1: " ", ind2: " ", value: "▼a▼2" }, // 분류기호(KDC)
+  { tag: "056", ind1: " ", ind2: " ", value: "▼a ▼2" }, // 분류기호(KDC)
   { tag: "090", ind1: " ", ind2: " ", value: "▼a" },   // 청구기호
-  { tag: "300", ind1: " ", ind2: " ", value: "▼a▼c" }, // 형태사항
+  { tag: "300", ind1: " ", ind2: " ", value: "▼a ▼c" }, // 형태사항
   { tag: "653", ind1: " ", ind2: " ", value: "▼a" },   // 주제어
   { tag: "041", ind1: " ", ind2: " ", value: "▼a" },   // 언어
   { tag: "500", ind1: " ", ind2: " ", value: "▼a" },   // 일반주기
+  { tag: "700", ind1: "1", ind2: " ", value: "▼a" },   // 부저자
+  { tag: "950", ind1: "0", ind2: " ", value: "▼a" },   // 로컬정보 - 가격
 ];
 
 // 태그 옆에 보여줄 이름표
@@ -24,6 +26,7 @@ const TAG_NAMES: Record<string, string> = {
   "090": "청구기호", "100": "저자", "245": "서명·저자",
   "250": "판사항", "260": "발행사항", "300": "형태사항",
   "490": "총서", "500": "일반주기", "653": "주제어", "700": "부저자",
+  "950": "로컬정보(가격)", 
 };
 
 export default function MarcEditor({
@@ -34,26 +37,27 @@ export default function MarcEditor({
   onChange: (f: MarcField[]) => void;
 }) {
   const [newTag, setNewTag] = useState("");
+  const sorted = [...fields].sort((a, b) => a.tag.localeCompare(b.tag));
 
   function update(i: number, key: keyof MarcField, val: string) {
-    onChange(fields.map((f, idx) => (idx === i ? { ...f, [key]: val } : f)));
+    onChange(sorted.map((f, idx) => (idx === i ? { ...f, [key]: val } : f)));
   }
   function addField() {
     const tag = newTag.trim();
     if (!/^\d{3}$/.test(tag)) return; // 세 자리 숫자만
-    onChange([...fields, { tag, ind1: " ", ind2: " ", value: "▼a" }]);
+    onChange([...sorted, { tag, ind1: " ", ind2: " ", value: "▼a" }]);
     setNewTag("");
   }
   function removeField(i: number) {
-    onChange(fields.filter((_, idx) => idx !== i));
+    onChange(sorted.filter((_, idx) => idx !== i));
   }
   function insertDelimiter(i: number) {
-    update(i, "value", fields[i].value + "▼");
+    update(i, "value", sorted[i].value + "▼");
   }
 
   return (
     <div className="space-y-2">
-      {fields.map((f, i) => (
+      {sorted.map((f, i) => (
         <div
           key={i}
           className="flex items-start gap-2 rounded-lg border border-neutral-200 bg-white p-2"
@@ -88,8 +92,14 @@ export default function MarcEditor({
           <textarea
             value={f.value}
             onChange={(e) => update(i, "value", e.target.value)}
+            ref={(el) => {
+              if (el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }
+            }}
             rows={1}
-            className="min-h-[38px] flex-1 rounded border px-2 py-1 text-sm"
+            className="min-h-[38px] flex-1 resize-none overflow-hidden rounded border px-2 py-1 text-sm"
           />
 
           {/* ▼ 넣기 / 삭제 */}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 
@@ -13,6 +13,19 @@ export default function AdminLayout({
   const { t, lang, setLang } = useI18n();
   const { logout } = useAuth();
   const router = useRouter();
+
+  const pathname = usePathname();
+
+  // 지금 보고 있는 페이지 주소(pathname)에 따라 메뉴 강조 스타일을 골라주는 함수
+  function navClass(href: string, exact = false) {
+    const active = exact ? pathname === href : pathname.startsWith(href);
+    return `rounded-lg px-3 py-2.5 ${
+      active
+        ? "bg-white/10 font-bold text-[#F9F6F0]"
+        : "text-[#F9F6F0] hover:bg-white/10"
+    }`;
+  }
+
 
   function handleLogout() {
     logout();
@@ -33,11 +46,11 @@ export default function AdminLayout({
         </div>
 
         <nav className="mt-6 flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm md:flex-col md:gap-1">
-          <Link href="/admin" className="rounded-lg bg-white/10 px-3 py-2.5 font-bold">
+          <Link href="/admin" className={navClass("/admin", true)}>
             {t("admin.menu.settings")}
           </Link>
-          <Link href="/admin/materials/new" className="rounded-lg px-3 py-2.5 text-[#F9F6F0] hover:bg-white/10">
-            {t("admin.menu.books")}
+          <Link href="/admin/materials/new" className={navClass("/admin/materials")}>
+            {t("admin.menu.materialsNew")}
           </Link>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.members")}</span>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.loans")}</span>

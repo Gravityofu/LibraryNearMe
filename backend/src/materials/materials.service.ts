@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { extractColumns } from "./marc.util";
+import { searchKolis, getKolisMarc } from "./kolis.util";
 
 const ALLOWED_TYPES = [
   'book', 'dvd', 'article', 'thesis', 'law', 'video', 'music',
@@ -28,6 +29,20 @@ type BibData = {
 export class MaterialsService {
   constructor(private prisma: PrismaService) {}
 
+  async searchKolisNet(keyword: string, page = 1) {
+    if (!keyword || !keyword.trim()) {
+      throw new BadRequestException("검색어를 입력하세요.");
+    }
+    return searchKolis(keyword.trim(), page);
+  }
+
+  async importKolisMarc(recKey: string) {
+    if (!recKey) {
+      throw new BadRequestException("recKey가 없습니다.");
+    }
+    return getKolisMarc(recKey);
+  }
+
   async createBibliographic(userId: number, libraryId: number, data: any) {
     const { type, marc } = data;
     if (!type) {
@@ -39,6 +54,7 @@ export class MaterialsService {
       // 책·DVD: MARC에서 각 칸을 자동으로 뽑고, 원본도 함께 저장
       fields = extractColumns(marc);
       fields.marc = marc;
+      if (data.marcRaw) fields.marcRaw = data.marcRaw; // KOLIS-NET에서 받은 원본 텍스트(있으면)
     } else {
       // 비도서: 폼에서 받은 값 그대로
       const { type: _t, marc: _m, ...rest } = data;
