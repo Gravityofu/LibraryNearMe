@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { extractColumns } from "./marc.util";
 import { searchKolis, getKolisMarc } from "./kolis.util";
@@ -76,4 +76,78 @@ export class MaterialsService {
       },
     });
   }
+
+  // 우리 도서관에 이미 등록된 서지(Material)를 제목·저자로 검색 (KOLIS-NET 검색과는 다름!)
+  async searchMaterials(libraryId: number, search?: string) {
+    const keyword = search?.trim();
+    return this.prisma.material.findMany({
+      where: {
+        libraryId,
+        ...(keyword
+          ? {
+              OR: [
+                { title: { contains: keyword, mode: "insensitive" } },
+                { creator: { contains: keyword, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+  }
+
+  // 자료 하나 + 그 자료의 소장 부수 목록을 함께 가져오기
+  async getMaterialWithCopies(libraryId: number, id: number) {
+    const material = await this.prisma.material.findFirst({
+      where: { id, libraryId },
+      include: { copies: { orderBy: { createdAt: "desc" } } },
+    });
+    if (!material) {
+      throw new NotFoundException("자료를 찾을 수 없습니다.");
+    }
+    return material;
+  }
+
+  // 새 부수(실물) 추가
+  async addCopy(userId: number, libraryId: number, materialId: number, data: any) {
+    const material = await this.prisma.material.findFirst({
+      where: { id: materialId, libraryId },
+    });
+    if (!material) {
+      throw new BadRequestException("자료를 찾을 수 없습니다.");
+    }
+    if (!data.registrationNo || !String(data.registrationNo).trim()) {
+      throw new BadRequestException("등록번호는 필수입니다.");
+    }
+
+    const ALLOWED_STATUS = ["AVAILABLE", "ON_LOAN", "RESERVED", "REPAIR", "LOST", "WITHDRAWN"];
+    const status = ALLOWED_STATUS.includes(data.status) ? data.status : undefined;
+
+    try {
+      return await this.prisma.copy.create({
+        data: {
+          libraryId,
+          materialId,
+          registrationNo: String(data.registrationNo).trim(),
+          callNumber: data.callNumber || undefined,
+          authorCode: data.authorCode || undefined,
+          specialCode: data.specialCode || undefined,
+          shelfNo: data.shelfNo || undefined,
+          location: data.location || undefined,
+          memo: data.memo || undefined,
+          volume: data.volume || undefined,
+          copyNumber: data.copyNumber || undefined,
+          ...(status ? { status } : {}), // 못 알아보는 값이면 표의 기본값(AVAILABLE)을 씀
+          createdById: userId,
+        },
+      });
+    } catch (e: any) {
+      if (e.code === "P2002") {
+        throw new BadRequestException("이미 등록된 등록번호입니다.");
+      }
+      throw e;
+    }
+  }
+
 }

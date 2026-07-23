@@ -11,7 +11,7 @@ export const DEFAULT_FIELDS: MarcField[] = [
   { tag: "260", ind1: " ", ind2: " ", value: "▼a ▼b ▼c" }, // 발행사항
   { tag: "020", ind1: " ", ind2: " ", value: "▼a" },   // ISBN
   { tag: "056", ind1: " ", ind2: " ", value: "▼a ▼2" }, // 분류기호(KDC)
-  { tag: "090", ind1: " ", ind2: " ", value: "▼a" },   // 청구기호
+  { tag: "090", ind1: " ", ind2: " ", value: "▼a ▼b" }, // 청구기호(a)·저자기호(b)
   { tag: "300", ind1: " ", ind2: " ", value: "▼a ▼c" }, // 형태사항
   { tag: "653", ind1: " ", ind2: " ", value: "▼a" },   // 주제어
   { tag: "041", ind1: " ", ind2: " ", value: "▼a" },   // 언어

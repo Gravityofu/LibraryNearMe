@@ -123,6 +123,9 @@ model Copy {
 
   registrationNo String     // 등록번호(고유번호) — 도서관 내 고유
   callNumber     String?    // 청구기호 (이용자가 자료 찾는 번호, 시리즈·COPY 번호 포함)
+  authorCode     String?    // 저자기호 (MARC 090 ▼b)
+  volume         String?    // 권/호 (예: v.1, 시리즈물일 때 몇 권째인지)
+  copyNumber     String?    // 복본 (예: c.1, 같은 자료 중 몇 번째 것인지)
   specialCode    String?    // 별치기호
   shelfNo        String?    // 서가번호
   location       String?    // 소장처 (예: 2층 문학)

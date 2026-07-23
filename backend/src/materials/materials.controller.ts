@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Query, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Query, Get, Param, UseGuards } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -24,6 +24,24 @@ export class MaterialsController {
   @UseGuards(AdminGuard)
   kolisMarc(@Query('recKey') recKey: string) {
     return this.materialsService.importKolisMarc(recKey);
+  }
+
+  @Get()
+  @UseGuards(AdminGuard)
+  list(@Req() req: any, @Query('search') search?: string) {
+    return this.materialsService.searchMaterials(req.user.libraryId, search);
+  }
+
+  @Get(':id')
+  @UseGuards(AdminGuard)
+  getOne(@Req() req: any, @Param('id') id: string) {
+    return this.materialsService.getMaterialWithCopies(req.user.libraryId, parseInt(id, 10));
+  }
+
+  @Post(':id/copies')
+  @UseGuards(AdminGuard)
+  addCopy(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.materialsService.addCopy(req.user.sub, req.user.libraryId, parseInt(id, 10), body);
   }
 
 }
