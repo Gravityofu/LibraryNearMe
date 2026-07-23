@@ -11,6 +11,7 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { MaterialsController } from './materials/materials.controller';
 import { MaterialsService } from './materials/materials.service';
+import { CopiesController } from './materials/copies.controller';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MaterialsService } from './materials/materials.service';
     UsersController,
     AuthController,
     MaterialsController,
+    CopiesController,
   ],
   providers: [
     AppService,

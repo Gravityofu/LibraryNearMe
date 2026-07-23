@@ -150,4 +150,139 @@ export class MaterialsService {
     }
   }
 
+  async listCopies(
+    libraryId: number,
+    options: {
+      page: number;
+      pageSize: number;
+      type?: string;
+      title?: string;
+      creator?: string;
+      subject?: string;
+      registrationNos?: string[];
+    },
+  ) {
+    const ALLOWED_SIZES = [10, 20, 30, 40, 50];
+    const pageSize = ALLOWED_SIZES.includes(options.pageSize) ? options.pageSize : 20;
+    const page = options.page && options.page > 0 ? options.page : 1;
+
+    const hasRegNoFilter = !!(options.registrationNos && options.registrationNos.length > 0);
+
+    // 등록번호로 찾을 때 — 실물(Copy) 기준 그대로 검색
+    if (hasRegNoFilter) {
+      const where: any = { libraryId, registrationNo: { in: options.registrationNos } };
+      const [total, copies] = await Promise.all([
+        this.prisma.copy.count({ where }),
+        this.prisma.copy.findMany({
+          where,
+          include: { material: true },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      ]);
+      return { total, page, pageSize, items: copies.map((c) => ({ ...c, hasCopy: true })) };
+    }
+
+    // 상세 검색(종류·제목·저자·주제) — 조건이 없으면 도서관 전체 서지를 대상으로 함,
+    // 실물이 없는 서지는 빈 칸으로 함께 보여줍니다.
+    const materialWhere: any = { libraryId };
+    if (options.type) materialWhere.type = options.type;
+    if (options.title) materialWhere.title = { contains: options.title, mode: 'insensitive' };
+    if (options.creator) materialWhere.creator = { contains: options.creator, mode: 'insensitive' };
+    if (options.subject) materialWhere.subject = { contains: options.subject, mode: 'insensitive' };
+
+    const materials = await this.prisma.material.findMany({
+      where: materialWhere,
+      include: { copies: { orderBy: { createdAt: 'desc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const allRows: any[] = [];
+    for (const m of materials) {
+      const { copies, ...material } = m;
+      if (copies.length > 0) {
+        for (const c of copies) {
+          allRows.push({ ...c, material, hasCopy: true });
+        }
+      } else {
+        allRows.push({
+          id: null,
+          materialId: material.id,
+          registrationNo: null,
+          authorCode: null,
+          specialCode: null,
+          shelfNo: null,
+          location: null,
+          volume: null,
+          copyNumber: null,
+          status: null,
+          material,
+          hasCopy: false,
+        });
+      }
+    }
+
+    const total = allRows.length;
+    const items = allRows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+    return { total, page, pageSize, items };
+  }
+
+  // 실물(Copy) 수정
+  async updateCopy(libraryId: number, copyId: number, data: any) {
+    const copy = await this.prisma.copy.findFirst({ where: { id: copyId, libraryId } });
+    if (!copy) {
+      throw new BadRequestException("실물을 찾을 수 없습니다.");
+    }
+    if (!data.registrationNo || !String(data.registrationNo).trim()) {
+      throw new BadRequestException("등록번호는 필수입니다.");
+    }
+
+    const ALLOWED_STATUS = ["AVAILABLE", "ON_LOAN", "RESERVED", "REPAIR", "LOST", "WITHDRAWN"];
+    const status = ALLOWED_STATUS.includes(data.status) ? data.status : copy.status;
+
+    try {
+      return await this.prisma.copy.update({
+        where: { id: copyId },
+        data: {
+          registrationNo: String(data.registrationNo).trim(),
+          callNumber: data.callNumber || null,
+          authorCode: data.authorCode || null,
+          specialCode: data.specialCode || null,
+          shelfNo: data.shelfNo || null,
+          location: data.location || null,
+          memo: data.memo || null,
+          volume: data.volume || null,
+          copyNumber: data.copyNumber || null,
+          status,
+        },
+      });
+    } catch (e: any) {
+      if (e.code === "P2002") {
+        throw new BadRequestException("이미 등록된 등록번호입니다.");
+      }
+      throw e;
+    }
+  }
+
+  // MARC 편집기에서 수정한 내용을 서지(Material)에 다시 저장 (칸 자동추출도 다시 실행)
+  async updateMaterialMarc(libraryId: number, materialId: number, marc: any) {
+    const material = await this.prisma.material.findFirst({ where: { id: materialId, libraryId } });
+    if (!material) {
+      throw new BadRequestException("자료를 찾을 수 없습니다.");
+    }
+    if (!Array.isArray(marc) || marc.length === 0) {
+      throw new BadRequestException("MARC 데이터가 없습니다.");
+    }
+    const fields: any = extractColumns(marc);
+    fields.marc = marc;
+    if (!fields.title || !String(fields.title).trim()) {
+      throw new BadRequestException("제목(서명)은 필수입니다. MARC라면 245 ▼a를 확인하세요.");
+    }
+    return this.prisma.material.update({
+      where: { id: materialId },
+      data: fields,
+    });
+  }
+
 }
