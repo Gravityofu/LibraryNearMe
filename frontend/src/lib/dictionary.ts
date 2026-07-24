@@ -96,6 +96,10 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.new.field.language": "언어",
     "materials.new.field.summary": "설명",
 
+    "materials.new.tagHelpBtn": "태그 설명",
+    "materials.new.tagHelpTitle": "KORMARC 태그 설명",
+    "materials.new.tagHelpMore": "더 보기",
+
     "materials.copies.title": "실물(부수) 등록",
     "materials.copies.searchHeading": "자료 검색",
     "materials.copies.select": "선택",
@@ -308,6 +312,10 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.new.field.subject": "Subject",
     "materials.new.field.language": "Language",
     "materials.new.field.summary": "Description",
+
+    "materials.new.tagHelpBtn": "Tag Guide",
+    "materials.new.tagHelpTitle": "KORMARC Tag Guide",
+    "materials.new.tagHelpMore": "More",
 
     "materials.copies.title": "Add Copy",
     "materials.copies.searchHeading": "Search Materials",

@@ -39,6 +39,11 @@ export default function NewMaterialPage() {
   const [kolisPage, setKolisPage] = useState(1);
   const [kolisTotal, setKolisTotal] = useState(0);
 
+  const [showTagHelp, setShowTagHelp] = useState(false);
+  const [tagHelpList, setTagHelpList] = useState<
+    { id: number; tag: string; fieldName: string; indicators?: string; subfieldCodes?: string; example?: string }[]
+  >([]);
+
   const selected = MATERIAL_TYPES.find((m) => m.code === type);
   const usesMarc = selected?.usesMarc ?? false;
 
@@ -95,6 +100,19 @@ export default function NewMaterialPage() {
     }
   }
 
+  async function openTagHelp() {
+    setShowTagHelp(true);
+    if (tagHelpList.length > 0) return; // 이미 불러왔으면 다시 안 불러옴
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/settings/kormarc-tags`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setTagHelpList(await res.json());
+    }
+  }
+
   async function handleSave() {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -127,9 +145,19 @@ export default function NewMaterialPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-6">
+
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">{t("materials.new.title")}</h1>
-        <AdminBackButton href="/admin/materials/list" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={openTagHelp}
+            className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50"
+          >
+            {t("materials.new.tagHelpBtn")}
+          </button>
+          <AdminBackButton href="/admin/materials/list" />
+        </div>
       </div>
 
       <label className="mb-4 block">
@@ -247,6 +275,52 @@ export default function NewMaterialPage() {
       >
         {t("materials.new.save")}
       </button>
+
+      {showTagHelp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowTagHelp(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-6xl overflow-auto rounded-none bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-semibold">{t("materials.new.tagHelpTitle")}</p>
+              <a
+                href="https://librarian.nl.go.kr/kormarc/KSX6006-0/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold"
+              >
+                {t("materials.new.tagHelpMore")}
+              </a>
+            </div>
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="sticky top-0 bg-neutral-100 text-neutral-500">
+                <tr>
+                  <th className="px-3 py-2">{t("settings.tags.col.tag")}</th>
+                  <th className="px-3 py-2">{t("settings.tags.col.fieldName")}</th>
+                  <th className="px-3 py-2">{t("settings.tags.col.indicators")}</th>
+                  <th className="px-3 py-2">{t("settings.tags.col.subfieldCodes")}</th>
+                  <th className="px-3 py-2">{t("settings.tags.col.example")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {tagHelpList.map((tag) => (
+                  <tr key={tag.id}>
+                    <td className="whitespace-nowrap px-3 py-2 font-medium">{tag.tag}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{tag.fieldName}</td>
+                    <td className="px-3 py-2 text-neutral-500">{tag.indicators || "-"}</td>
+                    <td className="px-3 py-2 text-neutral-500">{tag.subfieldCodes || "-"}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{tag.example || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
