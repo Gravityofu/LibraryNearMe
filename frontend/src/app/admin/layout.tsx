@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function AdminLayout({
   children,
@@ -13,7 +14,7 @@ export default function AdminLayout({
   const { t, lang, setLang } = useI18n();
   const { logout } = useAuth();
   const router = useRouter();
-
+  useRequireAuth();
   const pathname = usePathname();
 
   // 지금 보고 있는 페이지 주소(pathname)에 따라 메뉴 강조 스타일을 골라주는 함수
@@ -25,7 +26,6 @@ export default function AdminLayout({
         : "text-[#F9F6F0] hover:bg-white/10"
     }`;
   }
-
 
   function handleLogout() {
     logout();

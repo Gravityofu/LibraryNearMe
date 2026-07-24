@@ -30,7 +30,6 @@ export default function LoginPage() {
       const data = await res.json();
       login({ token: data.token, userName: data.user.name, role: data.user.role });
       notify(t("login.welcome").replace("{name}", data.user.name), "success");
-      // 로그인 버튼을 눌렀던 그 페이지로 돌아갑니다.
       const redirect = new URLSearchParams(window.location.search).get("redirect") || "/";
       router.push(redirect);
     } else {
@@ -39,24 +38,40 @@ export default function LoginPage() {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleLogin();
+  }
+
   return (
     <main className="mx-auto max-w-md p-8">
       <Card>
         <CardHeader>
           <CardTitle>{t("login.title")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loginId">{t("login.id")}</Label>
-            <Input id="loginId" value={loginId} onChange={(e) => setLoginId(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">{t("login.password")}</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <Button className="cursor-pointer" onClick={handleLogin}>
-            {t("login.submit")}
-          </Button>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="loginId">{t("login.id")}</Label>
+              <Input
+                id="loginId"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">{t("login.password")}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <Button type="submit" className="cursor-pointer">
+              {t("login.submit")}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>

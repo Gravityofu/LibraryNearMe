@@ -49,7 +49,7 @@ export default function MaterialsListPage() {
   const [rows, setRows] = useState<CopyRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Filters>({});
   const [hasSearched, setHasSearched] = useState(false);
 

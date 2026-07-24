@@ -6,6 +6,12 @@ import { AdminGuard } from '../auth/admin.guard';
 export class CopiesController {
   constructor(private materialsService: MaterialsService) {}
 
+  @Get('latest')
+  @UseGuards(AdminGuard)
+  latest(@Req() req: any) {
+    return this.materialsService.getLatestRegistrationNo(req.user.libraryId);
+  }
+
   @Get()
   @UseGuards(AdminGuard)
   list(

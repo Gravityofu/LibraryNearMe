@@ -4,6 +4,7 @@ export type Lang = "ko" | "en";
 export const dictionary: Record<Lang, Record<string, string>> = {
   ko: {
     "auth.button": "로그인 / 회원가입",
+    "auth.loginRequired": "로그인이 필요합니다.",
 
     "nav.search": "자료검색",
     "nav.search.all": "통합 검색",
@@ -123,6 +124,19 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.status.repair": "수선중",
     "materials.copies.status.lost": "분실",
     "materials.copies.status.withdrawn": "제적",
+    "materials.copies.marcBoxTitle": "MARC 정보",
+    "materials.copies.marcEditSave": "MARC 수정",
+    "materials.copies.marcSaveSuccess": "MARC가 저장되었습니다.",
+    "materials.copies.marcSaveFail": "MARC 저장에 실패했습니다.",
+    "materials.copies.editHeading": "실물 수정",
+    "materials.copies.newEntry": "입력 데이터 비우기",
+    "materials.copies.latestRegNo": "최근 등록",
+    "materials.copies.update": "수정",
+    "materials.copies.updateSuccess": "실물 정보가 수정되었습니다.",
+    "materials.copies.updateFail": "수정에 실패했습니다.",
+    "materials.copies.noMaterialSelected": "목록에서 실물을 등록할 자료를 먼저 선택해 주세요.",
+    "materials.copies.goToList": "목록으로 이동",
+    "materials.copies.loading": "불러오는 중...",
 
     "materials.list.detailSearch": "상세 검색",
     "materials.list.regNoSearch": "등록번호 검색",
@@ -165,6 +179,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.saving": "저장 중...",
     "admin.settings.saved": "✅ 저장되었습니다!",
     "admin.settings.saveFail": "저장에 실패했습니다.",
+    "admin.backButton": "뒤로 가기",
 
     "auth.greeting": "{name}님, 안녕하세요",
     "auth.logout": "로그아웃",
@@ -172,6 +187,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
   },
   en: {
     "auth.button": "Login / Sign up",
+    "auth.loginRequired": "Login required.",
 
     "nav.search": "Search",
     "nav.search.all": "Integrated Search",
@@ -291,6 +307,19 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.status.repair": "In Repair",
     "materials.copies.status.lost": "Lost",
     "materials.copies.status.withdrawn": "Withdrawn",
+    "materials.copies.marcBoxTitle": "MARC Data",
+    "materials.copies.marcEditSave": "Update MARC",
+    "materials.copies.marcSaveSuccess": "MARC saved.",
+    "materials.copies.marcSaveFail": "Failed to save MARC.",
+    "materials.copies.editHeading": "Edit Copy",
+    "materials.copies.newEntry": "Clear Form",
+    "materials.copies.latestRegNo": "Latest",
+    "materials.copies.update": "Update",
+    "materials.copies.updateSuccess": "Copy updated.",
+    "materials.copies.updateFail": "Failed to update.",
+    "materials.copies.noMaterialSelected": "Please select a material from the list first.",
+    "materials.copies.goToList": "Go to List",
+    "materials.copies.loading": "Loading...",
 
     "materials.list.detailSearch": "Advanced Search",
     "materials.list.regNoSearch": "Search by Reg. No.",
@@ -333,6 +362,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.saving": "Saving...",
     "admin.settings.saved": "✅ Saved!",
     "admin.settings.saveFail": "Save failed.",
+    "admin.backButton": "Back",
 
     "auth.greeting": "Hello, {name}",
     "auth.logout": "Logout",

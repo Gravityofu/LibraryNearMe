@@ -163,7 +163,7 @@ export class MaterialsService {
     },
   ) {
     const ALLOWED_SIZES = [10, 20, 30, 40, 50];
-    const pageSize = ALLOWED_SIZES.includes(options.pageSize) ? options.pageSize : 20;
+    const pageSize = ALLOWED_SIZES.includes(options.pageSize) ? options.pageSize : 10;
     const page = options.page && options.page > 0 ? options.page : 1;
 
     const hasRegNoFilter = !!(options.registrationNos && options.registrationNos.length > 0);
@@ -263,6 +263,15 @@ export class MaterialsService {
       }
       throw e;
     }
+  }
+
+  async getLatestRegistrationNo(libraryId: number) {
+    const latest = await this.prisma.copy.findFirst({
+      where: { libraryId },
+      orderBy: { createdAt: 'desc' },
+      select: { registrationNo: true },
+    });
+    return { registrationNo: latest?.registrationNo ?? null };
   }
 
   // MARC 편집기에서 수정한 내용을 서지(Material)에 다시 저장 (칸 자동추출도 다시 실행)
