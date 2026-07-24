@@ -49,11 +49,8 @@ export default function AdminLayout({
           <Link href="/admin" className={navClass("/admin", true)}>
             {t("admin.menu.settings")}
           </Link>
-          <Link href="/admin/materials/new" className={navClass("/admin/materials/new")}>
-            {t("admin.menu.materialsNew")}
-          </Link>
-          <Link href="/admin/materials/copies" className={navClass("/admin/materials/copies")}>
-            {t("admin.menu.materialsCopy")}
+          <Link href="/admin/materials/list" className={navClass("/admin/materials/list")}>
+            {t("admin.menu.materialsList")}
           </Link>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.members")}</span>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.loans")}</span>

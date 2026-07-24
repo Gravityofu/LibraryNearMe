@@ -5,6 +5,7 @@ import { MATERIAL_TYPES } from "@/lib/material-types";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 import MarcEditor, { DEFAULT_FIELDS, MarcField } from "@/components/marc-editor";
+import AdminBackButton from "@/components/admin-back-button";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -125,8 +126,11 @@ export default function NewMaterialPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-4 text-lg font-bold">{t("materials.new.title")}</h1>
+    <div className="mx-auto max-w-3xl p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-bold">{t("materials.new.title")}</h1>
+        <AdminBackButton href="/admin/materials/list" />
+      </div>
 
       <label className="mb-4 block">
         <span className="mb-1 block text-sm text-neutral-500">{t("materials.new.typeLabel")}</span>
@@ -222,15 +226,15 @@ export default function NewMaterialPage() {
       ) : (
         <div className="space-y-3">
           {SIMPLE_FIELDS.map((f) => (
-            <label key={f.key} className="block">
-              <span className="mb-1 block text-sm text-neutral-500">
+            <label key={f.key} className="flex items-center gap-3">
+              <span className="w-32 shrink-0 text-sm text-neutral-500">
                 {t(f.labelKey)}
                 {f.required && " *"}
               </span>
               <input
                 value={form[f.key] ?? ""}
                 onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
               />
             </label>
           ))}

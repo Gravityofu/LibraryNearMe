@@ -62,6 +62,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.menu.books": "자료 관리",
     "admin.menu.materialsNew": "자료 등록",
     "admin.menu.materialsCopy": "실물 등록",
+    "admin.menu.materialsList": "목록",
 
     "materials.search": "검색",
     "materials.searching": "검색 중...",
@@ -245,6 +246,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.menu.books": "Materials",
     "admin.menu.materialsNew": "Add Material",
     "admin.menu.materialsCopy": "Add Copy",
+    "admin.menu.materialsList": "List",
 
     "materials.search": "Search",
     "materials.searching": "Searching...",

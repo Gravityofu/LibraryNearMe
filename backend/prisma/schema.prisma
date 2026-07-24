@@ -151,3 +151,17 @@ enum CopyStatus {
   LOST        // 분실
   WITHDRAWN   // 제적
 }
+
+model KormarcTag {
+  id            Int      @id @default(autoincrement())
+  libraryId     Int
+  tag           String
+  fieldName     String
+  indicators    String?
+  subfieldCodes String?
+  example       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([libraryId, tag])
+}
