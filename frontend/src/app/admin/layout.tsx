@@ -54,6 +54,9 @@ export default function AdminLayout({
           </Link>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.members")}</span>
           <span className="px-3 py-2.5 text-[rgba(249,246,240,0.6)]">{t("admin.menu.loans")}</span>
+          <Link href="/admin/settings" className={navClass("/admin/settings")}>
+            {t("admin.menu.systemSettings")}
+          </Link>
         </nav>
 
         <div className="mt-6 border-t border-white/15 pt-4">

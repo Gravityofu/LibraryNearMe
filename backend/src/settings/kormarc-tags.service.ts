@@ -61,4 +61,16 @@ export class KormarcTagsService {
       },
     });
   }
+
+  async remove(libraryId: number, id: number) {
+    const existing = await this.prisma.kormarcTag.findFirst({
+      where: { id, libraryId },
+    });
+    if (!existing) {
+      throw new NotFoundException('태그를 찾을 수 없습니다.');
+    }
+    await this.prisma.kormarcTag.delete({ where: { id } });
+    return { success: true };
+  }
+  
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { KormarcTagsService } from './kormarc-tags.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -23,4 +23,11 @@ export class KormarcTagsController {
   update(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     return this.kormarcTagsService.update(req.user.libraryId, parseInt(id, 10), body);
   }
+
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.kormarcTagsService.remove(req.user.libraryId, parseInt(id, 10));
+  }
+  
 }
