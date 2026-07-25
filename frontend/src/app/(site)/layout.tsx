@@ -1,4 +1,5 @@
 import SiteSidebar from "@/components/site-sidebar";
+import SiteFooter from "@/components/site-footer";
 import RecentPosts from "@/components/recent-posts";
 
 const API_URL = "http://localhost:3001";
@@ -22,10 +23,22 @@ export default async function SiteLayout({
   const name = library?.name ?? "도서관";
 
   return (
-    <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 p-5 md:grid-cols-[230px_1fr_230px] md:items-start">
-      <SiteSidebar name={name} primaryColor={library?.primaryColor} />
-      <div>{children}</div>
-      <RecentPosts />
+    <div>
+      <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 p-5 md:grid-cols-[230px_1fr_230px] md:items-start">
+        <SiteSidebar name={name} primaryColor={library?.primaryColor} />
+        <div>{children}</div>
+        <RecentPosts />
+      </div>
+      <SiteFooter
+        name={name}
+        logoUrl={library?.logoUrl}
+        bgColor={library?.chromeBgColor || "#383838"}
+        textColor={library?.chromeTextColor || "#F9F6F0"}
+        version={library?.footerVersion || "1.0.0"}
+        copyright={library?.footerCopyright || "ⓒ 2026 Gravityofu"}
+        termsLabel="이용 약관"
+        privacyLabel="개인정보 처리방침"
+      />
     </div>
   );
 }

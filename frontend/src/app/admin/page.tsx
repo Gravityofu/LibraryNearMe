@@ -16,6 +16,11 @@ export default function AdminPage() {
   const [checked, setChecked] = useState(false);
   const [name, setName] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [chromeBgColor, setChromeBgColor] = useState("#383838");
+  const [chromeTextColor, setChromeTextColor] = useState("#F9F6F0");
+  const [footerVersion, setFooterVersion] = useState("1.0.0");
+  const [footerCopyright, setFooterCopyright] = useState("ⓒ 2026 Gravityofu");
   const { notify } = useNotify();
 
   useEffect(() => {
@@ -27,6 +32,11 @@ export default function AdminPage() {
         if (data) {
           setName(data.name);
           setPrimaryColor(data.primaryColor);
+          setLogoUrl(data.logoUrl || "");
+          setChromeBgColor(data.chromeBgColor || "#383838");
+          setChromeTextColor(data.chromeTextColor || "#F9F6F0");
+          setFooterVersion(data.footerVersion || "1.0.0");
+          setFooterCopyright(data.footerCopyright || "ⓒ 2026 Gravityofu");
         }
       });
   }, []);
@@ -38,7 +48,15 @@ export default function AdminPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ name, primaryColor }),
+      body: JSON.stringify({
+        name,
+        primaryColor,
+        logoUrl,
+        chromeBgColor,
+        chromeTextColor,
+        footerVersion,
+        footerCopyright,
+      }),
     });
     if (res.ok) {
       notify(t("admin.settings.saved"), "success");
@@ -82,6 +100,38 @@ export default function AdminPage() {
           <div className="flex flex-col gap-2">
             <Label htmlFor="color">{t("admin.settings.color")}</Label>
             <Input id="color" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-20 p-1" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="logoUrl">{t("admin.settings.logoUrl")}</Label>
+            <Input id="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://..." />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="chromeBg">{t("admin.settings.chromeBgColor")}</Label>
+            <Input
+              id="chromeBg"
+              type="color"
+              value={chromeBgColor}
+              onChange={(e) => setChromeBgColor(e.target.value)}
+              className="h-10 w-20 p-1"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="chromeText">{t("admin.settings.chromeTextColor")}</Label>
+            <Input
+              id="chromeText"
+              type="color"
+              value={chromeTextColor}
+              onChange={(e) => setChromeTextColor(e.target.value)}
+              className="h-10 w-20 p-1"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="footerVersion">{t("admin.settings.footerVersion")}</Label>
+            <Input id="footerVersion" value={footerVersion} onChange={(e) => setFooterVersion(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="footerCopyright">{t("admin.settings.footerCopyright")}</Label>
+            <Input id="footerCopyright" value={footerCopyright} onChange={(e) => setFooterCopyright(e.target.value)} />
           </div>
           <Button className="cursor-pointer" onClick={handleSave}>
             {t("admin.settings.save")}

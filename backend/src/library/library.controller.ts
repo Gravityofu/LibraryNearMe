@@ -15,7 +15,7 @@ export class LibraryController {
   // 바꾸기: 문지기 통과(관리자 로그인)해야만 가능
   @UseGuards(AdminGuard)
   @Patch()
-  updateLibrary(@Body() body: { name: string; primaryColor: string }) {
+  updateLibrary(@Body() body: any) {
     return this.libraryService.updateLibrary(body);
   }
 }
