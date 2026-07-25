@@ -16,6 +16,8 @@ type SignupData = {
   name: string;
   phone: string;
   email?: string;
+  birthDate?: string;
+  address?: string;
 };
 
 // "abcd1234" → "ab****34" 처럼 가운데를 가려서 보여줍니다.
@@ -59,6 +61,8 @@ export class UsersService {
         name: data.name,
         phone: data.phone,
         email: data.email || undefined,
+        birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+        address: data.address || undefined,
         cardToken,
       },
     });

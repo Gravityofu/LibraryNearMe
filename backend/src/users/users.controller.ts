@@ -16,6 +16,8 @@ export class UsersController {
       name: string;
       phone: string;
       email?: string;
+      birthDate?: string;
+      address?: string;
     },
   ) {
     return this.usersService.signup(body);

@@ -78,6 +78,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "signup.fail": "가입에 실패했습니다.",
     "signup.invalidPhone": "휴대폰 번호 11자리를 모두 입력해주세요.",
     "signup.invalidEmail": "이메일 형식이 올바르지 않습니다.",
+    "signup.birthDate": "생년월일 (선택)",
+    "signup.address": "주소 (선택)",
+    "signup.findAddressBtn": "주소 찾기",
+    "signup.addressDetailPlaceholder": "상세 주소",
+    "signup.invalidBirthDate": "생년월일을 올바르게 입력해주세요.",
 
     "admin.title": "관리자",
     "admin.menu.settings": "도서관 설정",
@@ -381,6 +386,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "signup.fail": "Sign-up failed.",
     "signup.invalidPhone": "Please enter all 11 digits of the mobile phone number.",
     "signup.invalidEmail": "Please enter a valid email address.",
+    "signup.birthDate": "Date of Birth (optional)",
+    "signup.address": "Address (optional)",
+    "signup.findAddressBtn": "Find address",
+    "signup.addressDetailPlaceholder": "Detailed address",
+    "signup.invalidBirthDate": "Please enter a valid date of birth.",
 
     "admin.title": "Admin",
     "admin.menu.settings": "Library Settings",
