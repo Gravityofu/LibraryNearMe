@@ -95,6 +95,8 @@ export class UsersService {
           phone: true,
           email: true,
           memberNo: true,
+          birthDate: true,
+          address: true,
           role: true,
           status: true,
           createdAt: true,

@@ -13,6 +13,8 @@ type MemberRow = {
   phone: string | null;
   email: string | null;
   memberNo: string | null;
+  birthDate: string | null;
+  address: string | null;
   role: string;
   status: string;
   createdAt: string;
@@ -132,8 +134,8 @@ export default function MembersPage() {
       phone: row.phone || "",
       email: row.email || "",
       memberNo: row.memberNo || "",
-      birthDate: "",
-      address: "",
+      birthDate: row.birthDate ? row.birthDate.slice(0, 10) : "",
+      address: row.address || "",      
       role: row.role,
       status: row.status,
     });
