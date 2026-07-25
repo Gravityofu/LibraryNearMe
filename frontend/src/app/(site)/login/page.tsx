@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
 import { useAuth } from "@/components/auth-provider";
+import Link from "next/link";
 
 const API_URL = "http://localhost:3001";
 
@@ -19,6 +20,13 @@ export default function LoginPage() {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
+  const [redirectParam, setRedirectParam] = useState("");
+
+  // 페이지가 열릴 때 주소창의 ?redirect=... 값을 읽어서 기억해둡니다.
+  useEffect(() => {
+    const r = new URLSearchParams(window.location.search).get("redirect");
+    if (r) setRedirectParam(r);
+  }, []);
 
   async function handleLogin() {
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -31,7 +39,7 @@ export default function LoginPage() {
       login({ token: data.token, userName: data.user.name, role: data.user.role });
       notify(t("login.welcome").replace("{name}", data.user.name), "success");
       const redirect = new URLSearchParams(window.location.search).get("redirect") || "/";
-      router.push(redirect);
+      router.push(redirectParam || "/");
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("login.fail")), "error");
@@ -68,10 +76,29 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+
             <Button type="submit" className="cursor-pointer">
               {t("login.submit")}
             </Button>
           </form>
+
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-neutral-500">
+            <Link
+              href={redirectParam ? `/signup?redirect=${encodeURIComponent(redirectParam)}` : "/signup"}
+              className="hover:text-neutral-800"
+            >
+              {t("login.signupLink")}
+            </Link>            
+            <span className="text-neutral-300">|</span>
+            <Link href="/find-id" className="hover:text-neutral-800">
+              {t("login.findIdLink")}
+            </Link>
+            <span className="text-neutral-300">|</span>
+            <Link href="/find-password" className="hover:text-neutral-800">
+              {t("login.findPasswordLink")}
+            </Link>
+          </div>
+          
         </CardContent>
       </Card>
     </main>

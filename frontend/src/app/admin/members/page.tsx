@@ -1,8 +1,12 @@
 "use client";
 
+"use client";
+
 import { useState } from "react";
+import Script from "next/script";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
+import { BirthDateField, isValidBirthDate } from "@/components/birth-date-field";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -39,8 +43,11 @@ const EMPTY_FORM = {
   phone: "",
   email: "",
   memberNo: "",
-  birthDate: "",
-  address: "",
+  birthYear: "",
+  birthMonth: "",
+  birthDay: "",
+  addressMain: "",
+  addressDetail: "",
   role: "MEMBER",
   status: "ACTIVE",
 };
@@ -62,6 +69,23 @@ function isValidPhone(phone: string) {
 function isValidEmail(email: string) {
   if (!email.trim()) return true;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+// 카카오 우편번호 서비스 팝업을 엽니다. 주소를 고르면 onSelect로 그 값을 전달합니다.
+function openAddressSearch(onSelect: (address: string) => void) {
+  const daum = (window as any).daum;
+  if (!daum || !daum.Postcode) {
+    // 스크립트가 아직 다 안 불러와졌을 때
+    alert("주소 검색 창을 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
+    return;
+  }
+  new daum.Postcode({
+    oncomplete: function (data: any) {
+      // 도로명 주소가 있으면 그걸, 없으면 지번 주소를 사용합니다.
+      const address = data.roadAddress || data.jibunAddress || data.address;
+      onSelect(address);
+    },
+  }).open();
 }
 
 export default function MembersPage() {
@@ -127,6 +151,7 @@ export default function MembersPage() {
 
   function openEditModal(row: MemberRow) {
     setEditingId(row.id);
+    const [by, bm, bd] = row.birthDate ? row.birthDate.slice(0, 10).split("-") : ["", "", ""];
     setForm({
       loginId: row.loginId || "",
       password: "",
@@ -134,8 +159,11 @@ export default function MembersPage() {
       phone: row.phone || "",
       email: row.email || "",
       memberNo: row.memberNo || "",
-      birthDate: row.birthDate ? row.birthDate.slice(0, 10) : "",
-      address: row.address || "",      
+      birthYear: by,
+      birthMonth: bm,
+      birthDay: bd,
+      addressMain: row.address || "",
+      addressDetail: "",
       role: row.role,
       status: row.status,
     });
@@ -150,6 +178,7 @@ export default function MembersPage() {
       notify("❌ " + t("members.form.requiredFields"), "error");
       return;
     }
+
     if (!isValidPhone(form.phone)) {
       notify("❌ " + t("members.form.invalidPhone"), "error");
       return;
@@ -159,15 +188,34 @@ export default function MembersPage() {
       return;
     }
 
+    // 생년월일: 세 칸 중 하나라도 입력했으면 셋 다 채워져 있어야 하고, 진짜 존재하는 날짜여야 합니다.
+    const anyBirthFilled = form.birthYear || form.birthMonth || form.birthDay;
+    const allBirthFilled = form.birthYear && form.birthMonth && form.birthDay;
+    if (anyBirthFilled && !allBirthFilled) {
+      notify("❌ " + t("members.form.invalidBirthDate"), "error");
+      return;
+    }
+    if (allBirthFilled && !isValidBirthDate(form.birthYear, form.birthMonth, form.birthDay)) {
+      notify("❌ " + t("members.form.invalidBirthDate"), "error");
+      return;
+    }
+
+    const birthDateValue = allBirthFilled
+      ? `${form.birthYear}-${form.birthMonth.padStart(2, "0")}-${form.birthDay.padStart(2, "0")}`
+      : undefined;
+
+    const address = [form.addressMain, form.addressDetail].filter((v) => v.trim()).join(" ");
+
     const url = editingId ? `${API_URL}/users/${editingId}` : `${API_URL}/users/admin`;
+
     const body = editingId
       ? {
           name: form.name,
           phone: form.phone,
           email: form.email,
           memberNo: form.memberNo,
-          birthDate: form.birthDate || undefined,
-          address: form.address,
+          birthDate: birthDateValue,
+          address,
           status: form.status,
           role: form.role,
           password: form.password || undefined,
@@ -179,8 +227,8 @@ export default function MembersPage() {
           phone: form.phone,
           email: form.email,
           memberNo: form.memberNo,
-          birthDate: form.birthDate || undefined,
-          address: form.address,
+          birthDate: birthDateValue,
+          address,
           role: form.role,
         };
 
@@ -204,6 +252,7 @@ export default function MembersPage() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      <Script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="afterInteractive" />
       {/* 상단 버튼 영역 */}
       <div className="flex items-center gap-2">
         <button
@@ -484,22 +533,45 @@ export default function MembersPage() {
                   className="w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </label>
+              
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.birthDate")}</span>
-                <input
-                  type="date"
-                  value={form.birthDate}
-                  onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                <BirthDateField
+                  value={{ year: form.birthYear, month: form.birthMonth, day: form.birthDay }}
+                  onChange={(next) =>
+                    setForm({ ...form, birthYear: next.year, birthMonth: next.month, birthDay: next.day })
+                  }
                 />
               </label>
+
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.address")}</span>
-                <input
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                />
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">{t("members.form.field.address")}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openAddressSearch((address) => setForm((prev) => ({ ...prev, addressMain: address, addressDetail: "" })))
+                    }
+                    className="cursor-pointer rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                  >
+                    {t("members.form.findAddressBtn")}
+                  </button>
+                </div>
+                {form.addressMain && (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      value={form.addressMain}
+                      disabled
+                      className="w-full rounded-lg border bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
+                    />
+                    <input
+                      value={form.addressDetail}
+                      onChange={(e) => setForm({ ...form, addressDetail: e.target.value })}
+                      placeholder={t("members.form.addressDetailPlaceholder")}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
               </label>
 
               {editingId && (
