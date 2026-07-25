@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
+import LibrarySettingsForm from "@/components/library-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -113,6 +114,7 @@ export default function AdminSettingsPage() {
       <Tabs defaultValue="kormarcTags">
         <TabsList>
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
+          <TabsTrigger value="library">{t("settings.tabs.library")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kormarcTags" className="mt-4">
@@ -161,6 +163,10 @@ export default function AdminSettingsPage() {
             </button>
           </div>
           
+        </TabsContent>
+
+        <TabsContent value="library" className="mt-4">
+          <LibrarySettingsForm />
         </TabsContent>
       </Tabs>
 

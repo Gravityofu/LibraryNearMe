@@ -46,9 +46,6 @@ export default function AdminLayout({
         </div>
 
         <nav className="mt-6 flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm md:flex-col md:gap-1">
-          <Link href="/admin" className={navClass("/admin", true)}>
-            {t("admin.menu.settings")}
-          </Link>
           <Link href="/admin/materials/list" className={navClass("/admin/materials/list")}>
             {t("admin.menu.materialsList")}
           </Link>
