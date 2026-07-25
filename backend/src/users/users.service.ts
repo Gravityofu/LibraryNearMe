@@ -18,6 +18,13 @@ type SignupData = {
   email?: string;
 };
 
+// "abcd1234" → "ab****34" 처럼 가운데를 가려서 보여줍니다.
+function maskLoginId(id: string): string {
+  if (id.length <= 2) return id[0] + '*'.repeat(id.length - 1);
+  if (id.length <= 4) return id.slice(0, 1) + '*'.repeat(id.length - 2) + id.slice(-1);
+  return id.slice(0, 2) + '*'.repeat(id.length - 4) + id.slice(-2);
+}
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
@@ -226,4 +233,33 @@ export class UsersService {
     }
   }
 
+  // 이름 + 휴대폰 번호로 아이디 찾기. 로그인 전(누구나 접근 가능)이라 libraryId를 직접 못 받고,
+  // signup()처럼 "현재 첫 번째 도서관"을 기준으로 찾습니다.
+  async findLoginId(name: string, phone: string) {
+    if (!name?.trim() || !phone?.trim()) {
+      throw new BadRequestException('이름과 휴대폰 번호를 입력해주세요.');
+    }
+
+    const library = await this.prisma.library.findFirst();
+    if (!library) {
+      throw new BadRequestException('도서관 설정이 없습니다.');
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        libraryId: library.id,
+        name: name.trim(),
+        phone: phone.trim(),
+        role: { in: [Role.MEMBER, Role.ADMIN] },
+      },
+      select: { loginId: true },
+    });
+
+    const loginIds = users
+      .filter((u) => !!u.loginId)
+      .map((u) => maskLoginId(u.loginId as string));
+
+    return { loginIds };
+  }
+  
 }

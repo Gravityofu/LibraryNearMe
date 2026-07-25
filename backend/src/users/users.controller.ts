@@ -21,6 +21,12 @@ export class UsersController {
     return this.usersService.signup(body);
   }
 
+  // POST 요청: 이름+휴대폰 번호로 아이디 찾기 — 누구나 접근 가능(로그인 전)
+  @Post('find-id')
+  findLoginId(@Body() body: { name: string; phone: string }) {
+    return this.usersService.findLoginId(body.name, body.phone);
+  }
+
   // GET 요청: 회원/관리자 목록 조회(검색 포함) — 관리자만
   @Get()
   @UseGuards(AdminGuard)
