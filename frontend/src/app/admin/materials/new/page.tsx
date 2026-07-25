@@ -282,9 +282,10 @@ export default function NewMaterialPage() {
           onClick={() => setShowTagHelp(false)}
         >
           <div
-            className="max-h-[80vh] w-full max-w-6xl overflow-auto rounded-none bg-white p-6 shadow-xl"
+            className="max-h-[80vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="max-h-[80vh] overflow-auto p-6">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm font-semibold">{t("materials.new.tagHelpTitle")}</p>
               <a
@@ -318,6 +319,7 @@ export default function NewMaterialPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

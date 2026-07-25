@@ -43,6 +43,25 @@ const EMPTY_FORM = {
   status: "ACTIVE",
 };
 
+// 숫자만 남기고, 3자리-4자리-4자리 모양으로 하이픈을 자동으로 붙여줍니다.
+function formatPhone(raw: string) {
+  const digits = raw.replace(/\D/g, "").slice(0, 11); // 숫자만, 최대 11자리
+  if (digits.length < 4) return digits;
+  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+// 하이픈을 뺀 숫자가 정확히 11자리인지 확인합니다.
+function isValidPhone(phone: string) {
+  return phone.replace(/\D/g, "").length === 11;
+}
+
+// 이메일은 입력했을 때만(선택 항목이라) 형식을 확인합니다.
+function isValidEmail(email: string) {
+  if (!email.trim()) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
 export default function MembersPage() {
   const { notify } = useNotify();
   const { t } = useI18n();
@@ -127,6 +146,14 @@ export default function MembersPage() {
 
     if (!editingId && (!form.loginId.trim() || !form.password.trim() || !form.name.trim())) {
       notify("❌ " + t("members.form.requiredFields"), "error");
+      return;
+    }
+    if (!isValidPhone(form.phone)) {
+      notify("❌ " + t("members.form.invalidPhone"), "error");
+      return;
+    }
+    if (!isValidEmail(form.email)) {
+      notify("❌ " + t("members.form.invalidEmail"), "error");
       return;
     }
 
@@ -376,9 +403,10 @@ export default function MembersPage() {
           onClick={() => setShowForm(false)}
         >
           <div
-            className="max-h-[85vh] w-full max-w-md overflow-auto rounded-xl bg-white p-6 shadow-xl"
+            className="max-h-[85vh] w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="max-h-[85vh] overflow-auto p-6">
             <p className="mb-4 text-sm font-semibold">
               {editingId ? t("members.form.editTitle") : t("members.form.addTitle")}
             </p>
@@ -425,14 +453,19 @@ export default function MembersPage() {
                   className="w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </label>
+
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.phone")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.phone")} *</span>
                 <input
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
+                  placeholder="000-0000-0000"
+                  inputMode="numeric"
+                  maxLength={13}
                   className="w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </label>
+
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.email")}</span>
                 <input
@@ -510,12 +543,15 @@ export default function MembersPage() {
               )}
 
             </div>
+
             <button
               onClick={handleSave}
               className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
             >
               {t("members.form.save")}
             </button>
+            
+            </div>
           </div>
         </div>
       )}
