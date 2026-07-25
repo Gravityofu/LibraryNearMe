@@ -21,7 +21,7 @@ export class UsersController {
     return this.usersService.signup(body);
   }
 
-  // GET 요청: 회원 목록 조회(검색 포함) — 관리자만
+  // GET 요청: 회원/관리자 목록 조회(검색 포함) — 관리자만
   @Get()
   @UseGuards(AdminGuard)
   list(@Req() req: any, @Query() query: any) {
@@ -36,14 +36,14 @@ export class UsersController {
     });
   }
 
-  // POST 요청: 관리자가 회원 직접 등록 — 관리자만
+  // POST 요청: 관리자가 회원/관리자 계정 직접 등록 — 관리자만
   @Post('admin')
   @UseGuards(AdminGuard)
   adminCreate(@Req() req: any, @Body() body: any) {
     return this.usersService.adminCreate(req.user.libraryId, body);
   }
 
-  // PATCH 요청: 회원 정보 수정(상태 변경 포함) — 관리자만
+  // PATCH 요청: 회원/관리자 정보 수정(상태 변경 포함) — 관리자만
   @Patch(':id')
   @UseGuards(AdminGuard)
   update(@Req() req: any, @Param('id') id: string, @Body() body: any) {
