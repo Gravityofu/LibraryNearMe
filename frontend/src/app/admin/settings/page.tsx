@@ -112,7 +112,7 @@ export default function AdminSettingsPage() {
       <h1 className="mb-4 text-lg font-bold">{t("settings.title")}</h1>
 
       <Tabs defaultValue="kormarcTags">
-        <TabsList>
+        <TabsList className="gap-2">
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="library">{t("settings.tabs.library")}</TabsTrigger>
         </TabsList>

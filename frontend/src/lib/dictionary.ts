@@ -49,6 +49,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "login.findIdLink": "아이디 찾기",
     "login.findPasswordLink": "비밀번호 찾기",
 
+    "auth.backBtn": "뒤로 가기",
+
     "findId.title": "아이디 찾기",
     "findId.name": "이름",
     "findId.phone": "휴대폰 번호",
@@ -349,6 +351,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "login.signupLink": "Sign up",
     "login.findIdLink": "Find ID",
     "login.findPasswordLink": "Find Password",
+
+    "auth.backBtn": "Back",
 
     "findId.title": "Find ID",
     "findId.name": "Name",
