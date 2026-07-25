@@ -545,7 +545,8 @@ export default function MembersPage() {
               </label>
 
               <label className="block">
-                <div className="mb-1 flex items-center justify-between">
+
+                <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm text-neutral-500">{t("members.form.field.address")}</span>
                   <button
                     type="button"
@@ -557,6 +558,7 @@ export default function MembersPage() {
                     {t("members.form.findAddressBtn")}
                   </button>
                 </div>
+
                 {form.addressMain && (
                   <div className="flex flex-col gap-2">
                     <input
