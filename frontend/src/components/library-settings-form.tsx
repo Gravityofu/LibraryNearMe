@@ -47,8 +47,7 @@ export default function LibrarySettingsForm() {
       }),
     });
     if (res.ok) {
-      notify(t("admin.settings.saved"), "success");
-      setTimeout(() => window.location.reload(), 600);
+      notify(t("admin.settings.saved"), "success", () => window.location.reload());
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("admin.settings.saveFail")), "error");

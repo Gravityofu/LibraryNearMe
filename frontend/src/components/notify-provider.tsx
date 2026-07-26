@@ -5,14 +5,21 @@ import { createContext, useContext, useState } from "react";
 type NotifyType = "success" | "error" | "info";
 
 const NotifyContext = createContext<{
-  notify: (message: string, type?: NotifyType) => void;
+  notify: (message: string, type?: NotifyType, onClose?: () => void) => void;
 } | null>(null);
 
 export function NotifyProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ message: string; type: NotifyType } | null>(null);
+  const [state, setState] = useState<{ message: string; type: NotifyType; onClose?: () => void } | null>(null);
 
-  function notify(message: string, type: NotifyType = "info") {
-    setState({ message, type });
+  function notify(message: string, type: NotifyType = "info", onClose?: () => void) {
+    setState({ message, type, onClose });
+  }
+
+  // 모달을 닫을 때 실행됩니다. "확인" 버튼을 누르거나 바깥을 클릭했을 때 모두 여기로 옵니다.
+  function handleClose() {
+    const callback = state?.onClose;
+    setState(null);
+    callback?.();
   }
 
   return (
@@ -23,7 +30,7 @@ export function NotifyProvider({ children }: { children: React.ReactNode }) {
       {state && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setState(null)}
+          onClick={handleClose}
         >
           <div
             className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
@@ -33,7 +40,7 @@ export function NotifyProvider({ children }: { children: React.ReactNode }) {
               {state.message}
             </p>
             <button
-              onClick={() => setState(null)}
+              onClick={handleClose}
               className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
             >
               확인
