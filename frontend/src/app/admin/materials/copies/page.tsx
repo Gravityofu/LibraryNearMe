@@ -332,13 +332,11 @@ function CopiesPageInner() {
                 <tr onClick={resetForm} className="cursor-pointer">
                   <td
                     colSpan={4}
-                    className={`px-2 py-2 text-center font-semibold ${
-                      selectedCopyId === null ? "" : "border text-black"
-                    }`}
+                    className="px-2 py-2 text-center font-semibold"
                     style={
                       selectedCopyId === null
                         ? { backgroundColor: button1Bg, color: button1Text }
-                        : { borderColor: button1Bg }
+                        : { color: button1Bg, boxShadow: `inset 0 0 0 1px ${button1Bg}` }
                     }
                   >
                     <span className="inline-flex items-center gap-2">
