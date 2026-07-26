@@ -109,8 +109,6 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-4 text-lg font-bold">{t("settings.title")}</h1>
-
       <Tabs defaultValue="kormarcTags">
         <TabsList className="gap-2">
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>

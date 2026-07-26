@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { useI18n } from "@/components/language-provider";
 
@@ -36,10 +37,10 @@ export default function AuthPageBox({ title, children }: Props) {
     <main className="mx-auto max-w-md p-8">
       <Card>
         <CardContent className="pt-6">
-          <div className="mb-5 flex flex-col items-center gap-1.5">
+          <Link href="/" className="mb-5 flex flex-col items-center gap-1.5">
             {logoUrl && <img src={logoUrl} alt={name} className="h-9 w-auto" />}
             <span className="text-base font-extrabold">{name}</span>
-          </div>
+          </Link>
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-lg font-bold">{title}</h1>
             <button
