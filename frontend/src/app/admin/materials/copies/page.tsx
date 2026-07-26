@@ -67,6 +67,14 @@ function findAuthorCode(marc?: { tag: string; value: string }[]) {
   return part ? part.slice(1).trim() : "";
 }
 
+// 가장 최근 등록번호의 다음 숫자를 계산합니다. (등록번호는 1,2,3... 순수 숫자입니다.)
+function computeNextRegNo(latest: string | null): string {
+  if (!latest) return "1";
+  const n = parseInt(latest, 10);
+  if (Number.isNaN(n)) return "";
+  return String(n + 1);
+}
+
 function CopiesPageInner() {
   const searchParams = useSearchParams();
   const materialId = searchParams.get("materialId");
@@ -91,8 +99,10 @@ function CopiesPageInner() {
       const data = await res.json();
       setMaterial(data);
       setMarc(Array.isArray(data.marc) && data.marc.length > 0 ? data.marc : DEFAULT_FIELDS);
-      setForm({ ...EMPTY_FORM, authorCode: findAuthorCode(data.marc) });
+
+      setForm((prev) => ({ ...EMPTY_FORM, authorCode: findAuthorCode(data.marc), registrationNo: prev.registrationNo }));
       setSelectedCopyId(null);
+
     } else {
       notify("❌ " + t("materials.copies.loadFail"), "error");
     }
@@ -118,6 +128,7 @@ function CopiesPageInner() {
     if (res.ok) {
       const data = await res.json();
       setLatestRegNo(data.registrationNo);
+      setForm((prev) => ({ ...prev, registrationNo: computeNextRegNo(data.registrationNo) }));
     }
   }
 
@@ -156,7 +167,7 @@ function CopiesPageInner() {
 
   function resetForm() {
     setSelectedCopyId(null);
-    setForm({ ...EMPTY_FORM, authorCode: findAuthorCode(marc) });
+    setForm({ ...EMPTY_FORM, authorCode: findAuthorCode(marc), registrationNo: computeNextRegNo(latestRegNo) });
   }
 
   async function handleSaveMarc() {
@@ -190,11 +201,12 @@ function CopiesPageInner() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(form),
     });
+
     if (res.ok) {
       notify("✅ " + t("materials.copies.addSuccess"), "success");
       await refreshMaterial(material.id);
-      await loadLatestRegNo();
       resetForm();
+      await loadLatestRegNo();
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.copies.addFail")), "error");
