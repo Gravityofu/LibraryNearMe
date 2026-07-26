@@ -246,6 +246,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "design.button1Note": "(기본 버튼 · 삭제 불가)",
     "design.fontSection": "글꼴",
     "design.fontLabel": "시스템 글꼴 선택",
+    "design.fontWeightLabel": "글자 굵기",
 
     "settings.tags.addBtn": "새 태그 추가",
     "settings.tags.editBtn": "수정",
@@ -577,6 +578,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "design.button1Note": "(Default · cannot delete)",
     "design.fontSection": "Font",
     "design.fontLabel": "System Font",
+    "design.fontWeightLabel": "Font Weight",
     
     "settings.tags.addBtn": "Add Tag",
     "settings.tags.editBtn": "Edit",

@@ -48,3 +48,14 @@ export const FONT_OPTIONS: FontOption[] = [
 export function getFontOption(key: string): FontOption {
   return FONT_OPTIONS.find((f) => f.key === key) || FONT_OPTIONS[0];
 }
+
+// 디자인 탭에서 고를 수 있는 글자 굵기 목록입니다.
+export type FontWeightOption = { value: string; label: string };
+
+export const FONT_WEIGHT_OPTIONS: FontWeightOption[] = [
+  { value: "400", label: "보통 (400)" },
+  { value: "500", label: "약간 굵게 (500)" },
+  { value: "600", label: "중간 굵게 (600)" },
+  { value: "700", label: "굵게 (700)" },
+  { value: "800", label: "매우 굵게 (800)" },
+];

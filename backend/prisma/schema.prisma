@@ -25,6 +25,7 @@ model Library {
   sidebarTextColor String @default("#F9F6F0")                                         // 사이드바 글자색
   buttonStyles     Json   @default("[{\"name\": \"버튼1\", \"bgColor\": \"#383838\", \"textColor\": \"#F9F6F0\"}]")  // 버튼 색상 목록
   fontFamily       String @default("pretendard")
+  fontWeight       String @default("400")
   footerVersion   String   @default("1.0.0")                // 오늘 추가: Footer에 보일 버전
   footerCopyright String   @default("ⓒ 2026 Gravityofu")    // 오늘 추가: Footer에 보일 저작권 문구
   createdAt    DateTime @default(now())

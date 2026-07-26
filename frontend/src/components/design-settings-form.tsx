@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
-import { FONT_OPTIONS } from "@/lib/fonts";
+import { FONT_OPTIONS, FONT_WEIGHT_OPTIONS } from "@/lib/fonts";
 
 const API_URL = "http://localhost:3001";
 
@@ -20,6 +20,7 @@ export default function DesignSettingsForm() {
   const [sidebarBgColor, setSidebarBgColor] = useState("#383838");
   const [sidebarTextColor, setSidebarTextColor] = useState("#F9F6F0");
   const [fontFamily, setFontFamily] = useState("pretendard");
+  const [fontWeight, setFontWeight] = useState("400");
   const [buttonStyles, setButtonStyles] = useState<ButtonStyle[]>([
     { name: "버튼1", bgColor: "#383838", textColor: "#F9F6F0" },
   ]);
@@ -34,6 +35,7 @@ export default function DesignSettingsForm() {
         setSidebarBgColor(data.sidebarBgColor || "#383838");
         setSidebarTextColor(data.sidebarTextColor || "#F9F6F0");
         setFontFamily(data.fontFamily || "pretendard");
+        setFontWeight(data.fontWeight || "400");
         setButtonStyles(
           Array.isArray(data.buttonStyles) && data.buttonStyles.length > 0
             ? data.buttonStyles
@@ -63,11 +65,12 @@ export default function DesignSettingsForm() {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, buttonStyles, fontFamily,
+        footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, buttonStyles, fontFamily, fontWeight,
       }),
     });
     if (res.ok) {
       notify(t("admin.settings.saved"), "success");
+      setTimeout(() => window.location.reload(), 600);
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("admin.settings.saveFail")), "error");
@@ -89,6 +92,20 @@ export default function DesignSettingsForm() {
               {FONT_OPTIONS.map((f) => (
                 <option key={f.key} value={f.key}>
                   {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-3 flex flex-col gap-2">
+            <Label>{t("design.fontWeightLabel")}</Label>
+            <select
+              value={fontWeight}
+              onChange={(e) => setFontWeight(e.target.value)}
+              className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+            >
+              {FONT_WEIGHT_OPTIONS.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
                 </option>
               ))}
             </select>

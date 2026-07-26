@@ -16,6 +16,7 @@ type ThemeState = {
   sidebarTextColor: string;
   buttonStyles: ButtonStyle[];
   fontFamily: string;
+  fontWeight: string;
 };
 
 const DEFAULT_THEME: ThemeState = {
@@ -25,6 +26,7 @@ const DEFAULT_THEME: ThemeState = {
   sidebarTextColor: "#F9F6F0",
   buttonStyles: [{ name: "버튼1", bgColor: "#383838", textColor: "#F9F6F0" }],
   fontFamily: "pretendard",
+  fontWeight: "400",
 };
 
 const API_URL = "http://localhost:3001";
@@ -49,12 +51,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               ? data.buttonStyles
               : DEFAULT_THEME.buttonStyles,
           fontFamily: data.fontFamily || DEFAULT_THEME.fontFamily,
+          fontWeight: data.fontWeight || DEFAULT_THEME.fontWeight,
         });
       })
       .catch(() => {});
   }, []);
 
-  // 글꼴이 바뀔 때마다, 실제 화면에 그 글꼴을 적용합니다.
+  // 글꼴이나 굵기가 바뀔 때마다, 실제 화면에 그대로 적용합니다.
   useEffect(() => {
     const option = getFontOption(theme.fontFamily);
     const linkId = "dynamic-font-link";
@@ -76,9 +79,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Tailwind의 font-sans 클래스는 빌드할 때 값이 이미 고정되어버리기 때문에(=inline),
     // --font-sans 변수를 바꾸는 것만으로는 반영되지 않습니다.
-    // 그래서 <body> 태그에 직접 글꼴을 지정해서 확실하게 덮어씁니다.
+    // 그래서 <body> 태그에 직접 글꼴과 굵기를 지정해서 확실하게 덮어씁니다.
     document.body.style.fontFamily = option.stack;
-  }, [theme.fontFamily]);
+    document.body.style.fontWeight = theme.fontWeight;
+  }, [theme.fontFamily, theme.fontWeight]);
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }

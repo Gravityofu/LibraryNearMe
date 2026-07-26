@@ -18,6 +18,7 @@ export class LibraryService {
     sidebarBgColor?: string; sidebarTextColor?: string;
     buttonStyles?: any;
     fontFamily?: string;
+    fontWeight?: string;
   }) {
     const library = await this.prisma.library.findFirst();
     if (!library) return null;
@@ -34,6 +35,7 @@ export class LibraryService {
         sidebarTextColor: data.sidebarTextColor || undefined,
         buttonStyles: data.buttonStyles ?? undefined,
         fontFamily: data.fontFamily || undefined,
+        fontWeight: data.fontWeight || undefined,
       },
     });
   }
