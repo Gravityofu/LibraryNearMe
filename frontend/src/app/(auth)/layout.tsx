@@ -26,8 +26,8 @@ export default async function AuthLayout({
       <SiteFooter
         name={name}
         logoUrl={library?.logoUrl}
-        bgColor={library?.chromeBgColor || "#383838"}
-        textColor={library?.chromeTextColor || "#F9F6F0"}
+        bgColor={library?.footerBgColor || "#383838"}
+        textColor={library?.footerTextColor || "#F9F6F0"}
         version={library?.footerVersion || "1.0.0"}
         copyright={library?.footerCopyright || "ⓒ 2026 Gravityofu"}
         termsLabel="이용 약관"

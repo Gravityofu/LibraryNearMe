@@ -15,8 +15,6 @@ export default function LibrarySettingsForm() {
   const [name, setName] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [logoUrl, setLogoUrl] = useState("");
-  const [chromeBgColor, setChromeBgColor] = useState("#383838");
-  const [chromeTextColor, setChromeTextColor] = useState("#F9F6F0");
   const [footerVersion, setFooterVersion] = useState("1.0.0");
   const [footerCopyright, setFooterCopyright] = useState("ⓒ 2026 Gravityofu");
 
@@ -28,8 +26,6 @@ export default function LibrarySettingsForm() {
           setName(data.name);
           setPrimaryColor(data.primaryColor);
           setLogoUrl(data.logoUrl || "");
-          setChromeBgColor(data.chromeBgColor || "#383838");
-          setChromeTextColor(data.chromeTextColor || "#F9F6F0");
           setFooterVersion(data.footerVersion || "1.0.0");
           setFooterCopyright(data.footerCopyright || "ⓒ 2026 Gravityofu");
         }
@@ -46,8 +42,6 @@ export default function LibrarySettingsForm() {
         name,
         primaryColor,
         logoUrl,
-        chromeBgColor,
-        chromeTextColor,
         footerVersion,
         footerCopyright,
       }),
@@ -74,26 +68,6 @@ export default function LibrarySettingsForm() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="logoUrl">{t("admin.settings.logoUrl")}</Label>
           <Input id="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://..." />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="chromeBg">{t("admin.settings.chromeBgColor")}</Label>
-          <Input
-            id="chromeBg"
-            type="color"
-            value={chromeBgColor}
-            onChange={(e) => setChromeBgColor(e.target.value)}
-            className="h-10 w-20 p-1"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="chromeText">{t("admin.settings.chromeTextColor")}</Label>
-          <Input
-            id="chromeText"
-            type="color"
-            value={chromeTextColor}
-            onChange={(e) => setChromeTextColor(e.target.value)}
-            className="h-10 w-20 p-1"
-          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="footerVersion">{t("admin.settings.footerVersion")}</Label>

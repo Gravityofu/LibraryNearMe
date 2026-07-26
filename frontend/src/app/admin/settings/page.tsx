@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 import LibrarySettingsForm from "@/components/library-settings-form";
+import DesignSettingsForm from "@/components/design-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -113,6 +114,7 @@ export default function AdminSettingsPage() {
         <TabsList className="gap-2">
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="library">{t("settings.tabs.library")}</TabsTrigger>
+          <TabsTrigger value="design">{t("settings.tabs.design")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kormarcTags" className="mt-4">
@@ -165,6 +167,10 @@ export default function AdminSettingsPage() {
 
         <TabsContent value="library" className="mt-4">
           <LibrarySettingsForm />
+        </TabsContent>
+
+        <TabsContent value="design" className="mt-4">
+          <DesignSettingsForm />
         </TabsContent>
       </Tabs>
 

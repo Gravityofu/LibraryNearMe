@@ -15,10 +15,13 @@ export class LibraryService {
     name: string;
     primaryColor: string;
     logoUrl?: string;
-    chromeBgColor?: string;
-    chromeTextColor?: string;
     footerVersion?: string;
     footerCopyright?: string;
+    footerBgColor?: string;
+    footerTextColor?: string;
+    sidebarBgColor?: string;
+    sidebarTextColor?: string;
+    buttonStyles?: any;
   }) {
     const library = await this.prisma.library.findFirst();
     if (!library) return null;
@@ -29,11 +32,15 @@ export class LibraryService {
         name: data.name,
         primaryColor: data.primaryColor,
         logoUrl: data.logoUrl || undefined,
-        chromeBgColor: data.chromeBgColor || undefined,
-        chromeTextColor: data.chromeTextColor || undefined,
         footerVersion: data.footerVersion || undefined,
         footerCopyright: data.footerCopyright || undefined,
+        footerBgColor: data.footerBgColor || undefined,
+        footerTextColor: data.footerTextColor || undefined,
+        sidebarBgColor: data.sidebarBgColor || undefined,
+        sidebarTextColor: data.sidebarTextColor || undefined,
+        buttonStyles: data.buttonStyles ?? undefined,
       },
     });
   }
+
 }

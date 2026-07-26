@@ -19,8 +19,11 @@ model Library {
   logoUrl      String?
   primaryColor String   @default("#2563eb")
   domain       String?  @unique   // 이 도서관 홈페이지 도메인 (나중에 도메인별 서비스용)
-  chromeBgColor   String   @default("#383838")             // 오늘 추가: Footer/사이드바 배경색
-  chromeTextColor String   @default("#F9F6F0")              // 오늘 추가: Footer/사이드바 글자색
+  footerBgColor    String @default("#383838")                                        // Footer 배경색
+  footerTextColor  String @default("#F9F6F0")                                         // Footer 글자색
+  sidebarBgColor   String @default("#383838")                                         // 사이드바 배경색
+  sidebarTextColor String @default("#F9F6F0")                                         // 사이드바 글자색
+  buttonStyles     Json   @default("[{\"name\": \"버튼1\", \"bgColor\": \"#383838\", \"textColor\": \"#F9F6F0\"}]")  // 버튼 색상 목록
   footerVersion   String   @default("1.0.0")                // 오늘 추가: Footer에 보일 버전
   footerCopyright String   @default("ⓒ 2026 Gravityofu")    // 오늘 추가: Footer에 보일 저작권 문구
   createdAt    DateTime @default(now())

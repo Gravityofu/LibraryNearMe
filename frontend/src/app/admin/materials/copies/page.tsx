@@ -1,5 +1,6 @@
 "use client";
 
+import ThemedButton from "@/components/themed-button";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -469,13 +470,13 @@ function CopiesPageInner() {
           </div>
 
           <div className="mt-4">
-            <button
-              type="button"
+            <ThemedButton
+              preset="버튼1"
               onClick={selectedCopyId ? handleUpdateCopy : handleAddCopy}
-              className="w-full cursor-pointer rounded-lg bg-[#383838] px-4 py-2.5 text-sm font-semibold text-[#F9F6F0]"
+              className="w-full"
             >
               {t("materials.copies.save")}
-            </button>
+            </ThemedButton>
           </div>
 
         </div>
