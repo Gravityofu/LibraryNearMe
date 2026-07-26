@@ -79,6 +79,7 @@ function CopiesPageInner() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [selectedCopyId, setSelectedCopyId] = useState<number | null>(null);
   const [latestRegNo, setLatestRegNo] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState("#2563eb");
 
   async function loadMaterial(id: string) {
     const token = localStorage.getItem("token");
@@ -128,6 +129,13 @@ function CopiesPageInner() {
   useEffect(() => {
     loadLatestRegNo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/library`)
+      .then((res) => res.json())
+      .then((data) => setPrimaryColor(data?.primaryColor || "#2563eb"))
+      .catch(() => {});
   }, []);
 
   function selectCopy(copy: CopyItem) {
@@ -251,7 +259,7 @@ function CopiesPageInner() {
         <div className="flex flex-col gap-4">
           {/* 왼쪽 위: MARC 편집기(또는 비도서 요약) */}
           <div className="max-h-[45vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-3">
-            <p className="mb-2 text-sm font-semibold">{t("materials.copies.marcBoxTitle")}</p>
+            <p className="mb-2 text-base font-semibold">{t("materials.copies.marcBoxTitle")}</p>
             {usesMarc ? (
               <>
                 <MarcEditor fields={marc} onChange={setMarc} />
@@ -287,64 +295,67 @@ function CopiesPageInner() {
 
           {/* 왼쪽 아래: 기존 실물 목록(스크롤, 표) */}
           <div className="max-h-[35vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-3">
-            <p className="mb-2 text-sm font-semibold">
+            <p className="mb-2 text-base font-semibold">
               {t("materials.copies.copyListHeading")} ({material.copies.length}
               {t("materials.copies.countUnitBooks")})
             </p>
-            {material.copies.length > 0 ? (
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-neutral-50 text-neutral-500">
-                  <tr>
-                    <th className="px-2 py-1.5">{t("materials.copies.regNo")}</th>
-                    <th className="px-2 py-1.5">{t("materials.copies.callNumber")}</th>
-                    <th className="px-2 py-1.5">{t("materials.copies.location")}</th>
-                    <th className="px-2 py-1.5">{t("materials.copies.status")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  {material.copies.map((c) => {
-                    const statusOpt = STATUS_OPTIONS.find((s) => s.value === c.status);
-                    return (
-                      <tr
-                        key={c.id}
-                        onClick={() => selectCopy(c)}
-                        className={`cursor-pointer ${
-                          selectedCopyId === c.id ? "bg-neutral-100" : "hover:bg-neutral-50"
-                        }`}
-                      >
-                        <td className="whitespace-nowrap px-2 py-2">{c.registrationNo}</td>
-                        <td className="whitespace-nowrap px-2 py-2">{c.callNumber || "-"}</td>
-                        <td className="whitespace-nowrap px-2 py-2">{c.location || "-"}</td>
-                        <td className="whitespace-nowrap px-2 py-2">
-                          {statusOpt ? t(statusOpt.labelKey) : c.status}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-neutral-400">{t("materials.copies.noCopies")}</p>
-            )}
+
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-neutral-50 text-neutral-500">
+                <tr>
+                  <th className="px-2 py-1.5">{t("materials.copies.regNo")}</th>
+                  <th className="px-2 py-1.5">{t("materials.copies.callNumber")}</th>
+                  <th className="px-2 py-1.5">{t("materials.copies.location")}</th>
+                  <th className="px-2 py-1.5">{t("materials.copies.status")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200">
+                <tr onClick={resetForm} className="cursor-pointer">
+                  <td
+                    colSpan={4}
+                    className={`px-2 py-2 font-semibold ${
+                      selectedCopyId === null ? "" : "border border-black text-black"
+                    }`}
+                    style={selectedCopyId === null ? { backgroundColor: "#000000", color: "#ffffff" } : undefined}
+                  >
+                    {t("materials.copies.newRegistrationRow")}
+                  </td>
+                </tr>
+                {material.copies.map((c) => {
+                  const statusOpt = STATUS_OPTIONS.find((s) => s.value === c.status);
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => selectCopy(c)}
+                      className={`cursor-pointer ${selectedCopyId === c.id ? "" : "hover:bg-neutral-50"}`}
+                      style={selectedCopyId === c.id ? { backgroundColor: primaryColor, color: "#ffffff" } : undefined}
+                    >
+                      <td className="whitespace-nowrap px-2 py-2">{c.registrationNo}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{c.callNumber || "-"}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{c.location || "-"}</td>
+                      <td className="whitespace-nowrap px-2 py-2">
+                        {statusOpt ? t(statusOpt.labelKey) : c.status}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
           </div>
 
         </div>
 
         {/* 오른쪽: 등록/수정 폼 */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-3">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold">
+        <div
+          className="rounded-lg border-2 bg-white p-3"
+          style={{ borderColor: selectedCopyId ? primaryColor : "#000000" }}
+        >
+
+          <div className="mb-3">
+            <p className="text-base font-semibold">
               {selectedCopyId ? t("materials.copies.editHeading") : t("materials.copies.addHeading")}
             </p>
-            {selectedCopyId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="cursor-pointer text-xs text-neutral-400 underline"
-              >
-                {t("materials.copies.newEntry")}
-              </button>
-            )}
           </div>
 
           <div className="space-y-3">
@@ -445,23 +456,16 @@ function CopiesPageInner() {
             </label>
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4">
             <button
               type="button"
-              onClick={handleUpdateCopy}
-              disabled={!selectedCopyId}
-              className="flex-1 cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={selectedCopyId ? handleUpdateCopy : handleAddCopy}
+              className="w-full cursor-pointer rounded-lg bg-[#383838] px-4 py-2.5 text-sm font-semibold text-[#F9F6F0]"
             >
-              {t("materials.copies.update")}
-            </button>
-            <button
-              type="button"
-              onClick={handleAddCopy}
-              className="flex-1 cursor-pointer rounded-lg bg-[#383838] px-4 py-2.5 text-sm font-semibold text-[#F9F6F0]"
-            >
-              {t("materials.copies.add")}
+              {t("materials.copies.save")}
             </button>
           </div>
+
         </div>
       </div>
     </div>
