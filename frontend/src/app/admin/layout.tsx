@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 // 화면 주소별로 상단에 보여줄 경로(브레드크럼)를 정의합니다.
 // 배열에 문구가 두 개면 "A › B" 처럼 화살표로 이어서 보여줍니다.
 const BREADCRUMB_MAP: Record<string, string[]> = {
+  "/admin": ["admin.menu.dashboard"],
   "/admin/settings": ["admin.menu.systemSettings"],
   "/admin/materials/list": ["admin.menu.materialsList"],
   "/admin/materials/new": ["admin.menu.materialsList", "admin.menu.materialsNew"],
@@ -57,6 +58,9 @@ export default function AdminLayout({
         </div>
 
         <nav className="mt-6 flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm md:flex-col md:gap-1">
+          <Link href="/admin" className={navClass("/admin", true)}>
+            {t("admin.menu.dashboard")}
+          </Link>
           <Link href="/admin/materials/list" className={navClass("/admin/materials")}>
             {t("admin.menu.materialsList")}
           </Link>

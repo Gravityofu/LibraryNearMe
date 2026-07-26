@@ -83,6 +83,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "signup.findAddressBtn": "주소 찾기",
     "signup.addressDetailPlaceholder": "상세 주소",
     "signup.invalidBirthDate": "생년월일을 올바르게 입력해주세요.",
+    "signup.memberNo": "회원번호",
 
     "admin.title": "관리자",
     "admin.menu.settings": "도서관 설정",
@@ -204,6 +205,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.needLogin": "관리자 로그인이 필요합니다.",
     "admin.goLogin": "로그인하러 가기",
     "admin.pageTitle": "관리자 페이지",
+    "admin.menu.dashboard": "대시보드",
+    "admin.dashboard.wip": "(작업 중)",
     "admin.settings.title": "도서관 설정 (관리자)",
     "admin.settings.name": "도서관 이름",
     "admin.settings.color": "대표 색상",
@@ -391,6 +394,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "signup.findAddressBtn": "Find address",
     "signup.addressDetailPlaceholder": "Detailed address",
     "signup.invalidBirthDate": "Please enter a valid date of birth.",
+    "signup.memberNo": "Member No.",
 
     "admin.title": "Admin",
     "admin.menu.settings": "Library Settings",
@@ -512,6 +516,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.needLogin": "Admin login is required.",
     "admin.goLogin": "Go to login",
     "admin.pageTitle": "Admin Page",
+    "admin.menu.dashboard": "Dashboard",
+    "admin.dashboard.wip": "(Work in progress)",
     "admin.settings.title": "Library Settings (Admin)",
     "admin.settings.name": "Library Name",
     "admin.settings.color": "Primary Color",

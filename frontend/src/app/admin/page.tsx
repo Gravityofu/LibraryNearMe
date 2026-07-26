@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/language-provider";
 
-export default function AdminIndexPage() {
-  const router = useRouter();
+export default function AdminDashboardPage() {
+  const { t } = useI18n();
 
-  useEffect(() => {
-    router.replace("/admin/settings");
-  }, [router]);
-
-  return null;
+  return (
+    <div className="p-6">
+      <h1 className="text-lg font-bold">{t("admin.menu.dashboard")}</h1>
+      <p className="mt-4 text-sm text-neutral-400">{t("admin.dashboard.wip")}</p>
+    </div>
+  );
 }

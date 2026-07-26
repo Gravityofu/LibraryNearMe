@@ -23,6 +23,12 @@ export class UsersController {
     return this.usersService.signup(body);
   }
 
+  // GET 요청: 홈페이지 회원가입에서 쓰는 공개용 다음 회원번호 — 누구나 접근 가능
+  @Get('next-member-no-public')
+  getNextMemberNoPublic() {
+    return this.usersService.getNextMemberNoPublic();
+  }
+
   // POST 요청: 이름+휴대폰 번호로 아이디 찾기 — 누구나 접근 가능(로그인 전)
   @Post('find-id')
   findLoginId(@Body() body: { name: string; phone: string }) {

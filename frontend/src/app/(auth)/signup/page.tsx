@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,17 @@ export default function SignupPage() {
   const [birthDay, setBirthDay] = useState("");
   const [addressMain, setAddressMain] = useState("");
   const [addressDetail, setAddressDetail] = useState("");
+  const [memberNo, setMemberNo] = useState("");
+
+  // 화면이 열리자마자 "다음 회원번호"를 물어봐서 미리 보여줍니다.
+  useEffect(() => {
+    fetch(`${API_URL}/users/next-member-no-public`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.memberNo) setMemberNo(data.memberNo);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSignup() {
     if (!isValidPhone(phone)) {
@@ -91,7 +102,7 @@ export default function SignupPage() {
     const res = await fetch(`${API_URL}/users`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ loginId, password, name, phone, email, birthDate: birthDateValue, address }),
+      body: JSON.stringify({ loginId, password, name, phone, email, birthDate: birthDateValue, address, memberNo }),
     });
 
     if (res.ok) {
@@ -129,10 +140,20 @@ export default function SignupPage() {
           <Label htmlFor="password">{t("signup.password")}</Label>
           <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
+
+        <div className="flex flex-col gap-2">
+          <Label>{t("signup.memberNo")}</Label>
+          <input
+            value={memberNo}
+            disabled
+            className="w-full rounded-lg border bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
+          />
+        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">{t("signup.name")}</Label>
           <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="phone">{t("signup.phone")}</Label>
           <Input

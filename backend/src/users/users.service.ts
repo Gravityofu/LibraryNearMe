@@ -18,6 +18,7 @@ type SignupData = {
   email?: string;
   birthDate?: string;
   address?: string;
+  memberNo?: string;
 };
 
 // "abcd1234" → "ab****34" 처럼 가운데를 가려서 보여줍니다.
@@ -53,19 +54,29 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const cardToken = randomUUID();
 
-    await this.prisma.user.create({
-      data: {
-        libraryId: library.id,
-        loginId: data.loginId,
-        passwordHash,
-        name: data.name,
-        phone: data.phone,
-        email: data.email || undefined,
-        birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-        address: data.address || undefined,
-        cardToken,
-      },
-    });
+    try {
+      await this.prisma.user.create({
+        data: {
+          libraryId: library.id,
+          loginId: data.loginId,
+          passwordHash,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || undefined,
+          birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+          address: data.address || undefined,
+          memberNo: data.memberNo || undefined,
+          cardToken,
+        },
+      });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        throw new ConflictException(
+          '처리 중 문제가 발생했습니다. 다시 시도해주세요.',
+        );
+      }
+      throw e;
+    }
 
     return { message: '회원가입이 완료되었습니다.' };
   }
@@ -257,6 +268,13 @@ export class UsersService {
 
     const next = maxNum + 1;
     return { memberNo: 'M' + String(next).padStart(6, '0') };
+  }
+
+  // 로그인 전(홈페이지 회원가입)에서 쓰는 다음 회원번호 조회. 첫 번째 도서관 기준입니다.
+  async getNextMemberNoPublic() {
+    const library = await this.prisma.library.findFirst();
+    if (!library) return { memberNo: null };
+    return this.getNextMemberNo(library.id);
   }
 
   // 이름 + 휴대폰 번호로 아이디 찾기. 로그인 전(누구나 접근 가능)이라 libraryId를 직접 못 받고,
