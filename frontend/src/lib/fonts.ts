@@ -36,6 +36,12 @@ export const FONT_OPTIONS: FontOption[] = [
     stack: '-apple-system, BlinkMacSystemFont, system-ui, "Malgun Gothic", sans-serif',
     googleFontUrl: null,
   },
+  {
+    key: "nanum-myeongjo",
+    label: "나눔명조 (명조체)",
+    stack: '"Nanum Myeongjo", serif',
+    googleFontUrl: "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap",
+  },
 ];
 
 // 저장된 key로 글꼴 정보를 찾아줍니다. 못 찾으면 Pretendard를 기본으로 돌려줘요.

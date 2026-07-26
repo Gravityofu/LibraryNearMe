@@ -74,8 +74,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       linkEl.remove();
     }
 
-    // 사이트 전체에서 쓰는 --font-sans 값을 선택한 글꼴로 바꿉니다.
-    document.documentElement.style.setProperty("--font-sans", option.stack);
+    // Tailwind의 font-sans 클래스는 빌드할 때 값이 이미 고정되어버리기 때문에(=inline),
+    // --font-sans 변수를 바꾸는 것만으로는 반영되지 않습니다.
+    // 그래서 <body> 태그에 직접 글꼴을 지정해서 확실하게 덮어씁니다.
+    document.body.style.fontFamily = option.stack;
   }, [theme.fontFamily]);
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
