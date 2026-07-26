@@ -143,10 +143,20 @@ export default function MembersPage() {
     if (hasSearched) fetchList(1, size, filters);
   }
 
-  function openAddModal() {
+  async function openAddModal() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setShowForm(true);
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/users/next-member-no`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setForm((prev) => ({ ...prev, memberNo: data.memberNo }));
+    }
   }
 
   function openEditModal(row: MemberRow) {

@@ -237,6 +237,28 @@ export class UsersService {
     }
   }
 
+  // 다음 회원번호를 계산합니다. "M" + 숫자 6자리(M000001, M000002...) 형식입니다.
+  async getNextMemberNo(libraryId: number) {
+    const candidates = await this.prisma.user.findMany({
+      where: { libraryId, memberNo: { startsWith: 'M' } },
+      orderBy: { memberNo: 'desc' },
+      take: 20,
+      select: { memberNo: true },
+    });
+
+    let maxNum = 0;
+    for (const c of candidates) {
+      const match = c.memberNo?.match(/^M(\d{6})$/);
+      if (match) {
+        maxNum = parseInt(match[1], 10);
+        break;
+      }
+    }
+
+    const next = maxNum + 1;
+    return { memberNo: 'M' + String(next).padStart(6, '0') };
+  }
+
   // 이름 + 휴대폰 번호로 아이디 찾기. 로그인 전(누구나 접근 가능)이라 libraryId를 직접 못 받고,
   // signup()처럼 "현재 첫 번째 도서관"을 기준으로 찾습니다.
   async findLoginId(name: string, phone: string) {

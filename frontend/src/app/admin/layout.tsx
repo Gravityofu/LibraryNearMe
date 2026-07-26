@@ -6,6 +6,16 @@ import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
+// 화면 주소별로 상단에 보여줄 경로(브레드크럼)를 정의합니다.
+// 배열에 문구가 두 개면 "A › B" 처럼 화살표로 이어서 보여줍니다.
+const BREADCRUMB_MAP: Record<string, string[]> = {
+  "/admin/settings": ["admin.menu.systemSettings"],
+  "/admin/materials/list": ["admin.menu.materialsList"],
+  "/admin/materials/new": ["admin.menu.materialsList", "admin.menu.materialsNew"],
+  "/admin/materials/copies": ["admin.menu.materialsList", "admin.menu.materialsCopy"],
+  "/admin/members": ["admin.menu.members"],
+};
+
 export default function AdminLayout({
   children,
 }: {
@@ -16,6 +26,7 @@ export default function AdminLayout({
   const router = useRouter();
   useRequireAuth();
   const pathname = usePathname();
+  const crumbs = BREADCRUMB_MAP[pathname];
 
   // 지금 보고 있는 페이지 주소(pathname)에 따라 메뉴 강조 스타일을 골라주는 함수
   function navClass(href: string, exact = false) {
@@ -46,7 +57,7 @@ export default function AdminLayout({
         </div>
 
         <nav className="mt-6 flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm md:flex-col md:gap-1">
-          <Link href="/admin/materials/list" className={navClass("/admin/materials/list")}>
+          <Link href="/admin/materials/list" className={navClass("/admin/materials")}>
             {t("admin.menu.materialsList")}
           </Link>
           <Link href="/admin/members" className={navClass("/admin/members")}>
@@ -77,7 +88,19 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      <section className="flex-1">{children}</section>
+      <section className="flex-1">
+        {crumbs && (
+          <div className="px-6 pt-4 text-xs text-neutral-400">
+            {crumbs.map((key, i) => (
+              <span key={key}>
+                {i > 0 && <span className="mx-1.5">›</span>}
+                {t(key)}
+              </span>
+            ))}
+          </div>
+        )}
+        {children}
+      </section>
     </div>
   );
 }

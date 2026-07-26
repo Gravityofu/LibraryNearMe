@@ -29,6 +29,13 @@ export class UsersController {
     return this.usersService.findLoginId(body.name, body.phone);
   }
 
+  // GET 요청: 다음 회원번호 미리 계산해서 알려주기 — 관리자만
+  @Get('next-member-no')
+  @UseGuards(AdminGuard)
+  getNextMemberNo(@Req() req: any) {
+    return this.usersService.getNextMemberNo(req.user.libraryId);
+  }
+
   // GET 요청: 회원/관리자 목록 조회(검색 포함) — 관리자만
   @Get()
   @UseGuards(AdminGuard)
