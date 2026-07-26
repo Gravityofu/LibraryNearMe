@@ -323,6 +323,7 @@ function CopiesPageInner() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
+
                 <tr onClick={resetForm} className="cursor-pointer">
                   <td
                     colSpan={4}
@@ -331,9 +332,18 @@ function CopiesPageInner() {
                     }`}
                     style={selectedCopyId === null ? { backgroundColor: "#000000", color: "#ffffff" } : undefined}
                   >
-                    {t("materials.copies.newRegistrationRow")}
+                    <span className="inline-flex items-center gap-2">
+                      <span
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs leading-none"
+                        style={{ borderColor: "currentColor" }}
+                      >
+                        +
+                      </span>
+                      {t("materials.copies.newRegistrationRow")}
+                    </span>
                   </td>
                 </tr>
+
                 {material.copies.map((c) => {
                   const statusOpt = STATUS_OPTIONS.find((s) => s.value === c.status);
                   return (
