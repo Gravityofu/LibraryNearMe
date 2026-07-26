@@ -11,7 +11,8 @@ type Props = {
 // 예: <ThemedButton preset="버튼1">저장</ThemedButton>
 export default function ThemedButton({ preset = "버튼1", className = "", style, children, ...rest }: Props) {
   const { buttonStyles } = useTheme();
-  const found = buttonStyles.find((b) => b.name === preset);
+  // preset 이름의 버튼 스타일을 찾고, 만약 삭제되어 없다면 "버튼1"의 색상을 대신 씁니다.
+  const found = buttonStyles.find((b) => b.name === preset) || buttonStyles.find((b) => b.name === "버튼1");
   const bgColor = found?.bgColor || "#383838";
   const textColor = found?.textColor || "#F9F6F0";
 

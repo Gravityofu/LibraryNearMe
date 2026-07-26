@@ -241,6 +241,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "design.buttonBgColor": "배경색",
     "design.buttonTextColor": "글자색",
     "design.addButtonStyle": "+ 새 버튼 추가",
+    "design.deleteButtonStyle": "삭제",
+    "design.deleteButtonConfirm": "이 버튼 스타일을 삭제하시겠어요? 이 스타일을 쓰던 곳은 버튼1 색상으로 대신 표시됩니다.",
+    "design.button1Note": "(기본 버튼 · 삭제 불가)",
+    "design.fontSection": "글꼴",
+    "design.fontLabel": "시스템 글꼴 선택",
 
     "settings.tags.addBtn": "새 태그 추가",
     "settings.tags.editBtn": "수정",
@@ -567,6 +572,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "design.buttonBgColor": "Background",
     "design.buttonTextColor": "Text",
     "design.addButtonStyle": "+ Add Button Style",
+    "design.deleteButtonStyle": "Delete",
+    "design.deleteButtonConfirm": "Delete this button style? Places using it will show Button1's colors instead.",
+    "design.button1Note": "(Default · cannot delete)",
+    "design.fontSection": "Font",
+    "design.fontLabel": "System Font",
     
     "settings.tags.addBtn": "Add Tag",
     "settings.tags.editBtn": "Edit",

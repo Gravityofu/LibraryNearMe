@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
+import { FONT_OPTIONS } from "@/lib/fonts";
 
 const API_URL = "http://localhost:3001";
 
@@ -18,6 +19,7 @@ export default function DesignSettingsForm() {
   const [footerTextColor, setFooterTextColor] = useState("#F9F6F0");
   const [sidebarBgColor, setSidebarBgColor] = useState("#383838");
   const [sidebarTextColor, setSidebarTextColor] = useState("#F9F6F0");
+  const [fontFamily, setFontFamily] = useState("pretendard");
   const [buttonStyles, setButtonStyles] = useState<ButtonStyle[]>([
     { name: "버튼1", bgColor: "#383838", textColor: "#F9F6F0" },
   ]);
@@ -31,6 +33,7 @@ export default function DesignSettingsForm() {
         setFooterTextColor(data.footerTextColor || "#F9F6F0");
         setSidebarBgColor(data.sidebarBgColor || "#383838");
         setSidebarTextColor(data.sidebarTextColor || "#F9F6F0");
+        setFontFamily(data.fontFamily || "pretendard");
         setButtonStyles(
           Array.isArray(data.buttonStyles) && data.buttonStyles.length > 0
             ? data.buttonStyles
@@ -48,13 +51,20 @@ export default function DesignSettingsForm() {
     setButtonStyles((prev) => [...prev, { name: `버튼${nextNum}`, bgColor: "#383838", textColor: "#F9F6F0" }]);
   }
 
+  function removeButtonStyle(index: number) {
+    if (!window.confirm(t("design.deleteButtonConfirm"))) return;
+    setButtonStyles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSave() {
     const token = localStorage.getItem("token");
     if (!token) return;
     const res = await fetch(`${API_URL}/library`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, buttonStyles }),
+      body: JSON.stringify({
+        footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, buttonStyles, fontFamily,
+      }),
     });
     if (res.ok) {
       notify(t("admin.settings.saved"), "success");
@@ -67,6 +77,24 @@ export default function DesignSettingsForm() {
   return (
     <div className="max-w-md">
       <div className="flex flex-col gap-6">
+        <div>
+          <p className="mb-2 text-sm font-semibold">{t("design.fontSection")}</p>
+          <div className="flex flex-col gap-2">
+            <Label>{t("design.fontLabel")}</Label>
+            <select
+              value={fontFamily}
+              onChange={(e) => setFontFamily(e.target.value)}
+              className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+            >
+              {FONT_OPTIONS.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div>
           <p className="mb-2 text-sm font-semibold">{t("design.footerSection")}</p>
           <div className="flex flex-col gap-3">
@@ -100,7 +128,23 @@ export default function DesignSettingsForm() {
           <div className="flex flex-col gap-3">
             {buttonStyles.map((b, i) => (
               <div key={b.name} className="rounded-lg border border-neutral-200 p-3">
-                <p className="mb-2 text-sm font-medium">{b.name}</p>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    {b.name}
+                    {b.name === "버튼1" && (
+                      <span className="ml-2 text-xs text-neutral-400">{t("design.button1Note")}</span>
+                    )}
+                  </p>
+                  {b.name !== "버튼1" && (
+                    <button
+                      type="button"
+                      onClick={() => removeButtonStyle(i)}
+                      className="cursor-pointer rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-500 hover:bg-red-50"
+                    >
+                      {t("design.deleteButtonStyle")}
+                    </button>
+                  )}
+                </div>
                 <div className="flex gap-4">
                   <div className="flex flex-col gap-2">
                     <Label>{t("design.buttonBgColor")}</Label>
