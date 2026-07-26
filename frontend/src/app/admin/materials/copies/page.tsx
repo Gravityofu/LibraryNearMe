@@ -1,6 +1,7 @@
 "use client";
 
 import ThemedButton from "@/components/themed-button";
+import { useTheme } from "@/components/theme-provider";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -89,6 +90,10 @@ function CopiesPageInner() {
   const [selectedCopyId, setSelectedCopyId] = useState<number | null>(null);
   const [latestRegNo, setLatestRegNo] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
+  const { buttonStyles } = useTheme();
+  const button1 = buttonStyles.find((b) => b.name === "버튼1");
+  const button1Bg = button1?.bgColor || "#383838";
+  const button1Text = button1?.textColor || "#F9F6F0";
 
   async function loadMaterial(id: string) {
     const token = localStorage.getItem("token");
@@ -327,10 +332,14 @@ function CopiesPageInner() {
                 <tr onClick={resetForm} className="cursor-pointer">
                   <td
                     colSpan={4}
-                    className={`px-2 py-2 font-semibold ${
-                      selectedCopyId === null ? "" : "border border-black text-black"
+                    className={`px-2 py-2 text-center font-semibold ${
+                      selectedCopyId === null ? "" : "border text-black"
                     }`}
-                    style={selectedCopyId === null ? { backgroundColor: "#000000", color: "#ffffff" } : undefined}
+                    style={
+                      selectedCopyId === null
+                        ? { backgroundColor: button1Bg, color: button1Text }
+                        : { borderColor: button1Bg }
+                    }
                   >
                     <span className="inline-flex items-center gap-2">
                       <span
