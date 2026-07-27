@@ -384,9 +384,10 @@ function CopiesPageInner() {
           onClick={() => setShowModal(false)}
         >
           <div
-            className="max-h-[85vh] w-full max-w-md overflow-auto rounded-xl bg-white p-6 shadow-xl"
+            className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
+          <div className="max-h-[85vh] overflow-y-auto p-6">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-base font-semibold">
                 {selectedCopyId ? t("materials.copies.editHeading") : t("materials.copies.addHeading")}
@@ -507,6 +508,7 @@ function CopiesPageInner() {
                 {t("materials.copies.save")}
               </ThemedButton>
             </div>
+          </div>  
           </div>
         </div>
       )}
