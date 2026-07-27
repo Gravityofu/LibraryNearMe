@@ -120,8 +120,16 @@ export class MaterialsService {
     if (!data.registrationNo || !String(data.registrationNo).trim()) {
       throw new BadRequestException("등록번호는 필수입니다.");
     }
+    if (
+      !data.status || !String(data.status).trim() ||
+      !data.callNumber || !String(data.callNumber).trim() ||
+      !data.specialCode || !String(data.specialCode).trim() ||
+      !data.location || !String(data.location).trim()
+    ) {
+      throw new BadRequestException("등록번호, 상태, 청구기호, 별치기호, 소장처는 모두 필수 입력 항목입니다.");
+    }
 
-    const status = data.status && String(data.status).trim() ? String(data.status).trim() : undefined;
+    const status = String(data.status).trim();
 
     try {
       return await this.prisma.copy.create({
@@ -129,15 +137,15 @@ export class MaterialsService {
           libraryId,
           materialId,
           registrationNo: String(data.registrationNo).trim(),
-          callNumber: data.callNumber || undefined,
+          callNumber: String(data.callNumber).trim(),
           authorCode: data.authorCode || undefined,
-          specialCode: data.specialCode || undefined,
+          specialCode: String(data.specialCode).trim(),
           shelfNo: data.shelfNo || undefined,
-          location: data.location || undefined,
+          location: String(data.location).trim(),
           memo: data.memo || undefined,
           volume: data.volume || undefined,
           copyNumber: data.copyNumber || undefined,
-          ...(status ? { status } : {}), // 못 알아보는 값이면 표의 기본값(AVAILABLE)을 씀
+          status,
           createdById: userId,
         },
       });
@@ -236,19 +244,27 @@ export class MaterialsService {
     if (!data.registrationNo || !String(data.registrationNo).trim()) {
       throw new BadRequestException("등록번호는 필수입니다.");
     }
+    if (
+      !data.status || !String(data.status).trim() ||
+      !data.callNumber || !String(data.callNumber).trim() ||
+      !data.specialCode || !String(data.specialCode).trim() ||
+      !data.location || !String(data.location).trim()
+    ) {
+      throw new BadRequestException("등록번호, 상태, 청구기호, 별치기호, 소장처는 모두 필수 입력 항목입니다.");
+    }
 
-    const status = data.status && String(data.status).trim() ? String(data.status).trim() : copy.status;
+    const status = String(data.status).trim();
 
     try {
       return await this.prisma.copy.update({
         where: { id: copyId },
         data: {
           registrationNo: String(data.registrationNo).trim(),
-          callNumber: data.callNumber || null,
+          callNumber: String(data.callNumber).trim(),
           authorCode: data.authorCode || null,
-          specialCode: data.specialCode || null,
+          specialCode: String(data.specialCode).trim(),
           shelfNo: data.shelfNo || null,
-          location: data.location || null,
+          location: String(data.location).trim(),
           memo: data.memo || null,
           volume: data.volume || null,
           copyNumber: data.copyNumber || null,

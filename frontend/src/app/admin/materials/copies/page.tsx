@@ -216,14 +216,26 @@ function CopiesPageInner() {
     }
   }
 
+  // 등록번호·상태·청구기호·별치기호·소장처, 이 5개 항목이 모두 채워졌는지 확인합니다.
+  function validateRequiredFields(): boolean {
+    if (
+      !form.registrationNo.trim() ||
+      !form.status.trim() ||
+      !form.callNumber.trim() ||
+      !form.specialCode.trim() ||
+      !form.location.trim()
+    ) {
+      notify("❌ " + t("materials.copies.requiredFieldsMissing"), "error");
+      return false;
+    }
+    return true;
+  }
+
   async function handleAddCopy() {
     if (!material) return;
     const token = localStorage.getItem("token");
     if (!token) return;
-    if (!form.registrationNo.trim()) {
-      notify("❌ " + t("materials.copies.regNoRequired"), "error");
-      return;
-    }
+    if (!validateRequiredFields()) return;
     const res = await fetch(`${API_URL}/materials/${material.id}/copies`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -246,10 +258,7 @@ function CopiesPageInner() {
     if (!selectedCopyId || !material) return;
     const token = localStorage.getItem("token");
     if (!token) return;
-    if (!form.registrationNo.trim()) {
-      notify("❌ " + t("materials.copies.regNoRequired"), "error");
-      return;
-    }
+    if (!validateRequiredFields()) return;
     const res = await fetch(`${API_URL}/copies/${selectedCopyId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -429,7 +438,7 @@ function CopiesPageInner() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.callNumber")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.callNumber")} *</span>
                 <input
                   value={form.callNumber}
                   onChange={(e) => setForm({ ...form, callNumber: e.target.value })}
@@ -463,7 +472,7 @@ function CopiesPageInner() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.status")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.status")} *</span>
                 <select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -477,7 +486,7 @@ function CopiesPageInner() {
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.specialCode")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.specialCode")} *</span>
                 <select
                   value={form.specialCode}
                   onChange={(e) => setForm({ ...form, specialCode: e.target.value })}
@@ -500,7 +509,7 @@ function CopiesPageInner() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.location")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.location")} *</span>
                 <select
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
