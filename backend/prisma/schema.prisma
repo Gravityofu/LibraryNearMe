@@ -34,6 +34,8 @@ model Library {
   materials    Material[]   // ← 추가
   copies       Copy[]       // ← 추가
   copyOptions  CopyOption[] // ← 추가 (상태/별치기호/소장처 목록)
+  materialTypes MaterialType[] // ← 추가 (자료 종류 목록)
+  bookKdcRules  BookKdcRule[]  // ← 추가 (도서 KDC 하위 규칙)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -180,4 +182,47 @@ model KormarcTag {
   updatedAt     DateTime @updatedAt
 
   @@unique([libraryId, tag])
+}
+
+// 자료 종류(도서, DVD, 기사...)입니다. 관리자가 직접 추가·수정·삭제할 수 있습니다.
+model MaterialType {
+  id             Int      @id @default(autoincrement())
+
+  libraryId      Int
+  library        Library  @relation(fields: [libraryId], references: [id])
+
+  code           String   // 내부적으로 쓰는 코드 (예: "book", "thesis_physical")
+  nameKo         String
+  nameEn         String
+  category       String   // "PHYSICAL"(실물 자료) | "DIGITAL"(디지털 자료)
+  usesMarc       Boolean  @default(false) // MARC 편집기를 쓸지, 간단한 입력폼을 쓸지
+  order          Int      @default(0)
+
+  maxLoanCount   Int?     // 실물 자료일 때만 사용: 대출 가능 권수
+  loanPeriodDays Int?     // 실물 자료일 때만 사용: 대출 일수
+
+  createdAt      DateTime @default(now())
+
+  kdcRules       BookKdcRule[]
+
+  @@unique([libraryId, code])
+}
+
+// '도서' 같은 특정 자료 종류 안에서, KDC 분류기호별로 더 세분화된 대출 규칙을 정합니다.
+model BookKdcRule {
+  id             Int          @id @default(autoincrement())
+
+  libraryId      Int
+  library        Library      @relation(fields: [libraryId], references: [id])
+
+  materialTypeId Int
+  materialType   MaterialType @relation(fields: [materialTypeId], references: [id])
+
+  kdcPrefix      String       // 예: "657" → 657, 657.1, 657.9 등 포함
+  label          String       // 예: "만화"
+  maxLoanCount   Int          // 이 KDC의 대출 가능 권수 (상위 자료 종류의 권수를 넘을 수 없음)
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([libraryId, materialTypeId, kdcPrefix])
 }
