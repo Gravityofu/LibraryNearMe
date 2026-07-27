@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MATERIAL_TYPES } from "@/lib/material-types";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
@@ -40,9 +41,10 @@ type Filters = {
 };
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
-const COLUMN_COUNT = 12;
+const COLUMN_COUNT = 11;
 
 export default function MaterialsListPage() {
+  const router = useRouter();
   const { notify } = useNotify();
   const { t, lang } = useI18n();
 
@@ -182,7 +184,6 @@ export default function MaterialsListPage() {
               <th className="px-4 py-2.5">{t("materials.list.col.volume")}</th>
               <th className="px-4 py-2.5">{t("materials.list.col.copyNumber")}</th>
               <th className="px-4 py-2.5">{t("materials.list.col.location")}</th>
-              <th className="px-4 py-2.5">{t("materials.list.col.register")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -209,7 +210,11 @@ export default function MaterialsListPage() {
               rows.map((row, i) => {
                 const typeInfo = MATERIAL_TYPES.find((m) => m.code === row.material.type);
                 return (
-                  <tr key={row.hasCopy ? `copy-${row.id}` : `material-${row.materialId}`} className={row.hasCopy ? "" : "bg-amber-50"}>
+                  <tr
+                    key={row.hasCopy ? `copy-${row.id}` : `material-${row.materialId}`}
+                    onClick={() => router.push(`/admin/materials/copies?materialId=${row.materialId}`)}
+                    className={`cursor-pointer hover:bg-neutral-100 ${row.hasCopy ? "" : "bg-amber-50"}`}
+                  >
                     <td className="whitespace-nowrap px-4 py-2.5">{(page - 1) * pageSize + i + 1}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">
                       {lang === "ko" ? typeInfo?.nameKo ?? row.material.type : typeInfo?.nameEn ?? row.material.type}
@@ -222,15 +227,7 @@ export default function MaterialsListPage() {
                     <td className="whitespace-nowrap px-4 py-2.5">{row.material.pubYear || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.volume || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.copyNumber || "-"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5">{row.location || "-"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5">
-                      <Link
-                        href={`/admin/materials/copies?materialId=${row.materialId}`}
-                        className="rounded border px-2 py-1 text-xs"
-                      >
-                        {t("materials.list.registerBtn")}
-                      </Link>
-                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">{row.location || "-"}</td>                    
                   </tr>
                 );
               })}
