@@ -183,6 +183,8 @@ function CopiesPageInner() {
       authorCode: findAuthorCode(marc),
       registrationNo: computeNextRegNo(latestRegNo),
       status: copyOptions.STATUS[0]?.value || "",
+      specialCode: copyOptions.SPECIAL_CODE[0]?.value || "",
+      location: copyOptions.LOCATION[0]?.value || "",
     });
   }
 
@@ -487,12 +489,12 @@ function CopiesPageInner() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.specialCode")} *</span>
+
                 <select
                   value={form.specialCode}
                   onChange={(e) => setForm({ ...form, specialCode: e.target.value })}
                   className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
                 >
-                  <option value="">-</option>
                   {copyOptions.SPECIAL_CODE.map((o) => (
                     <option key={o.id} value={o.value}>
                       {o.value}
@@ -515,7 +517,6 @@ function CopiesPageInner() {
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
                 >
-                  <option value="">-</option>
                   {copyOptions.LOCATION.map((o) => (
                     <option key={o.id} value={o.value}>
                       {o.value}
