@@ -131,7 +131,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.title": "실물(부수) 등록",
     "materials.copies.searchHeading": "자료 검색",
     "materials.copies.select": "선택",
-    "materials.copies.copyListHeading": "소장 부수 목록",
+    "materials.copies.copyListHeading": "실물 자료 목록",
     "materials.copies.countUnitBooks": "권",
     "materials.copies.noCopies": "아직 등록된 부수가 없습니다.",
     "materials.copies.addHeading": "실물 자료 추가",

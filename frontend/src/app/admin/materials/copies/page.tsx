@@ -284,7 +284,7 @@ function CopiesPageInner() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* 왼쪽: KOMARC 정보 */}
-        <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-3">
+        <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-5">
           <p className="mb-2 text-base font-semibold">{t("materials.copies.marcBoxTitle")}</p>
           {usesMarc ? (
             <>
@@ -405,7 +405,7 @@ function CopiesPageInner() {
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">
                   {t("materials.copies.regNo")} *
-                  {latestRegNo && (
+                  {!selectedCopyId && latestRegNo && (
                     <span className="ml-2 text-xs text-neutral-400">
                       ({t("materials.copies.latestRegNo")}: {latestRegNo})
                     </span>
