@@ -284,39 +284,41 @@ function CopiesPageInner() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* 왼쪽: KOMARC 정보 */}
-        <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-5">
-          <p className="mb-2 text-base font-semibold">{t("materials.copies.marcBoxTitle")}</p>
-          {usesMarc ? (
-            <>
-              <MarcEditor fields={marc} onChange={setMarc} />
-              <button
-                type="button"
-                onClick={handleSaveMarc}
-                className="mt-3 cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold"
-              >
-                {t("materials.copies.marcEditSave")}
-              </button>
-            </>
-          ) : (
-            <div className="space-y-1 text-sm text-neutral-600">
-              <p>
-                <span className="text-neutral-400">{t("materials.new.field.title")}: </span>
-                {material.title}
-              </p>
-              <p>
-                <span className="text-neutral-400">{t("materials.new.field.creator")}: </span>
-                {material.creator || "-"}
-              </p>
-              <p>
-                <span className="text-neutral-400">{t("materials.new.field.publisher")}: </span>
-                {material.publisher || "-"}
-              </p>
-              <p>
-                <span className="text-neutral-400">{t("materials.new.field.pubYear")}: </span>
-                {material.pubYear || "-"}
-              </p>
-            </div>
-          )}
+        <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white">
+          <div className="p-3">
+            <p className="mb-2 text-base font-semibold">{t("materials.copies.marcBoxTitle")}</p>
+            {usesMarc ? (
+              <>
+                <MarcEditor fields={marc} onChange={setMarc} />
+                <button
+                  type="button"
+                  onClick={handleSaveMarc}
+                  className="mt-3 cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold"
+                >
+                  {t("materials.copies.marcEditSave")}
+                </button>
+              </>
+            ) : (
+              <div className="space-y-1 text-sm text-neutral-600">
+                <p>
+                  <span className="text-neutral-400">{t("materials.new.field.title")}: </span>
+                  {material.title}
+                </p>
+                <p>
+                  <span className="text-neutral-400">{t("materials.new.field.creator")}: </span>
+                  {material.creator || "-"}
+                </p>
+                <p>
+                  <span className="text-neutral-400">{t("materials.new.field.publisher")}: </span>
+                  {material.publisher || "-"}
+                </p>
+                <p>
+                  <span className="text-neutral-400">{t("materials.new.field.pubYear")}: </span>
+                  {material.pubYear || "-"}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 오른쪽: 실물 자료 목록 */}
