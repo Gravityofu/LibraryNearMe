@@ -33,6 +33,7 @@ model Library {
   users        User[]             // 이 도서관에 속한 사용자들 (연결고리)
   materials    Material[]   // ← 추가
   copies       Copy[]       // ← 추가
+  copyOptions  CopyOption[] // ← 추가 (상태/별치기호/소장처 목록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -139,7 +140,7 @@ model Copy {
   shelfNo        String?    // 서가번호
   location       String?    // 소장처 (예: 2층 문학)
   memo           String?    // 메모
-  status         CopyStatus @default(AVAILABLE)
+  status         String     @default("이용가능")
 
   createdById    Int?       // 이 실물을 등록한 사서
   createdBy      User?      @relation(fields: [createdById], references: [id])
@@ -151,14 +152,20 @@ model Copy {
   @@index([materialId])
 }
 
-// 부수 상태 (대출/제적 기능 만들 때 더 다듬을 예정)
-enum CopyStatus {
-  AVAILABLE   // 비치(대출 가능)
-  ON_LOAN     // 대출중
-  RESERVED    // 예약 대기
-  REPAIR      // 보수중
-  LOST        // 분실
-  WITHDRAWN   // 제적
+// 실물 자료의 '상태' / '별치기호' / '소장처' 드롭다운에 들어갈 값들을 관리합니다.
+model CopyOption {
+  id        Int      @id @default(autoincrement())
+
+  libraryId Int
+  library   Library  @relation(fields: [libraryId], references: [id])
+
+  category  String   // "STATUS" | "SPECIAL_CODE" | "LOCATION"
+  value     String   // 실제로 화면에 보이고 저장되는 값 (예: "이용가능", "아동", "2층 문학")
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([libraryId, category, value])
 }
 
 model KormarcTag {

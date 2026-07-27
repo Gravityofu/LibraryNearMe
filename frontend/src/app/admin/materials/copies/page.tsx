@@ -38,6 +38,11 @@ type MaterialFull = {
   copies: CopyItem[];
 };
 
+type OptionItem = { id: number; category: string; value: string; order: number };
+type OptionsState = { STATUS: OptionItem[]; SPECIAL_CODE: OptionItem[]; LOCATION: OptionItem[] };
+
+const EMPTY_OPTIONS: OptionsState = { STATUS: [], SPECIAL_CODE: [], LOCATION: [] };
+
 const EMPTY_FORM = {
   registrationNo: "",
   callNumber: "",
@@ -46,19 +51,10 @@ const EMPTY_FORM = {
   shelfNo: "",
   location: "",
   memo: "",
-  status: "AVAILABLE",
+  status: "",
   volume: "",
   copyNumber: "",
 };
-
-const STATUS_OPTIONS = [
-  { value: "AVAILABLE", labelKey: "materials.copies.status.available" },
-  { value: "ON_LOAN", labelKey: "materials.copies.status.onLoan" },
-  { value: "RESERVED", labelKey: "materials.copies.status.reserved" },
-  { value: "REPAIR", labelKey: "materials.copies.status.repair" },
-  { value: "LOST", labelKey: "materials.copies.status.lost" },
-  { value: "WITHDRAWN", labelKey: "materials.copies.status.withdrawn" },
-];
 
 // MARC 목록에서 090 태그의 ▼b(저자기호)를 찾아옵니다.
 function findAuthorCode(marc?: { tag: string; value: string }[]) {
@@ -90,6 +86,7 @@ function CopiesPageInner() {
   const [latestRegNo, setLatestRegNo] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [showModal, setShowModal] = useState(false);
+  const [copyOptions, setCopyOptions] = useState<OptionsState>(EMPTY_OPTIONS);
 
   async function loadMaterial(id: string) {
     const token = localStorage.getItem("token");
@@ -134,6 +131,17 @@ function CopiesPageInner() {
     }
   }
 
+  async function loadCopyOptions() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/copy-options`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setCopyOptions(await res.json());
+    }
+  }
+
   useEffect(() => {
     if (materialId) loadMaterial(materialId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,6 +149,7 @@ function CopiesPageInner() {
 
   useEffect(() => {
     loadLatestRegNo();
+    loadCopyOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -161,7 +170,7 @@ function CopiesPageInner() {
       shelfNo: copy.shelfNo || "",
       location: copy.location || "",
       memo: copy.memo || "",
-      status: copy.status || "AVAILABLE",
+      status: copy.status || "",
       volume: copy.volume || "",
       copyNumber: copy.copyNumber || "",
     });
@@ -169,7 +178,12 @@ function CopiesPageInner() {
 
   function resetForm() {
     setSelectedCopyId(null);
-    setForm({ ...EMPTY_FORM, authorCode: findAuthorCode(marc), registrationNo: computeNextRegNo(latestRegNo) });
+    setForm({
+      ...EMPTY_FORM,
+      authorCode: findAuthorCode(marc),
+      registrationNo: computeNextRegNo(latestRegNo),
+      status: copyOptions.STATUS[0]?.value || "",
+    });
   }
 
   // '새 실물 자료 등록' 행을 클릭했을 때: 폼을 비우고 모달을 엽니다.
@@ -356,24 +370,19 @@ function CopiesPageInner() {
                 </td>
               </tr>
 
-              {material.copies.map((c) => {
-                const statusOpt = STATUS_OPTIONS.find((s) => s.value === c.status);
-                return (
-                  <tr
-                    key={c.id}
-                    onClick={() => openEditModal(c)}
-                    className={`cursor-pointer ${selectedCopyId === c.id ? "" : "hover:bg-neutral-50"}`}
-                    style={selectedCopyId === c.id ? { backgroundColor: primaryColor, color: "#ffffff" } : undefined}
-                  >
-                    <td className="whitespace-nowrap px-2 py-2">{c.registrationNo}</td>
-                    <td className="whitespace-nowrap px-2 py-2">{c.callNumber || "-"}</td>
-                    <td className="whitespace-nowrap px-2 py-2">{c.location || "-"}</td>
-                    <td className="whitespace-nowrap px-2 py-2">
-                      {statusOpt ? t(statusOpt.labelKey) : c.status}
-                    </td>
-                  </tr>
-                );
-              })}
+              {material.copies.map((c) => (
+                <tr
+                  key={c.id}
+                  onClick={() => openEditModal(c)}
+                  className={`cursor-pointer ${selectedCopyId === c.id ? "" : "hover:bg-neutral-50"}`}
+                  style={selectedCopyId === c.id ? { backgroundColor: primaryColor, color: "#ffffff" } : undefined}
+                >
+                  <td className="whitespace-nowrap px-2 py-2">{c.registrationNo}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{c.callNumber || "-"}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{c.location || "-"}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{c.status || "-"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -460,20 +469,27 @@ function CopiesPageInner() {
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                   className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
                 >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {t(s.labelKey)}
+                  {copyOptions.STATUS.map((o) => (
+                    <option key={o.id} value={o.value}>
+                      {o.value}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.specialCode")}</span>
-                <input
+                <select
                   value={form.specialCode}
                   onChange={(e) => setForm({ ...form, specialCode: e.target.value })}
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-                />
+                  className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">-</option>
+                  {copyOptions.SPECIAL_CODE.map((o) => (
+                    <option key={o.id} value={o.value}>
+                      {o.value}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.shelfNo")}</span>
@@ -485,11 +501,18 @@ function CopiesPageInner() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.location")}</span>
-                <input
+                <select
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-                />
+                  className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">-</option>
+                  {copyOptions.LOCATION.map((o) => (
+                    <option key={o.id} value={o.value}>
+                      {o.value}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.memo")}</span>
@@ -510,7 +533,7 @@ function CopiesPageInner() {
                 {t("materials.copies.save")}
               </ThemedButton>
             </div>
-          </div>  
+          </div>
           </div>
         </div>
       )}

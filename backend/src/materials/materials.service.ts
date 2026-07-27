@@ -121,8 +121,7 @@ export class MaterialsService {
       throw new BadRequestException("등록번호는 필수입니다.");
     }
 
-    const ALLOWED_STATUS = ["AVAILABLE", "ON_LOAN", "RESERVED", "REPAIR", "LOST", "WITHDRAWN"];
-    const status = ALLOWED_STATUS.includes(data.status) ? data.status : undefined;
+    const status = data.status && String(data.status).trim() ? String(data.status).trim() : undefined;
 
     try {
       return await this.prisma.copy.create({
@@ -238,8 +237,7 @@ export class MaterialsService {
       throw new BadRequestException("등록번호는 필수입니다.");
     }
 
-    const ALLOWED_STATUS = ["AVAILABLE", "ON_LOAN", "RESERVED", "REPAIR", "LOST", "WITHDRAWN"];
-    const status = ALLOWED_STATUS.includes(data.status) ? data.status : copy.status;
+    const status = data.status && String(data.status).trim() ? String(data.status).trim() : copy.status;
 
     try {
       return await this.prisma.copy.update({
