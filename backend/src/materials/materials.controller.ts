@@ -47,7 +47,7 @@ export class MaterialsController {
   @Patch(':id')
   @UseGuards(AdminGuard)
   updateMaterial(@Req() req: any, @Param('id') id: string, @Body() body: any) {
-    return this.materialsService.updateMaterialMarc(req.user.libraryId, parseInt(id, 10), body.marc);
+    return this.materialsService.updateMaterialMarc(req.user.libraryId, parseInt(id, 10), body.marc, body.coverUrl);
   }
 
   @Patch(':id/simple')

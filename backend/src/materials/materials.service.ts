@@ -346,7 +346,7 @@ export class MaterialsService {
   }
 
   // MARC 편집기에서 수정한 내용을 서지(Material)에 다시 저장 (칸 자동추출도 다시 실행)
-  async updateMaterialMarc(libraryId: number, materialId: number, marc: any) {
+  async updateMaterialMarc(libraryId: number, materialId: number, marc: any, coverUrl?: string) {
     const material = await this.prisma.material.findFirst({ where: { id: materialId, libraryId } });
     if (!material) {
       throw new BadRequestException("자료를 찾을 수 없습니다.");
@@ -356,6 +356,7 @@ export class MaterialsService {
     }
     const fields: any = extractColumns(marc);
     fields.marc = marc;
+    if (coverUrl !== undefined) fields.coverUrl = coverUrl || null; // 표지 URL은 MARC에서 자동으로 뽑히지 않아서 따로 받아 저장해요.
     if (!fields.title || !String(fields.title).trim()) {
       throw new BadRequestException("제목(서명)은 필수입니다. MARC라면 245 ▼a를 확인하세요.");
     }
