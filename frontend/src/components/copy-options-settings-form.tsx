@@ -7,7 +7,14 @@ import { useNotify } from "@/components/notify-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-type OptionItem = { id: number; category: string; value: string; order: number };
+type OptionItem = {
+  id: number;
+  category: string;
+  value: string;
+  order: number;
+  floor?: string | null;
+  detail?: string | null;
+};
 type OptionsState = { STATUS: OptionItem[]; SPECIAL_CODE: OptionItem[]; LOCATION: OptionItem[]; FLOOR: OptionItem[] };
 
 const EMPTY_OPTIONS: OptionsState = { STATUS: [], SPECIAL_CODE: [], LOCATION: [], FLOOR: [] };
@@ -29,7 +36,9 @@ export default function CopyOptionsSettingsForm() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [valueText, setValueText] = useState("");
 
-  // '소장처'를 새로 추가할 때만 쓰는, 층 + 세부위치 입력값이에요.
+  // 소장처를 층 + 세부위치로 나눠서 입력할지 여부입니다.
+  // 새로 추가할 때는 항상 true, 수정할 때는 그 소장처가 층 정보를 갖고 있을 때만 true입니다.
+  const [locationHasFloor, setLocationHasFloor] = useState(false);
   const [floorValue, setFloorValue] = useState("");
   const [detailValue, setDetailValue] = useState("");
 
@@ -51,15 +60,17 @@ export default function CopyOptionsSettingsForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // '소장처'를 새로 추가할 때만 층+세부위치 입력 방식을 씁니다.
-  const useFloorSplit = modalCategory === "LOCATION" && !editingId;
-
   function openAddModal(category: keyof OptionsState) {
     setModalCategory(category);
     setEditingId(null);
     setValueText("");
-    setFloorValue(options.FLOOR[0]?.value || "");
-    setDetailValue("");
+    if (category === "LOCATION") {
+      setLocationHasFloor(true);
+      setFloorValue(options.FLOOR[0]?.value || "");
+      setDetailValue("");
+    } else {
+      setLocationHasFloor(false);
+    }
     setShowModal(true);
   }
 
@@ -67,35 +78,54 @@ export default function CopyOptionsSettingsForm() {
     setModalCategory(category);
     setEditingId(item.id);
     setValueText(item.value);
+    if (category === "LOCATION" && item.floor) {
+      // 층 정보가 있는 소장처는 수정할 때도 층 선택 + 세부위치 입력 방식을 씁니다.
+      setLocationHasFloor(true);
+      setFloorValue(item.floor);
+      setDetailValue(item.detail || "");
+    } else {
+      // 층 정보가 없는(예전에 자유롭게 입력한) 소장처는 자동으로 매칭이 안 됐을 수 있으니
+      // 기존처럼 한 문장을 통째로 수정하는 방식으로 보여줍니다.
+      setLocationHasFloor(false);
+    }
     setShowModal(true);
+  }
+
+  function closeModal() {
+    setShowModal(false);
+    setEditingId(null);
   }
 
   async function handleSave() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const finalValue = useFloorSplit
-      ? `${floorValue} ${detailValue}`.replace(/\s+/g, " ").trim()
-      : valueText.trim();
+    let body: any;
 
-    if (useFloorSplit && !floorValue) {
-      notify("❌ " + t("settings.copyOptions.noFloorOptions"), "error");
-      return;
-    }
-    if (!finalValue) {
-      notify("❌ " + t("settings.copyOptions.valueRequired"), "error");
-      return;
+    if (modalCategory === "LOCATION" && locationHasFloor) {
+      if (!floorValue) {
+        notify("❌ " + t("settings.copyOptions.noFloorOptions"), "error");
+        return;
+      }
+      body = { category: modalCategory, floor: floorValue, detail: detailValue };
+    } else {
+      const finalValue = valueText.trim();
+      if (!finalValue) {
+        notify("❌ " + t("settings.copyOptions.valueRequired"), "error");
+        return;
+      }
+      body = { category: modalCategory, value: finalValue };
     }
 
     const url = editingId ? `${API_URL}/copy-options/${editingId}` : `${API_URL}/copy-options`;
     const res = await fetch(url, {
       method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ category: modalCategory, value: finalValue }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       notify("✅ " + t("settings.copyOptions.saveSuccess"), "success");
-      setShowModal(false);
+      closeModal();
       await loadOptions();
     } else {
       const data = await res.json().catch(() => null);
@@ -114,7 +144,7 @@ export default function CopyOptionsSettingsForm() {
     });
     if (res.ok) {
       notify("✅ " + t("settings.copyOptions.deleteSuccess"), "success");
-      setShowModal(false);
+      closeModal();
       await loadOptions();
     } else {
       const data = await res.json().catch(() => null);
@@ -152,7 +182,7 @@ export default function CopyOptionsSettingsForm() {
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setShowModal(false)}
+          onClick={closeModal}
         >
           <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
@@ -160,7 +190,7 @@ export default function CopyOptionsSettingsForm() {
                 {editingId ? t("settings.copyOptions.modal.editTitle") : t("settings.copyOptions.modal.addTitle")}
               </p>
 
-              {useFloorSplit ? (
+              {modalCategory === "LOCATION" && locationHasFloor ? (
                 options.FLOOR.length === 0 ? (
                   <p className="text-sm text-red-500">{t("settings.copyOptions.noFloorOptions")}</p>
                 ) : (

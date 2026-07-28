@@ -162,8 +162,10 @@ model CopyOption {
   libraryId Int
   library   Library  @relation(fields: [libraryId], references: [id])
 
-  category  String   // "STATUS" | "SPECIAL_CODE" | "LOCATION"
+  category  String   // "STATUS" | "SPECIAL_CODE" | "LOCATION" | "FLOOR"
   value     String   // 실제로 화면에 보이고 저장되는 값 (예: "이용가능", "아동", "2층 문학")
+  floor     String?  // 소장처(LOCATION)일 때만: 이 소장처가 어느 '층' 값으로 만들어졌는지
+  detail    String?  // 소장처(LOCATION)일 때만: 층을 뺀 나머지 세부 위치
   order     Int      @default(0)
 
   createdAt DateTime @default(now())
