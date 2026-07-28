@@ -280,6 +280,16 @@ export class MaterialsService {
     }
   }
 
+// 실물(Copy) 삭제
+  async removeCopy(libraryId: number, copyId: number) {
+    const copy = await this.prisma.copy.findFirst({ where: { id: copyId, libraryId } });
+    if (!copy) {
+      throw new BadRequestException("실물을 찾을 수 없습니다.");
+    }
+    await this.prisma.copy.delete({ where: { id: copyId } });
+    return { success: true };
+  }
+
   async getLatestRegistrationNo(libraryId: number) {
     const latest = await this.prisma.copy.findFirst({
       where: { libraryId },

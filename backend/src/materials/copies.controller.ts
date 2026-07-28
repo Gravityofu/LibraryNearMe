@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Query, Param, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Query, Param, Body, Req, UseGuards } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -41,5 +41,11 @@ export class CopiesController {
   @UseGuards(AdminGuard)
   update(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     return this.materialsService.updateCopy(req.user.libraryId, parseInt(id, 10), body);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.materialsService.removeCopy(req.user.libraryId, parseInt(id, 10));
   }
 }

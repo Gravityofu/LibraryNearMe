@@ -183,6 +183,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.noMaterialSelected": "목록에서 실물을 등록할 자료를 먼저 선택해 주세요.",
     "materials.copies.goToList": "목록으로 이동",
     "materials.copies.loading": "불러오는 중...",
+    "materials.copies.deleteBtn": "삭제",
+    "materials.copies.deleteConfirm": "이 실물 자료를 정말 삭제하시겠어요?",
+    "materials.copies.deleteSuccess": "삭제되었습니다.",
+    "materials.copies.deleteFail": "삭제에 실패했습니다.",
+    "materials.copies.digitalNotice": "디지털 자료는 실물(소장 부수)이 없어서 등록할 항목이 없습니다.",
 
     "materials.list.detailSearch": "상세 검색",
     "materials.list.regNoSearch": "등록번호 검색",
@@ -602,6 +607,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.noMaterialSelected": "Please select a material from the list first.",
     "materials.copies.goToList": "Go to List",
     "materials.copies.loading": "Loading...",
+    "materials.copies.deleteBtn": "Delete",
+    "materials.copies.deleteConfirm": "Delete this copy?",
+    "materials.copies.deleteSuccess": "Deleted.",
+    "materials.copies.deleteFail": "Delete failed.",
+    "materials.copies.digitalNotice": "Digital materials have no physical copies to register.",
 
     "materials.list.detailSearch": "Advanced Search",
     "materials.list.regNoSearch": "Search by Reg. No.",
