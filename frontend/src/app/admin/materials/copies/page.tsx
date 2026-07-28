@@ -2,7 +2,7 @@
 
 import ThemedButton from "@/components/themed-button";
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
@@ -64,6 +64,37 @@ const EMPTY_FORM = {
   copyNumber: "",
 };
 
+// MARC를 쓰지 않는 자료의 정보 화면에 보여줄 항목 목록이에요.
+const SIMPLE_MATERIAL_FIELDS = [
+  { key: "title", labelKey: "materials.new.field.title", required: true },
+  { key: "creator", labelKey: "materials.new.field.creator" },
+  { key: "publisher", labelKey: "materials.new.field.publisher" },
+  { key: "pubYear", labelKey: "materials.new.field.pubYear" },
+  { key: "isbn", labelKey: "materials.new.field.isbn" },
+  { key: "classNumber", labelKey: "materials.new.field.classNumber" },
+  { key: "format", labelKey: "materials.new.field.format" },
+  { key: "subject", labelKey: "materials.new.field.subject" },
+  { key: "language", labelKey: "materials.new.field.language" },
+  { key: "summary", labelKey: "materials.new.field.summary" },
+  { key: "coverUrl", labelKey: "materials.new.field.coverUrl" },
+  { key: "onlineUrl", labelKey: "materials.new.field.onlineUrl" },
+];
+
+const EMPTY_SIMPLE_FORM = {
+  title: "",
+  creator: "",
+  publisher: "",
+  pubYear: "",
+  isbn: "",
+  classNumber: "",
+  format: "",
+  subject: "",
+  language: "",
+  summary: "",
+  coverUrl: "",
+  onlineUrl: "",
+};
+
 // MARC 목록에서 090 태그의 ▼b(저자기호)를 찾아옵니다.
 function findAuthorCode(marc?: { tag: string; value: string }[]) {
   const field = marc?.find((f) => f.tag === "090");
@@ -81,6 +112,7 @@ function computeNextRegNo(latest: string | null): string {
 }
 
 function CopiesPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const materialId = searchParams.get("materialId");
 
@@ -89,6 +121,7 @@ function CopiesPageInner() {
 
   const [material, setMaterial] = useState<MaterialFull | null>(null);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [simpleForm, setSimpleForm] = useState(EMPTY_SIMPLE_FORM);
   const [marc, setMarc] = useState<MarcField[]>(DEFAULT_FIELDS);
   const [form, setForm] = useState(EMPTY_FORM);
   const [selectedCopyId, setSelectedCopyId] = useState<number | null>(null);
@@ -103,10 +136,25 @@ function CopiesPageInner() {
     const res = await fetch(`${API_URL}/materials/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (res.ok) {
       const data = await res.json();
       setMaterial(data);
       setMarc(Array.isArray(data.marc) && data.marc.length > 0 ? data.marc : DEFAULT_FIELDS);
+      setSimpleForm({
+        title: data.title || "",
+        creator: data.creator || "",
+        publisher: data.publisher || "",
+        pubYear: data.pubYear || "",
+        isbn: data.isbn || "",
+        classNumber: data.classNumber || "",
+        format: data.format || "",
+        subject: data.subject || "",
+        language: data.language || "",
+        summary: data.summary || "",
+        coverUrl: data.coverUrl || "",
+        onlineUrl: data.onlineUrl || "",
+      });
 
       setForm((prev) => ({ ...EMPTY_FORM, authorCode: findAuthorCode(data.marc), registrationNo: prev.registrationNo }));
       setSelectedCopyId(null);
@@ -123,7 +171,22 @@ function CopiesPageInner() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      setMaterial(await res.json());
+      const data = await res.json();
+      setMaterial(data);
+      setSimpleForm({
+        title: data.title || "",
+        creator: data.creator || "",
+        publisher: data.publisher || "",
+        pubYear: data.pubYear || "",
+        isbn: data.isbn || "",
+        classNumber: data.classNumber || "",
+        format: data.format || "",
+        subject: data.subject || "",
+        language: data.language || "",
+        summary: data.summary || "",
+        coverUrl: data.coverUrl || "",
+        onlineUrl: data.onlineUrl || "",
+      });
     }
   }
 
@@ -237,6 +300,48 @@ function CopiesPageInner() {
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.copies.marcSaveFail")), "error");
+    }
+  }
+
+  // MARC를 쓰지 않는 자료의 정보를 저장합니다.
+  async function handleSaveSimple() {
+    if (!material) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    if (!simpleForm.title.trim()) {
+      notify("❌ " + t("materials.copies.titleRequired"), "error");
+      return;
+    }
+    const res = await fetch(`${API_URL}/materials/${material.id}/simple`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(simpleForm),
+    });
+    if (res.ok) {
+      notify("✅ " + t("materials.copies.simpleSaveSuccess"), "success");
+      await refreshMaterial(material.id);
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("materials.copies.simpleSaveFail")), "error");
+    }
+  }
+
+  // 자료(서지) 자체를 삭제합니다. 실물이 남아있으면 서버가 막고 이유를 알려줘요.
+  async function handleDeleteMaterial() {
+    if (!material) return;
+    if (!window.confirm(t("materials.copies.deleteMaterialConfirm"))) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/materials/${material.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("materials.copies.deleteMaterialSuccess"), "success");
+      router.push("/admin/materials/list");
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("materials.copies.deleteMaterialFail")), "error");
     }
   }
 
@@ -356,7 +461,9 @@ function CopiesPageInner() {
         {/* 왼쪽: KOMARC 정보 */}
         <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white">
           <div className="p-3">
-            <p className="mb-2 text-base font-semibold">{t("materials.copies.marcBoxTitle")}</p>
+            <p className="mb-2 text-base font-semibold">
+              {usesMarc ? t("materials.copies.marcBoxTitle") : t("materials.copies.simpleBoxTitle")}
+            </p>
             {usesMarc ? (
               <>
                 <MarcEditor fields={marc} onChange={setMarc} />
@@ -369,23 +476,35 @@ function CopiesPageInner() {
                 </button>
               </>
             ) : (
-              <div className="space-y-1 text-sm text-neutral-600">
-                <p>
-                  <span className="text-neutral-400">{t("materials.new.field.title")}: </span>
-                  {material.title}
-                </p>
-                <p>
-                  <span className="text-neutral-400">{t("materials.new.field.creator")}: </span>
-                  {material.creator || "-"}
-                </p>
-                <p>
-                  <span className="text-neutral-400">{t("materials.new.field.publisher")}: </span>
-                  {material.publisher || "-"}
-                </p>
-                <p>
-                  <span className="text-neutral-400">{t("materials.new.field.pubYear")}: </span>
-                  {material.pubYear || "-"}
-                </p>
+              <div>
+                <div className="space-y-3">
+                  {SIMPLE_MATERIAL_FIELDS.filter((f) => f.key !== "onlineUrl" || !isPhysical).map((f) => (
+                    <label key={f.key} className="block">
+                      <span className="mb-1 block text-sm text-neutral-500">
+                        {t(f.labelKey)}
+                        {f.required && " *"}
+                      </span>
+                      <input
+                        value={simpleForm[f.key as keyof typeof simpleForm]}
+                        onChange={(e) => setSimpleForm({ ...simpleForm, [f.key]: e.target.value })}
+                        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <ThemedButton preset="버튼1" onClick={handleSaveSimple} className="w-full">
+                    {t("materials.copies.save")}
+                  </ThemedButton>
+                </div>
+
+                <button
+                  onClick={handleDeleteMaterial}
+                  className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  {t("materials.copies.deleteMaterialBtn")}
+                </button>
               </div>
             )}
           </div>

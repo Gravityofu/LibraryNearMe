@@ -299,6 +299,52 @@ export class MaterialsService {
     return { registrationNo: latest?.registrationNo ?? null };
   }
 
+  // MARC를 쓰지 않는 자료(비도서)의 정보를 수정합니다. 입력받은 값을 그대로 저장해요.
+  async updateMaterialSimple(libraryId: number, materialId: number, data: any) {
+    const material = await this.prisma.material.findFirst({ where: { id: materialId, libraryId } });
+    if (!material) {
+      throw new BadRequestException("자료를 찾을 수 없습니다.");
+    }
+    if (!data.title || !String(data.title).trim()) {
+      throw new BadRequestException("제목은 필수입니다.");
+    }
+    return this.prisma.material.update({
+      where: { id: materialId },
+      data: {
+        title: String(data.title).trim(),
+        creator: data.creator || null,
+        publisher: data.publisher || null,
+        pubYear: data.pubYear || null,
+        isbn: data.isbn || null,
+        classNumber: data.classNumber || null,
+        format: data.format || null,
+        subject: data.subject || null,
+        language: data.language || null,
+        summary: data.summary || null,
+        coverUrl: data.coverUrl || null,
+        onlineUrl: data.onlineUrl || null,
+      },
+    });
+  }
+
+  // 자료(서지) 삭제 — 이 자료에 등록된 실물이 하나라도 있으면 삭제할 수 없습니다.
+  async removeMaterial(libraryId: number, materialId: number) {
+    const material = await this.prisma.material.findFirst({
+      where: { id: materialId, libraryId },
+      include: { copies: true },
+    });
+    if (!material) {
+      throw new BadRequestException("자료를 찾을 수 없습니다.");
+    }
+    if (material.copies.length > 0) {
+      throw new BadRequestException(
+        `이 자료에는 등록된 실물이 ${material.copies.length}건 있어 삭제할 수 없습니다. 실물을 먼저 모두 삭제해주세요.`,
+      );
+    }
+    await this.prisma.material.delete({ where: { id: materialId } });
+    return { success: true };
+  }
+
   // MARC 편집기에서 수정한 내용을 서지(Material)에 다시 저장 (칸 자동추출도 다시 실행)
   async updateMaterialMarc(libraryId: number, materialId: number, marc: any) {
     const material = await this.prisma.material.findFirst({ where: { id: materialId, libraryId } });

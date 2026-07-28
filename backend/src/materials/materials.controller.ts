@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Query, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Query, Get, Param, Patch, Delete, UseGuards } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -48,6 +48,18 @@ export class MaterialsController {
   @UseGuards(AdminGuard)
   updateMaterial(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     return this.materialsService.updateMaterialMarc(req.user.libraryId, parseInt(id, 10), body.marc);
+  }
+
+  @Patch(':id/simple')
+  @UseGuards(AdminGuard)
+  updateMaterialSimple(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.materialsService.updateMaterialSimple(req.user.libraryId, parseInt(id, 10), body);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.materialsService.removeMaterial(req.user.libraryId, parseInt(id, 10));
   }
 
 }
