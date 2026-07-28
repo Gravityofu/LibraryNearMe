@@ -1,8 +1,6 @@
 "use client";
 
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Script from "next/script";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
@@ -22,7 +20,11 @@ type MemberRow = {
   role: string;
   status: string;
   createdAt: string;
+  memberTypeId: number | null;
+  memberType: { id: number; name: string } | null;
 };
+
+type MemberType = { id: number; name: string };
 
 type Filters = {
   name?: string;
@@ -34,7 +36,7 @@ type Filters = {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const STATUS_VALUES = ["ACTIVE", "PENDING", "SUSPENDED"];
-const COLUMN_COUNT = 10;
+const COLUMN_COUNT = 11;
 
 const EMPTY_FORM = {
   loginId: "",
@@ -50,6 +52,7 @@ const EMPTY_FORM = {
   addressDetail: "",
   role: "MEMBER",
   status: "ACTIVE",
+  memberTypeId: "",
 };
 
 // 숫자만 남기고, 3자리-4자리-4자리 모양으로 하이픈을 자동으로 붙여줍니다.
@@ -106,6 +109,24 @@ export default function MembersPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  const [memberTypes, setMemberTypes] = useState<MemberType[]>([]);
+
+  async function loadMemberTypes() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/member-types`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setMemberTypes(await res.json());
+    }
+  }
+
+  useEffect(() => {
+    loadMemberTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function fetchList(p: number, size: number, f: Filters) {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -145,7 +166,7 @@ export default function MembersPage() {
 
   async function openAddModal() {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, memberTypeId: memberTypes[0] ? String(memberTypes[0].id) : "" });
     setShowForm(true);
 
     const token = localStorage.getItem("token");
@@ -176,6 +197,11 @@ export default function MembersPage() {
       addressDetail: "",
       role: row.role,
       status: row.status,
+      memberTypeId: row.memberTypeId
+        ? String(row.memberTypeId)
+        : memberTypes[0]
+        ? String(memberTypes[0].id)
+        : "",
     });
     setShowForm(true);
   }
@@ -193,8 +219,14 @@ export default function MembersPage() {
       notify("❌ " + t("members.form.invalidPhone"), "error");
       return;
     }
+
     if (!isValidEmail(form.email)) {
       notify("❌ " + t("members.form.invalidEmail"), "error");
+      return;
+    }
+
+    if (form.role === "MEMBER" && !form.memberTypeId) {
+      notify("❌ " + t("members.form.memberTypeRequired"), "error");
       return;
     }
 
@@ -218,6 +250,8 @@ export default function MembersPage() {
 
     const url = editingId ? `${API_URL}/users/${editingId}` : `${API_URL}/users/admin`;
 
+    const memberTypeIdValue = form.role === "MEMBER" ? parseInt(form.memberTypeId, 10) : null;
+
     const body = editingId
       ? {
           name: form.name,
@@ -229,6 +263,7 @@ export default function MembersPage() {
           status: form.status,
           role: form.role,
           password: form.password || undefined,
+          memberTypeId: memberTypeIdValue,
         }
       : {
           loginId: form.loginId,
@@ -240,6 +275,7 @@ export default function MembersPage() {
           birthDate: birthDateValue,
           address,
           role: form.role,
+          memberTypeId: memberTypeIdValue,
         };
 
     const res = await fetch(url, {
@@ -300,6 +336,7 @@ export default function MembersPage() {
               <th className="px-4 py-2.5">{t("members.list.col.email")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.memberNo")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.role")}</th>
+              <th className="px-4 py-2.5">{t("members.list.col.memberType")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.status")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.createdAt")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.action")}</th>
@@ -318,7 +355,7 @@ export default function MembersPage() {
               ))}
             {hasSearched && rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-6 text-center text-neutral-400">
+                <td colSpan={11} className="px-4 py-6 text-center text-neutral-400">
                   {t("members.list.noResults")}
                 </td>
               </tr>
@@ -332,6 +369,7 @@ export default function MembersPage() {
                 <td className="whitespace-nowrap px-4 py-2.5">{row.email || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.memberNo || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{t(`members.role.${row.role}`)}</td>
+                <td className="whitespace-nowrap px-4 py-2.5">{row.memberType?.name || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">
                   {t(`members.status.${row.status}`)}
                 </td>
@@ -492,6 +530,7 @@ export default function MembersPage() {
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                   </label>
+
                   <label className="block">
                     <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.role")}</span>
                     <select
@@ -503,6 +542,24 @@ export default function MembersPage() {
                       <option value="ADMIN">{t("members.role.ADMIN")}</option>
                     </select>
                   </label>
+
+                  {form.role === "MEMBER" && (
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberType")} *</span>
+                      <select
+                        value={form.memberTypeId}
+                        onChange={(e) => setForm({ ...form, memberTypeId: e.target.value })}
+                        className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
+                      >
+                        {memberTypes.map((mt) => (
+                          <option key={mt.id} value={mt.id}>
+                            {mt.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
                 </>
               )}
 
@@ -588,6 +645,7 @@ export default function MembersPage() {
 
               {editingId && (
                 <>
+
                   <label className="block">
                     <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.role")}</span>
                     <select
@@ -599,6 +657,24 @@ export default function MembersPage() {
                       <option value="ADMIN">{t("members.role.ADMIN")}</option>
                     </select>
                   </label>
+
+                  {form.role === "MEMBER" && (
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberType")} *</span>
+                      <select
+                        value={form.memberTypeId}
+                        onChange={(e) => setForm({ ...form, memberTypeId: e.target.value })}
+                        className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
+                      >
+                        {memberTypes.map((mt) => (
+                          <option key={mt.id} value={mt.id}>
+                            {mt.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
                   <label className="block">
                     <span className="mb-1 block text-sm text-neutral-500">
                       {t("members.form.field.newPassword")}

@@ -8,6 +8,7 @@ import LibrarySettingsForm from "@/components/library-settings-form";
 import DesignSettingsForm from "@/components/design-settings-form";
 import CopyOptionsSettingsForm from "@/components/copy-options-settings-form";
 import MaterialTypesSettingsForm from "@/components/material-types-settings-form";
+import MemberTypesSettingsForm from "@/components/member-types-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -179,6 +180,7 @@ export default function AdminSettingsPage() {
 
         <TabsContent value="library" className="mt-4">
           <LibrarySettingsForm />
+          <MemberTypesSettingsForm />
         </TabsContent>
 
         <TabsContent value="design" className="mt-4">

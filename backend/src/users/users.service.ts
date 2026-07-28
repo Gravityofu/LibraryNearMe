@@ -4,7 +4,9 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../prisma.service';
+import { MemberTypesService } from '../settings/member-types.service';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { Role, UserStatus } from '@prisma/client';
@@ -30,7 +32,10 @@ function maskLoginId(id: string): string {
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private memberTypesService: MemberTypesService,
+  ) {}
 
   async signup(data: SignupData) {
     if (!data.loginId || !data.password || !data.name || !data.phone) {
@@ -44,9 +49,15 @@ export class UsersService {
       throw new BadRequestException('도서관 설정이 없습니다.');
     }
 
+    // 홈페이지에서 직접 가입하는 회원은 회원 구분을 직접 고르지 않으므로,
+    // 첫 번째 회원 구분(기본값 "개인회원")으로 자동 등록합니다. 나중에 관리자가 바꿔줄 수 있습니다.
+    const memberTypes = await this.memberTypesService.list(library.id);
+    const defaultMemberTypeId = memberTypes[0]?.id;
+
     const existing = await this.prisma.user.findFirst({
       where: { libraryId: library.id, loginId: data.loginId },
     });
+
     if (existing) {
       throw new ConflictException('이미 사용 중인 아이디입니다.');
     }
@@ -66,6 +77,7 @@ export class UsersService {
           birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
           address: data.address || undefined,
           memberNo: data.memberNo || undefined,
+          memberTypeId: defaultMemberTypeId,
           cardToken,
         },
       });
@@ -122,6 +134,8 @@ export class UsersService {
           role: true,
           status: true,
           createdAt: true,
+          memberTypeId: true,
+          memberType: { select: { id: true, name: true } },
           // passwordHash는 절대 내보내지 않습니다.
         },
       }),
@@ -144,6 +158,7 @@ export class UsersService {
       birthDate?: string;
       address?: string;
       role?: string;
+      memberTypeId?: number;
     },
   ) {
     if (!data.loginId || !data.password || !data.name) {
@@ -153,6 +168,21 @@ export class UsersService {
     // role은 MEMBER 또는 ADMIN만 허용. 그 외 값(SUPER 포함)은 막습니다.
     const role =
       data.role === 'ADMIN' ? Role.ADMIN : Role.MEMBER;
+
+    // 역할이 "회원"이면 반드시 회원 구분을 하나 선택해야 합니다. "관리자"는 회원 구분이 필요 없습니다.
+    let memberTypeId: number | null = null;
+    if (role === Role.MEMBER) {
+      if (!data.memberTypeId) {
+        throw new BadRequestException('회원구분을 선택하세요.');
+      }
+      const memberType = await this.prisma.memberType.findFirst({
+        where: { id: Number(data.memberTypeId), libraryId },
+      });
+      if (!memberType) {
+        throw new BadRequestException('올바르지 않은 회원구분입니다.');
+      }
+      memberTypeId = memberType.id;
+    }
 
     const existing = await this.prisma.user.findFirst({
       where: { libraryId, loginId: data.loginId },
@@ -177,6 +207,7 @@ export class UsersService {
           birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
           address: data.address || undefined,
           role,
+          memberTypeId,
           cardToken,
         },
       });
@@ -204,6 +235,7 @@ export class UsersService {
       status?: string;
       role?: string;
       password?: string;
+      memberTypeId?: number | null;
     },
   ) {
     const existing = await this.prisma.user.findFirst({
@@ -228,6 +260,26 @@ export class UsersService {
       updateData.role = data.role as Role;
     }
 
+    // 최종적으로 "회원"이 되는 경우에는 회원 구분이 반드시 있어야 하고,
+    // "관리자"가 되는 경우에는 회원 구분을 비웁니다.
+    const finalRole = updateData.role || existing.role;
+    if (finalRole === Role.MEMBER) {
+      const requestedId =
+        data.memberTypeId !== undefined ? Number(data.memberTypeId) : existing.memberTypeId;
+      if (!requestedId) {
+        throw new BadRequestException('회원구분을 선택하세요.');
+      }
+      const memberType = await this.prisma.memberType.findFirst({
+        where: { id: requestedId, libraryId },
+      });
+      if (!memberType) {
+        throw new BadRequestException('올바르지 않은 회원구분입니다.');
+      }
+      updateData.memberTypeId = memberType.id;
+    } else {
+      updateData.memberTypeId = null;
+    }
+
     // 비밀번호는 값을 입력했을 때만 바꿉니다. 관리자도 기존 비밀번호를 알 수 없고,
     // 오직 "새 비밀번호로 덮어쓰기"만 할 수 있습니다(암호화되어 저장되므로 원래 값은 아무도 못 봅니다).
     if (data.password && data.password.trim()) {
@@ -247,6 +299,7 @@ export class UsersService {
       throw e;
     }
   }
+  
 
   // 다음 회원번호를 계산합니다. "M" + 숫자 6자리(M000001, M000002...) 형식입니다.
   async getNextMemberNo(libraryId: number) {

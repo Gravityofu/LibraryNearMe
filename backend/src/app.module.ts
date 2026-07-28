@@ -18,6 +18,8 @@ import { CopyOptionsController } from './settings/copy-options.controller';
 import { CopyOptionsService } from './settings/copy-options.service';
 import { MaterialTypesController } from './settings/material-types.controller';
 import { MaterialTypesService } from './settings/material-types.service';
+import { MemberTypesController } from './settings/member-types.controller';
+import { MemberTypesService } from './settings/member-types.service';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { MaterialTypesService } from './settings/material-types.service';
     KormarcTagsController,
     CopyOptionsController,
     MaterialTypesController,
+    MemberTypesController,
   ],
   providers: [
     AppService,
@@ -48,6 +51,7 @@ import { MaterialTypesService } from './settings/material-types.service';
     KormarcTagsService,
     CopyOptionsService,
     MaterialTypesService,
+    MemberTypesService,
   ],
 })
 export class AppModule {}

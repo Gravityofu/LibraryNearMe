@@ -37,6 +37,7 @@ model Library {
   copyOptions  CopyOption[] // ← 추가 (상태/별치기호/소장처 목록)
   materialTypes MaterialType[] // ← 추가 (자료 종류 목록)
   bookKdcRules  BookKdcRule[]  // ← 추가 (도서 KDC 하위 규칙)
+  memberTypes   MemberType[]   // ← 추가 (회원 구분 목록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -62,6 +63,9 @@ model User {
 
   memberNo      String?                       // 회원증 번호(사람이 읽는). 기존 "U012345" 그대로 or 신규 발급
   cardToken     String     @unique            // QR 보안 코드(기계용). 무작위 고유값
+
+  memberTypeId  Int?                          // 회원 구분 (역할이 "회원"일 때만 사용)
+  memberType    MemberType? @relation(fields: [memberTypeId], references: [id])
 
   role          Role       @default(MEMBER)   // 역할
   status        UserStatus @default(ACTIVE)   // 계정 상태
@@ -228,4 +232,21 @@ model BookKdcRule {
   createdAt      DateTime     @default(now())
 
   @@unique([libraryId, materialTypeId, kdcPrefix])
+}
+
+// 회원 구분 (예: 개인회원, 단체회원, 자료지원회원)
+model MemberType {
+  id        Int      @id @default(autoincrement())
+
+  libraryId Int
+  library   Library  @relation(fields: [libraryId], references: [id])
+
+  name      String
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  users     User[]
+
+  @@unique([libraryId, name])
 }
