@@ -339,6 +339,8 @@ function CopiesPageInner() {
   const typeInfo = materialTypes.find((m) => m.code === material.type);
   const usesMarc = typeInfo?.usesMarc ?? false;
   const isPhysical = typeInfo?.category === "PHYSICAL";
+  // 실물 자료면 항상 보여주고, 디지털 자료라도 예전에 등록된 실물이 남아있으면 삭제할 수 있도록 보여줘요.
+  const showCopyBox = isPhysical || material.copies.length > 0;
 
   return (
     <div className="p-6">
@@ -350,7 +352,7 @@ function CopiesPageInner() {
         {material.creator || "-"} · {material.classNumber || "-"}
       </p>
 
-      <div className={`grid grid-cols-1 gap-4 ${isPhysical ? "md:grid-cols-2" : ""}`}>
+      <div className={`grid grid-cols-1 gap-4 ${showCopyBox ? "md:grid-cols-2" : ""}`}>
         {/* 왼쪽: KOMARC 정보 */}
         <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white">
           <div className="p-3">
@@ -389,8 +391,8 @@ function CopiesPageInner() {
           </div>
         </div>
 
-        {/* 오른쪽: 실물 자료 목록 — 실물 자료(PHYSICAL)일 때만 보여요. 디지털 자료는 실물이 없어서 아예 표시하지 않아요. */}
-        {isPhysical && (
+        {/* 오른쪽: 실물 자료 목록 — 실물 자료거나, 디지털 자료라도 예전에 등록된 실물이 남아있으면 보여요. */}
+        {showCopyBox && (
           <div className="max-h-[75vh] overflow-auto rounded-lg border border-neutral-200 bg-white p-3">
             <p className="mb-2 text-base font-semibold">
               {t("materials.copies.copyListHeading")} ({material.copies.length}
@@ -405,25 +407,27 @@ function CopiesPageInner() {
                   <th className="px-2 py-1.5">{t("materials.copies.location")}</th>
                   <th className="px-2 py-1.5">{t("materials.copies.status")}</th>
                 </tr>
-              </thead>
+              </thead>           
               <tbody className="divide-y divide-neutral-200">
-                <tr onClick={openAddModal} className="cursor-pointer">
-                  <td
-                    colSpan={4}
-                    className="px-2 py-2 text-center font-semibold"
-                    style={{ backgroundColor: "#383838", color: "#F9F6F0" }}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <span
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs leading-none"
-                        style={{ borderColor: "currentColor" }}
-                      >
-                        +
+                {isPhysical && (
+                  <tr onClick={openAddModal} className="cursor-pointer">
+                    <td
+                      colSpan={4}
+                      className="px-2 py-2 text-center font-semibold"
+                      style={{ backgroundColor: "#383838", color: "#F9F6F0" }}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs leading-none"
+                          style={{ borderColor: "currentColor" }}
+                        >
+                          +
+                        </span>
+                        {t("materials.copies.newRegistrationRow")}
                       </span>
-                      {t("materials.copies.newRegistrationRow")}
-                    </span>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                )}
 
                 {material.copies.map((c) => (
                   <tr
@@ -444,7 +448,7 @@ function CopiesPageInner() {
         )}
       </div>
 
-      {!isPhysical && (
+      {!showCopyBox && (
         <p className="mt-4 text-sm text-neutral-400">{t("materials.copies.digitalNotice")}</p>
       )}
 
