@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MATERIAL_TYPES } from "@/lib/material-types";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 
@@ -40,6 +39,15 @@ type Filters = {
   registrationNos?: string[];
 };
 
+type MaterialType = {
+  id: number;
+  code: string;
+  nameKo: string;
+  nameEn: string;
+  category: "PHYSICAL" | "DIGITAL";
+  usesMarc: boolean;
+};
+
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const COLUMN_COUNT = 11;
 
@@ -60,6 +68,23 @@ export default function MaterialsListPage() {
 
   const [detailForm, setDetailForm] = useState({ type: "", title: "", creator: "", subject: "" });
   const [regNoText, setRegNoText] = useState("");
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+
+  async function loadMaterialTypes() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/material-types`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setMaterialTypes(await res.json());
+    }
+  }
+
+  useEffect(() => {
+    loadMaterialTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function fetchList(p: number, size: number, f: Filters) {
     const token = localStorage.getItem("token");
@@ -208,12 +233,14 @@ export default function MaterialsListPage() {
 
             {hasSearched &&
               rows.map((row, i) => {
-                const typeInfo = MATERIAL_TYPES.find((m) => m.code === row.material.type);
+                const typeInfo = materialTypes.find((m) => m.code === row.material.type);
+                // 실물 자료인데 실물이 하나도 없을 때만 노란색으로 표시해요. 디지털 자료는 원래 실물이 없을 수 있으니 표시하지 않아요.
+                const showNoCopyHighlight = typeInfo?.category === "PHYSICAL" && !row.hasCopy;
                 return (
                   <tr
                     key={row.hasCopy ? `copy-${row.id}` : `material-${row.materialId}`}
                     onClick={() => router.push(`/admin/materials/copies?materialId=${row.materialId}`)}
-                    className={`cursor-pointer hover:bg-neutral-100 ${row.hasCopy ? "" : "bg-amber-50"}`}
+                    className={`cursor-pointer hover:bg-neutral-100 ${showNoCopyHighlight ? "bg-amber-50" : ""}`}
                   >
                     <td className="whitespace-nowrap px-4 py-2.5">{(page - 1) * pageSize + i + 1}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">
@@ -288,7 +315,7 @@ export default function MaterialsListPage() {
                   className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
                 >
                   <option value="">{t("materials.list.anyType")}</option>
-                  {MATERIAL_TYPES.map((m) => (
+                  {materialTypes.map((m) => (
                     <option key={m.code} value={m.code}>
                       {lang === "ko" ? m.nameKo ?? m.code : m.nameEn ?? m.code}
                     </option>
