@@ -8,13 +8,14 @@ import { useNotify } from "@/components/notify-provider";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 type OptionItem = { id: number; category: string; value: string; order: number };
-type OptionsState = { STATUS: OptionItem[]; SPECIAL_CODE: OptionItem[]; LOCATION: OptionItem[] };
+type OptionsState = { STATUS: OptionItem[]; SPECIAL_CODE: OptionItem[]; LOCATION: OptionItem[]; FLOOR: OptionItem[] };
 
-const EMPTY_OPTIONS: OptionsState = { STATUS: [], SPECIAL_CODE: [], LOCATION: [] };
+const EMPTY_OPTIONS: OptionsState = { STATUS: [], SPECIAL_CODE: [], LOCATION: [], FLOOR: [] };
 
 const CATEGORIES: { key: keyof OptionsState; labelKey: string }[] = [
   { key: "STATUS", labelKey: "settings.copyOptions.category.status" },
   { key: "SPECIAL_CODE", labelKey: "settings.copyOptions.category.specialCode" },
+  { key: "FLOOR", labelKey: "settings.copyOptions.category.floor" },
   { key: "LOCATION", labelKey: "settings.copyOptions.category.location" },
 ];
 
@@ -27,6 +28,10 @@ export default function CopyOptionsSettingsForm() {
   const [modalCategory, setModalCategory] = useState<keyof OptionsState>("STATUS");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [valueText, setValueText] = useState("");
+
+  // '소장처'를 새로 추가할 때만 쓰는, 층 + 세부위치 입력값이에요.
+  const [floorValue, setFloorValue] = useState("");
+  const [detailValue, setDetailValue] = useState("");
 
   async function loadOptions() {
     const token = localStorage.getItem("token");
@@ -46,10 +51,15 @@ export default function CopyOptionsSettingsForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // '소장처'를 새로 추가할 때만 층+세부위치 입력 방식을 씁니다.
+  const useFloorSplit = modalCategory === "LOCATION" && !editingId;
+
   function openAddModal(category: keyof OptionsState) {
     setModalCategory(category);
     setEditingId(null);
     setValueText("");
+    setFloorValue(options.FLOOR[0]?.value || "");
+    setDetailValue("");
     setShowModal(true);
   }
 
@@ -63,15 +73,25 @@ export default function CopyOptionsSettingsForm() {
   async function handleSave() {
     const token = localStorage.getItem("token");
     if (!token) return;
-    if (!valueText.trim()) {
+
+    const finalValue = useFloorSplit
+      ? `${floorValue} ${detailValue}`.replace(/\s+/g, " ").trim()
+      : valueText.trim();
+
+    if (useFloorSplit && !floorValue) {
+      notify("❌ " + t("settings.copyOptions.noFloorOptions"), "error");
+      return;
+    }
+    if (!finalValue) {
       notify("❌ " + t("settings.copyOptions.valueRequired"), "error");
       return;
     }
+
     const url = editingId ? `${API_URL}/copy-options/${editingId}` : `${API_URL}/copy-options`;
     const res = await fetch(url, {
       method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ category: modalCategory, value: valueText.trim() }),
+      body: JSON.stringify({ category: modalCategory, value: finalValue }),
     });
     if (res.ok) {
       notify("✅ " + t("settings.copyOptions.saveSuccess"), "success");
@@ -139,14 +159,47 @@ export default function CopyOptionsSettingsForm() {
               <p className="mb-4 text-sm font-semibold">
                 {editingId ? t("settings.copyOptions.modal.editTitle") : t("settings.copyOptions.modal.addTitle")}
               </p>
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.field.value")} *</span>
-                <input
-                  value={valueText}
-                  onChange={(e) => setValueText(e.target.value)}
-                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                />
-              </label>
+
+              {useFloorSplit ? (
+                options.FLOOR.length === 0 ? (
+                  <p className="text-sm text-red-500">{t("settings.copyOptions.noFloorOptions")}</p>
+                ) : (
+                  <>
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.floorLabel")} *</span>
+                      <select
+                        value={floorValue}
+                        onChange={(e) => setFloorValue(e.target.value)}
+                        className="w-full cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      >
+                        {options.FLOOR.map((o) => (
+                          <option key={o.id} value={o.value}>
+                            {o.value}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="mt-3 block">
+                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.detailLabel")}</span>
+                      <input
+                        value={detailValue}
+                        onChange={(e) => setDetailValue(e.target.value)}
+                        placeholder={t("settings.copyOptions.detailPlaceholder")}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      />
+                    </label>
+                  </>
+                )
+              ) : (
+                <label className="block">
+                  <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.field.value")} *</span>
+                  <input
+                    value={valueText}
+                    onChange={(e) => setValueText(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                  />
+                </label>
+              )}
 
               <ThemedButton preset="버튼1" onClick={handleSave} className="mt-5 w-full">
                 {t("settings.copyOptions.save")}
