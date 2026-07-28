@@ -285,6 +285,12 @@ function CopiesPageInner() {
     setShowModal(true);
   }
 
+  // 모달을 닫을 때는 선택 표시(배경색)도 함께 없애줍니다.
+  function closeModal() {
+    setShowModal(false);
+    setSelectedCopyId(null);
+  }
+
   async function handleSaveMarc() {
     if (!material) return;
     const token = localStorage.getItem("token");
@@ -376,7 +382,7 @@ function CopiesPageInner() {
       await refreshMaterial(material.id);
       resetForm();
       await loadLatestRegNo();
-      setShowModal(false);
+      closeModal();
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.copies.addFail")), "error");
@@ -396,7 +402,7 @@ function CopiesPageInner() {
     if (res.ok) {
       notify("✅ " + t("materials.copies.updateSuccess"), "success");
       await refreshMaterial(material.id);
-      setShowModal(false);
+      closeModal();
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.copies.updateFail")), "error");
@@ -416,7 +422,7 @@ function CopiesPageInner() {
     if (res.ok) {
       notify("✅ " + t("materials.copies.deleteSuccess"), "success");
       await refreshMaterial(material.id);
-      setShowModal(false);
+      closeModal();
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.copies.deleteFail")), "error");
@@ -584,7 +590,7 @@ function CopiesPageInner() {
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setShowModal(false)}
+          onClick={closeModal}
         >
           <div
             className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
@@ -597,7 +603,7 @@ function CopiesPageInner() {
               </p>
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={closeModal}
                 className="cursor-pointer rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-neutral-500 hover:bg-neutral-50"
               >
                 ✕
