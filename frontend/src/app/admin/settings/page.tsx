@@ -9,6 +9,7 @@ import DesignSettingsForm from "@/components/design-settings-form";
 import CopyOptionsSettingsForm from "@/components/copy-options-settings-form";
 import MaterialTypesSettingsForm from "@/components/material-types-settings-form";
 import MemberTypesSettingsForm from "@/components/member-types-settings-form";
+import LoanSettingsForm from "@/components/loan-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -118,6 +119,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="copyOptions">{t("settings.tabs.copyOptions")}</TabsTrigger>
           <TabsTrigger value="materialTypes">{t("settings.tabs.materialTypes")}</TabsTrigger>
+          <TabsTrigger value="loan">{t("settings.tabs.loan")}</TabsTrigger>
           <TabsTrigger value="library">{t("settings.tabs.library")}</TabsTrigger>
           <TabsTrigger value="design">{t("settings.tabs.design")}</TabsTrigger>
         </TabsList>
@@ -176,6 +178,10 @@ export default function AdminSettingsPage() {
 
         <TabsContent value="materialTypes" className="mt-4">
           <MaterialTypesSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="loan" className="mt-4">
+          <LoanSettingsForm />
         </TabsContent>
 
         <TabsContent value="library" className="mt-4">

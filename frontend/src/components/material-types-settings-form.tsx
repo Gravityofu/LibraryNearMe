@@ -17,6 +17,7 @@ type MaterialType = {
   usesMarc: boolean;
   maxLoanCount: number | null;
   loanPeriodDays: number | null;
+  maxReservationCount: number | null;
   kdcRules: KdcRule[];
 };
 
@@ -26,8 +27,6 @@ const EMPTY_FORM = {
   nameKo: "",
   nameEn: "",
   usesMarc: false,
-  maxLoanCount: "",
-  loanPeriodDays: "",
 };
 
 const EMPTY_KDC_FORM = { kdcPrefix: "", label: "", maxLoanCount: "" };
@@ -114,8 +113,6 @@ export default function MaterialTypesSettingsForm() {
       nameKo: item.nameKo,
       nameEn: item.nameEn,
       usesMarc: item.usesMarc,
-      maxLoanCount: item.maxLoanCount !== null ? String(item.maxLoanCount) : "",
-      loanPeriodDays: item.loanPeriodDays !== null ? String(item.loanPeriodDays) : "",
     });
     setShowModal(true);
   }
@@ -125,10 +122,6 @@ export default function MaterialTypesSettingsForm() {
     if (!token) return;
     if (!form.nameKo.trim() || (!editingId && !form.code.trim())) {
       notify("❌ " + t("settings.materialTypes.codeRequired"), "error");
-      return;
-    }
-    if (form.category === "PHYSICAL" && (!form.maxLoanCount.trim() || !form.loanPeriodDays.trim())) {
-      notify("❌ " + t("settings.materialTypes.loanFieldsRequired"), "error");
       return;
     }
 
@@ -141,10 +134,6 @@ export default function MaterialTypesSettingsForm() {
       body.code = form.code.trim();
       body.category = form.category;
       body.usesMarc = form.usesMarc;
-    }
-    if (form.category === "PHYSICAL") {
-      body.maxLoanCount = Number(form.maxLoanCount);
-      body.loanPeriodDays = Number(form.loanPeriodDays);
     }
 
     const url = editingId ? `${API_URL}/material-types/${editingId}` : `${API_URL}/material-types`;
@@ -266,18 +255,12 @@ export default function MaterialTypesSettingsForm() {
     const rows = types.filter((mt) => mt.category === category);
     return (
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-neutral-100 text-neutral-500">
             <tr>
               <th className="px-3 py-2">{t("settings.materialTypes.col.nameKo")}</th>
               <th className="px-3 py-2">{t("settings.materialTypes.col.code")}</th>
               <th className="px-3 py-2">{t("settings.materialTypes.col.usesMarc")}</th>
-              {category === "PHYSICAL" && (
-                <>
-                  <th className="px-3 py-2">{t("settings.materialTypes.col.maxLoanCount")}</th>
-                  <th className="px-3 py-2">{t("settings.materialTypes.col.loanPeriodDays")}</th>
-                </>
-              )}
               <th className="px-3 py-2">{t("settings.materialTypes.col.action")}</th>
             </tr>
           </thead>
@@ -289,12 +272,6 @@ export default function MaterialTypesSettingsForm() {
                 <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
                   {item.usesMarc ? t("settings.materialTypes.yes") : t("settings.materialTypes.no")}
                 </td>
-                {category === "PHYSICAL" && (
-                  <>
-                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxLoanCount ?? "-"}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.loanPeriodDays ?? "-"}</td>
-                  </>
-                )}
                 <td className="whitespace-nowrap px-3 py-2">
                   <div className="flex gap-2">
                     <button
@@ -425,29 +402,10 @@ export default function MaterialTypesSettingsForm() {
                   </label>
                 )}
 
-                {form.category === "PHYSICAL" && (
-                  <>
-                    <label className="block">
-                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.materialTypes.field.maxLoanCount")} *</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={form.maxLoanCount}
-                        onChange={(e) => setForm({ ...form, maxLoanCount: e.target.value })}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.materialTypes.field.loanPeriodDays")} *</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={form.loanPeriodDays}
-                        onChange={(e) => setForm({ ...form, loanPeriodDays: e.target.value })}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </label>
-                  </>
+                {!editingId && form.category === "PHYSICAL" && (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+                    {t("settings.materialTypes.loanHint")}
+                  </p>
                 )}
               </div>
 
@@ -478,7 +436,11 @@ export default function MaterialTypesSettingsForm() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="max-h-[80vh] overflow-y-auto p-6">
-              <p className="mb-4 text-sm font-semibold">{t("settings.materialTypes.kdc.modalTitle")}</p>
+              <p className="mb-1 text-sm font-semibold">{t("settings.materialTypes.kdc.modalTitle")}</p>
+              <p className="mb-4 text-xs text-neutral-400">
+                {t("settings.materialTypes.kdc.parentMaxLoanCountLabel")}: {bookType.maxLoanCount ?? "-"}
+                {bookType.maxLoanCount !== null ? t("settings.materialTypes.kdc.countUnit") : ""}
+              </p>
 
               <div className="flex flex-col gap-2">
                 {bookType.kdcRules.length === 0 && (

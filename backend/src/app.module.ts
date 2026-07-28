@@ -20,6 +20,8 @@ import { MaterialTypesController } from './settings/material-types.controller';
 import { MaterialTypesService } from './settings/material-types.service';
 import { MemberTypesController } from './settings/member-types.controller';
 import { MemberTypesService } from './settings/member-types.service';
+import { LoanSettingsController } from './settings/loan-settings.controller';
+import { LoanSettingsService } from './settings/loan-settings.service';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { MemberTypesService } from './settings/member-types.service';
     CopyOptionsController,
     MaterialTypesController,
     MemberTypesController,
+    LoanSettingsController,
   ],
   providers: [
     AppService,
@@ -52,6 +55,7 @@ import { MemberTypesService } from './settings/member-types.service';
     CopyOptionsService,
     MaterialTypesService,
     MemberTypesService,
+    LoanSettingsService,
   ],
 })
 export class AppModule {}

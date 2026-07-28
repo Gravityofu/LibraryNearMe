@@ -38,6 +38,7 @@ model Library {
   materialTypes MaterialType[] // ← 추가 (자료 종류 목록)
   bookKdcRules  BookKdcRule[]  // ← 추가 (도서 KDC 하위 규칙)
   memberTypes   MemberType[]   // ← 추가 (회원 구분 목록)
+  loanSettings  LoanSetting[]  // ← 추가 (회원구분별 기본 대출 설정)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -207,6 +208,7 @@ model MaterialType {
 
   maxLoanCount   Int?     // 실물 자료일 때만 사용: 대출 가능 권수
   loanPeriodDays Int?     // 실물 자료일 때만 사용: 대출 일수
+  maxReservationCount Int? // 실물 자료일 때만 사용: 예약 가능 권수
 
   createdAt      DateTime @default(now())
 
@@ -247,6 +249,27 @@ model MemberType {
   createdAt DateTime @default(now())
 
   users     User[]
+  loanSettings LoanSetting[]
 
   @@unique([libraryId, name])
+}
+
+// 회원구분별 기본 대출 설정 (최대 대출 권수, 최대 예약 권수, 최대 대출 제한 일수, 예약자료 보관일)
+model LoanSetting {
+  id                  Int        @id @default(autoincrement())
+
+  libraryId           Int
+  library             Library    @relation(fields: [libraryId], references: [id])
+
+  memberTypeId        Int
+  memberType          MemberType @relation(fields: [memberTypeId], references: [id], onDelete: Cascade)
+
+  maxLoanCount        Int        @default(5)   // 최대 대출 가능 권수
+  maxReservationCount Int        @default(3)   // 최대 예약 가능 권수
+  maxSuspensionDays   Int?                       // 최대 대출 제한 일수 (비어있으면 상한 없음 = 연체일수만큼 그대로)
+  reservationHoldDays Int        @default(3)   // 예약자료 보관일
+
+  createdAt           DateTime   @default(now())
+
+  @@unique([libraryId, memberTypeId])
 }

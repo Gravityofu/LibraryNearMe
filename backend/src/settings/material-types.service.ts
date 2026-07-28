@@ -2,24 +2,25 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 
 // 처음 이 도서관이 자료 종류 관리 기능을 쓸 때 자동으로 채워지는 기본 15개 종류입니다.
+// 대출 가능 권수·대출 일수·예약 가능 권수는 '설정 > 대출' 화면에서 다시 확인·조정할 수 있습니다.
 const DEFAULT_MATERIAL_TYPES = [
   // 실물 자료 (대출 설정 있음)
-  { code: 'book', nameKo: '도서', nameEn: 'Book', category: 'PHYSICAL', usesMarc: true, maxLoanCount: 10, loanPeriodDays: 14 },
-  { code: 'dvd', nameKo: 'DVD', nameEn: 'DVD', category: 'PHYSICAL', usesMarc: true, maxLoanCount: 2, loanPeriodDays: 7 },
-  { code: 'boardgame', nameKo: '보드게임', nameEn: 'Board Game', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7 },
-  { code: 'tool', nameKo: '공구', nameEn: 'Tool', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7 },
-  { code: 'equipment', nameKo: '장비', nameEn: 'Equipment', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7 },
-  { code: 'thesis_physical', nameKo: '논문(실물)', nameEn: 'Thesis (Physical)', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14 },
-  { code: 'collection', nameKo: '자료집', nameEn: 'Anthology', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14 },
-  { code: 'clipping', nameKo: '스크랩', nameEn: 'Clipping', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14 },
+  { code: 'book', nameKo: '도서', nameEn: 'Book', category: 'PHYSICAL', usesMarc: true, maxLoanCount: 10, loanPeriodDays: 14, maxReservationCount: 5 },
+  { code: 'dvd', nameKo: 'DVD', nameEn: 'DVD', category: 'PHYSICAL', usesMarc: true, maxLoanCount: 2, loanPeriodDays: 7, maxReservationCount: 2 },
+  { code: 'boardgame', nameKo: '보드게임', nameEn: 'Board Game', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7, maxReservationCount: 1 },
+  { code: 'tool', nameKo: '공구', nameEn: 'Tool', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7, maxReservationCount: 1 },
+  { code: 'equipment', nameKo: '장비', nameEn: 'Equipment', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 1, loanPeriodDays: 7, maxReservationCount: 1 },
+  { code: 'thesis_physical', nameKo: '논문(실물)', nameEn: 'Thesis (Physical)', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14, maxReservationCount: 2 },
+  { code: 'collection', nameKo: '자료집', nameEn: 'Anthology', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14, maxReservationCount: 2 },
+  { code: 'clipping', nameKo: '스크랩', nameEn: 'Clipping', category: 'PHYSICAL', usesMarc: false, maxLoanCount: 2, loanPeriodDays: 14, maxReservationCount: 2 },
   // 디지털 자료 (대출 설정 없음)
-  { code: 'thesis_digital', nameKo: '논문(디지털)', nameEn: 'Thesis (Digital)', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'law', nameKo: '법령', nameEn: 'Law', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'video', nameKo: '영상', nameEn: 'Video', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'music', nameKo: '음악', nameEn: 'Music', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'webpage', nameKo: '웹페이지', nameEn: 'Web Page', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'photo', nameKo: '사진', nameEn: 'Photo', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
-  { code: 'article', nameKo: '기사', nameEn: 'Article', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null },
+  { code: 'thesis_digital', nameKo: '논문(디지털)', nameEn: 'Thesis (Digital)', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'law', nameKo: '법령', nameEn: 'Law', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'video', nameKo: '영상', nameEn: 'Video', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'music', nameKo: '음악', nameEn: 'Music', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'webpage', nameKo: '웹페이지', nameEn: 'Web Page', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'photo', nameKo: '사진', nameEn: 'Photo', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
+  { code: 'article', nameKo: '기사', nameEn: 'Article', category: 'DIGITAL', usesMarc: false, maxLoanCount: null, loanPeriodDays: null, maxReservationCount: null },
 ];
 
 @Injectable()
@@ -41,7 +42,8 @@ export class MaterialTypesService {
     });
   }
 
-  // 새 자료 종류 추가. 실물(PHYSICAL)이면 대출 가능 권수·대출 일수를 반드시 같이 받습니다.
+  // 새 자료 종류 추가. 대출 가능 권수·대출 일수·예약 가능 권수는 여기서 받지 않습니다.
+  // (자료 종류를 새로 만들고 나서, '설정 > 대출' 화면에서 값을 채워 넣습니다.)
   async create(libraryId: number, data: any) {
     const code = String(data.code || '').trim();
     const nameKo = String(data.nameKo || '').trim();
@@ -53,25 +55,15 @@ export class MaterialTypesService {
       throw new BadRequestException('코드와 이름을 입력하세요.');
     }
 
-    let maxLoanCount: number | null = null;
-    let loanPeriodDays: number | null = null;
-    if (category === 'PHYSICAL') {
-      maxLoanCount = Number(data.maxLoanCount);
-      loanPeriodDays = Number(data.loanPeriodDays);
-      if (!Number.isFinite(maxLoanCount) || maxLoanCount < 1) {
-        throw new BadRequestException('실물 자료는 대출 가능 권수를 입력해야 합니다.');
-      }
-      if (!Number.isFinite(loanPeriodDays) || loanPeriodDays < 1) {
-        throw new BadRequestException('실물 자료는 대출 일수를 입력해야 합니다.');
-      }
-    }
-
     const count = await this.prisma.materialType.count({ where: { libraryId } });
     try {
       return await this.prisma.materialType.create({
         data: {
           libraryId, code, nameKo, nameEn: nameEn || nameKo,
-          category, usesMarc, maxLoanCount, loanPeriodDays,
+          category, usesMarc,
+          maxLoanCount: null,
+          loanPeriodDays: null,
+          maxReservationCount: null,
           order: count,
         },
       });
@@ -83,7 +75,10 @@ export class MaterialTypesService {
     }
   }
 
-  // 자료 종류 수정. 실물 자료의 대출 가능 권수는, 그 아래 KDC 하위 규칙 중 가장 큰 값보다 작게 낮출 수 없습니다.
+  // 자료 종류 수정.
+  // - 이름(nameKo/nameEn) 수정은 '자료 종류' 화면에서 옵니다.
+  // - 대출 가능 권수/대출 일수/예약 가능 권수 수정은 '대출' 화면에서 옵니다. (같은 API를 함께 씁니다.)
+  // 실물 자료의 대출 가능 권수는, 그 아래 KDC 하위 규칙 중 가장 큰 값보다 작게 낮출 수 없습니다.
   async update(libraryId: number, id: number, data: any) {
     const existing = await this.prisma.materialType.findFirst({
       where: { id, libraryId },
@@ -101,6 +96,7 @@ export class MaterialTypesService {
 
     let maxLoanCount = existing.maxLoanCount;
     let loanPeriodDays = existing.loanPeriodDays;
+    let maxReservationCount = existing.maxReservationCount;
 
     if (existing.category === 'PHYSICAL' && data.maxLoanCount !== undefined) {
       const next = Number(data.maxLoanCount);
@@ -124,9 +120,17 @@ export class MaterialTypesService {
       loanPeriodDays = next;
     }
 
+    if (existing.category === 'PHYSICAL' && data.maxReservationCount !== undefined) {
+      const next = Number(data.maxReservationCount);
+      if (!Number.isFinite(next) || next < 0) {
+        throw new BadRequestException('예약 가능 권수를 올바르게 입력하세요.');
+      }
+      maxReservationCount = next;
+    }
+
     return this.prisma.materialType.update({
       where: { id },
-      data: { nameKo, nameEn: nameEn || nameKo, maxLoanCount, loanPeriodDays },
+      data: { nameKo, nameEn: nameEn || nameKo, maxLoanCount, loanPeriodDays, maxReservationCount },
     });
   }
 
@@ -156,7 +160,7 @@ export class MaterialTypesService {
       throw new NotFoundException('자료 종류를 찾을 수 없습니다.');
     }
     if (materialType.category !== 'PHYSICAL' || materialType.maxLoanCount === null) {
-      throw new BadRequestException('실물 자료에만 KDC 하위 규칙을 만들 수 있습니다.');
+      throw new BadRequestException('실물 자료에만 KDC 하위 규칙을 만들 수 있습니다. (먼저 대출 화면에서 대출 가능 권수를 설정해주세요.)');
     }
     const kdcPrefix = String(data.kdcPrefix || '').trim();
     const label = String(data.label || '').trim();
