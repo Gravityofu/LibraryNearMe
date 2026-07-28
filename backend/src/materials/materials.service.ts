@@ -55,6 +55,7 @@ export class MaterialsService {
       fields = extractColumns(marc);
       fields.marc = marc;
       if (data.marcRaw) fields.marcRaw = data.marcRaw; // KOLIS-NET에서 받은 원본 텍스트(있으면)
+      if (data.coverUrl) fields.coverUrl = data.coverUrl; // 표지 URL은 MARC에서 자동으로 뽑히지 않아서, 직접 입력받은 값을 그대로 저장
     } else {
       // 비도서: 폼에서 받은 값 그대로
       const { type: _t, marc: _m, ...rest } = data;

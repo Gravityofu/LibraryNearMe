@@ -28,6 +28,7 @@ model Library {
   fontWeight       String @default("400")
   footerVersion   String   @default("1.0.0")                // 오늘 추가: Footer에 보일 버전
   footerCopyright String   @default("ⓒ 2026 Gravityofu")    // 오늘 추가: Footer에 보일 저작권 문구
+  maxSubjectKeywords Int   @default(10)                      // ← 추가: 자료 등록 시 주제어 최대 입력 개수
   createdAt    DateTime @default(now())
 
   users        User[]             // 이 도서관에 속한 사용자들 (연결고리)

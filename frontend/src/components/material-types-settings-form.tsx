@@ -46,6 +46,9 @@ export default function MaterialTypesSettingsForm() {
   const [kdcEditingId, setKdcEditingId] = useState<number | null>(null);
   const [kdcForm, setKdcForm] = useState(EMPTY_KDC_FORM);
 
+  // 자료 등록 화면에서 주제어를 몇 개까지 입력할 수 있는지 정하는, 도서관 전체 공통 값이에요.
+  const [maxSubjectKeywords, setMaxSubjectKeywords] = useState("10");
+
   async function loadTypes() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -59,8 +62,39 @@ export default function MaterialTypesSettingsForm() {
     }
   }
 
+  async function loadMaxSubjectKeywords() {
+    const res = await fetch(`${API_URL}/library`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.maxSubjectKeywords) {
+        setMaxSubjectKeywords(String(data.maxSubjectKeywords));
+      }
+    }
+  }
+
+  async function handleSaveMaxSubjectKeywords() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const value = Number(maxSubjectKeywords);
+    if (!Number.isFinite(value) || value < 1) {
+      notify("❌ " + t("settings.materialTypes.maxSubjectKeywords.invalid"), "error");
+      return;
+    }
+    const res = await fetch(`${API_URL}/library`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ maxSubjectKeywords: value }),
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.materialTypes.maxSubjectKeywords.saveSuccess"), "success");
+    } else {
+      notify("❌ " + t("settings.materialTypes.maxSubjectKeywords.saveFail"), "error");
+    }
+  }
+
   useEffect(() => {
     loadTypes();
+    loadMaxSubjectKeywords();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -291,6 +325,22 @@ export default function MaterialTypesSettingsForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="mb-2 text-sm font-semibold">{t("settings.materialTypes.maxSubjectKeywords.label")}</p>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={maxSubjectKeywords}
+            onChange={(e) => setMaxSubjectKeywords(e.target.value)}
+            className="w-24 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+          />
+          <ThemedButton preset="버튼1" onClick={handleSaveMaxSubjectKeywords}>
+            {t("settings.materialTypes.maxSubjectKeywords.save")}
+          </ThemedButton>
+        </div>
+      </div>
+
       <div>
         <p className="mb-2 text-sm font-semibold">{t("settings.materialTypes.sectionPhysical")}</p>
         {renderTable("PHYSICAL")}
