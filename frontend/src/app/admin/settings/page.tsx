@@ -7,6 +7,7 @@ import { useI18n } from "@/components/language-provider";
 import LibrarySettingsForm from "@/components/library-settings-form";
 import DesignSettingsForm from "@/components/design-settings-form";
 import CopyOptionsSettingsForm from "@/components/copy-options-settings-form";
+import MaterialTypesSettingsForm from "@/components/material-types-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -115,6 +116,7 @@ export default function AdminSettingsPage() {
         <TabsList className="gap-2">
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="copyOptions">{t("settings.tabs.copyOptions")}</TabsTrigger>
+          <TabsTrigger value="materialTypes">{t("settings.tabs.materialTypes")}</TabsTrigger>
           <TabsTrigger value="library">{t("settings.tabs.library")}</TabsTrigger>
           <TabsTrigger value="design">{t("settings.tabs.design")}</TabsTrigger>
         </TabsList>
@@ -169,6 +171,10 @@ export default function AdminSettingsPage() {
 
         <TabsContent value="copyOptions" className="mt-4">
           <CopyOptionsSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="materialTypes" className="mt-4">
+          <MaterialTypesSettingsForm />
         </TabsContent>
 
         <TabsContent value="library" className="mt-4">
