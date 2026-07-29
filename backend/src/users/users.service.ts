@@ -245,6 +245,17 @@ export class UsersService {
       throw new NotFoundException('회원을 찾을 수 없습니다.');
     }
 
+    if (data.status === 'WITHDRAWN') {
+      const activeLoanCount = await this.prisma.loan.count({
+        where: { libraryId, userId: id, returnedAt: null },
+      });
+      if (activeLoanCount > 0) {
+        throw new BadRequestException(
+          `아직 반납하지 않은 대출 자료(${activeLoanCount}건)가 있어 '탈퇴'로 변경할 수 없습니다. 반납 처리 후 다시 시도해주세요.`,
+        );
+      }
+    }
+
     const updateData: any = {
       name: data.name,
       phone: data.phone,

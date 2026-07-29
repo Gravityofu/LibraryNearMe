@@ -1,12 +1,16 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { LoanRestrictionsService } from '../loan-restrictions/loan-restrictions.service';
 
 const AVAILABLE = '이용가능';
 const ON_LOAN = '대출중';
 
 @Injectable()
 export class LoansService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private loanRestrictionsService: LoanRestrictionsService,
+  ) {}
 
   // 대출 화면에서 회원을 찾을 때 씁니다. 이름/휴대폰번호/아이디/회원번호 중 일부만 입력해도 찾을 수 있어요.
   async findMembers(libraryId: number, keyword: string) {
@@ -58,6 +62,7 @@ export class LoansService {
 
   // 대출 처리하기: 회원 1명 + 등록번호 1개를 받아서, 여러 조건을 확인한 뒤 대출을 만듭니다.
   async createLoan(libraryId: number, userId: number, registrationNo: string) {
+
     // 1. 회원 확인
     const member = await this.prisma.user.findFirst({
       where: { id: userId, libraryId },
@@ -66,8 +71,26 @@ export class LoansService {
     if (!member) {
       throw new NotFoundException('회원을 찾을 수 없습니다.');
     }
-    if (member.status !== 'ACTIVE') {
-      throw new BadRequestException('이용정지 상태이거나 대기중인 회원은 대출할 수 없습니다.');
+    if (member.status === 'PENDING') {
+      throw new BadRequestException('아직 활성화되지 않은 회원은 대출할 수 없습니다.');
+    }
+    if (member.status === 'WITHDRAWN') {
+      throw new BadRequestException('탈퇴한 회원은 대출할 수 없습니다.');
+    }
+
+    // 이중 안전장치: 회원 상태가 '정지'인지와 별개로, 지금 이 순간 실제로 유효한 대출제한이 있는지 다시 확인합니다.
+    // (대출제한이 끝난 회원을 매일 자정 자동으로 '활성'으로 되돌리는 작업이 있지만,
+    //  서버가 그 시각에 꺼져 있었다면 자동 해제를 놓칠 수 있어서, 대출을 시도하는 이 순간 한 번 더 확인합니다.)
+    const activeRestriction = await this.loanRestrictionsService.findActiveRestriction(libraryId, userId);
+    if (activeRestriction) {
+      throw new BadRequestException(
+        `대출 제한 중입니다. (해제 예정일: ${activeRestriction.endDate.toISOString().slice(0, 10)})`,
+      );
+    }
+
+    // 상태는 '정지'인데 유효한 대출제한이 없다면(자동 해제를 놓친 경우), 지금 이 자리에서 '활성'으로 되돌립니다.
+    if (member.status === 'SUSPENDED') {
+      await this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
     }
 
     // 2. 자료(실물) 확인

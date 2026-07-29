@@ -35,7 +35,7 @@ type Filters = {
 };
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
-const STATUS_VALUES = ["ACTIVE", "PENDING", "SUSPENDED"];
+const STATUS_VALUES = ["ACTIVE", "PENDING", "SUSPENDED", "WITHDRAWN"];
 const COLUMN_COUNT = 10;
 
 const EMPTY_FORM = {

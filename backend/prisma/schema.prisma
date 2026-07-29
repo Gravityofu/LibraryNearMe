@@ -41,6 +41,7 @@ model Library {
   memberTypes   MemberType[]   // ← 추가 (회원 구분 목록)
   loanSettings  LoanSetting[]  // ← 추가 (회원구분별 기본 대출 설정)
   loans         Loan[]         // ← 추가 (대출 기록)
+  loanRestrictions LoanRestriction[] // ← 추가 (대출제한 내역)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -79,6 +80,7 @@ model User {
   createdAt     DateTime   @default(now())
 
   loans         Loan[]     // ← 추가 (이 회원의 대출 기록)
+  loanRestrictions LoanRestriction[] // ← 추가 (이 회원의 대출제한 내역)
 
   @@unique([libraryId, loginId])              // 같은 도서관 안에서 아이디 중복 금지
   @@unique([libraryId, memberNo])             // 같은 도서관 안에서 회원증번호 중복 금지
@@ -95,7 +97,8 @@ enum Role {
 enum UserStatus {
   ACTIVE      // 활성
   PENDING     // 대기 (이전됐지만 아직 활성화 안 함 등)
-  SUSPENDED   // 정지 / 탈퇴
+  SUSPENDED   // 정지 (연체로 인한 대출제한 포함)
+  WITHDRAWN   // 탈퇴
 }
 
 // 자료 정보 (서지 레코드)
@@ -301,5 +304,25 @@ model Loan {
 
   @@index([libraryId])
   @@index([copyId])
+  @@index([userId])
+}
+
+// 대출 제한 내역 (연체 등으로 회원의 대출이 일정 기간 제한될 때 기록합니다)
+model LoanRestriction {
+  id          Int      @id @default(autoincrement())
+
+  libraryId   Int
+  library     Library  @relation(fields: [libraryId], references: [id])
+
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+
+  startDate   DateTime @default(now())  // 대출 제한 시작일
+  endDate     DateTime                   // 대출 제한 마지막일 (이 날짜까지는 제한, 다음날부터 자동 해제)
+  reason      String?                    // 제한 사유 (예: "연체 5일")
+
+  createdAt   DateTime @default(now())
+
+  @@index([libraryId])
   @@index([userId])
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
@@ -24,6 +25,7 @@ import { LoanSettingsController } from './settings/loan-settings.controller';
 import { LoanSettingsService } from './settings/loan-settings.service';
 import { LoansController } from './loans/loans.controller';
 import { LoansService } from './loans/loans.service';
+import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.service';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { LoansService } from './loans/loans.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [
     AppController,
@@ -60,6 +63,7 @@ import { LoansService } from './loans/loans.service';
     MemberTypesService,
     LoanSettingsService,
     LoansService,
+    LoanRestrictionsService,
   ],
 })
 export class AppModule {}
