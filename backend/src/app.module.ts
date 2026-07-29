@@ -22,6 +22,8 @@ import { MemberTypesController } from './settings/member-types.controller';
 import { MemberTypesService } from './settings/member-types.service';
 import { LoanSettingsController } from './settings/loan-settings.controller';
 import { LoanSettingsService } from './settings/loan-settings.service';
+import { LoansController } from './loans/loans.controller';
+import { LoansService } from './loans/loans.service';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { LoanSettingsService } from './settings/loan-settings.service';
     MaterialTypesController,
     MemberTypesController,
     LoanSettingsController,
+    LoansController,
   ],
   providers: [
     AppService,
@@ -56,6 +59,7 @@ import { LoanSettingsService } from './settings/loan-settings.service';
     MaterialTypesService,
     MemberTypesService,
     LoanSettingsService,
+    LoansService,
   ],
 })
 export class AppModule {}

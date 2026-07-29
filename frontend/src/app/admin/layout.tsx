@@ -17,6 +17,7 @@ const BREADCRUMB_MAP: Record<string, string[]> = {
   "/admin/materials/new": ["admin.menu.materialsList", "admin.menu.materialsNew"],
   "/admin/materials/copies": ["admin.menu.materialsList", "admin.menu.materialsCopy"],
   "/admin/members": ["admin.menu.members"],
+  "/admin/loans": ["admin.menu.loans"],
 };
 
 export default function AdminLayout({
@@ -70,9 +71,9 @@ export default function AdminLayout({
           <Link href="/admin/members" className={navClass("/admin/members")}>
             {t("admin.menu.members")}
           </Link>
-          <span className="px-3 py-2.5" style={{ color: hexToRgba(sidebarTextColor, 0.6) }}>
+          <Link href="/admin/loans" className={navClass("/admin/loans")}>
             {t("admin.menu.loans")}
-          </span>
+          </Link>
           <Link href="/admin/settings" className={navClass("/admin/settings")}>
             {t("admin.menu.systemSettings")}
           </Link>
