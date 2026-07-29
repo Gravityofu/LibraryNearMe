@@ -36,7 +36,7 @@ type Filters = {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const STATUS_VALUES = ["ACTIVE", "PENDING", "SUSPENDED"];
-const COLUMN_COUNT = 11;
+const COLUMN_COUNT = 10;
 
 const EMPTY_FORM = {
   loginId: "",
@@ -108,6 +108,7 @@ export default function MembersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [memberTypes, setMemberTypes] = useState<MemberType[]>([]);
 
@@ -294,6 +295,27 @@ export default function MembersPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!editingId) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const res = await fetch(`${API_URL}/users/${editingId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("members.form.deleteSuccess"), "success");
+      setShowDeleteConfirm(false);
+      setShowForm(false);
+      await fetchList(page, pageSize, filters);
+    } else {
+      const data = await res.json().catch(() => null);
+      setShowDeleteConfirm(false);
+      notify("❌ " + (data?.message || t("members.form.deleteFail")), "error");
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -339,7 +361,6 @@ export default function MembersPage() {
               <th className="px-4 py-2.5">{t("members.list.col.memberType")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.status")}</th>
               <th className="px-4 py-2.5">{t("members.list.col.createdAt")}</th>
-              <th className="px-4 py-2.5">{t("members.list.col.action")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -355,13 +376,17 @@ export default function MembersPage() {
               ))}
             {hasSearched && rows.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-6 text-center text-neutral-400">
+                <td colSpan={10} className="px-4 py-6 text-center text-neutral-400">
                   {t("members.list.noResults")}
                 </td>
               </tr>
             )}
             {rows.map((row, i) => (
-              <tr key={row.id}>
+              <tr
+                key={row.id}
+                onClick={() => openEditModal(row)}
+                className="cursor-pointer hover:bg-neutral-50"
+              >
                 <td className="whitespace-nowrap px-4 py-2.5">{(page - 1) * pageSize + i + 1}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.loginId || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.name}</td>
@@ -375,15 +400,6 @@ export default function MembersPage() {
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                   {row.createdAt?.slice(0, 10)}
-                </td>
-                <td className="whitespace-nowrap px-4 py-2.5">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(row)}
-                    className="cursor-pointer rounded border px-2 py-1 text-xs"
-                  >
-                    {t("members.list.editBtn")}
-                  </button>
                 </td>
               </tr>
             ))}
@@ -712,7 +728,47 @@ export default function MembersPage() {
             >
               {t("members.form.save")}
             </button>
-            
+
+            {editingId && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {t("members.form.deleteBtn")}
+              </button>
+            )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="whitespace-pre-line text-center text-[15px] leading-relaxed text-neutral-800">
+              {t("members.form.deleteConfirm").replace("{name}", form.name)}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full cursor-pointer rounded-lg border border-neutral-200 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                {t("members.form.deleteCancelBtn")}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {t("members.form.deleteBtn")}
+              </button>
             </div>
           </div>
         </div>

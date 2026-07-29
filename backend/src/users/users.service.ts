@@ -358,5 +358,23 @@ export class UsersService {
 
     return { loginIds };
   }
+
+  // 회원/관리자 계정 삭제 — 관리자만
+  async remove(libraryId: number, id: number) {
+    const existing = await this.prisma.user.findFirst({ where: { id, libraryId } });
+    if (!existing) {
+      throw new NotFoundException('회원을 찾을 수 없습니다.');
+    }
+
+    const loanCount = await this.prisma.loan.count({ where: { libraryId, userId: id } });
+    if (loanCount > 0) {
+      throw new BadRequestException(
+        `이 회원의 대출 기록(${loanCount}건)이 있어 삭제할 수 없습니다. 회원이 더 이상 이용하지 않는다면, 삭제 대신 '상태'를 '정지'로 바꿔서 관리하는 것을 권장합니다.`,
+      );
+    }
+
+    await this.prisma.user.delete({ where: { id } });
+    return { success: true };
+  }
   
 }

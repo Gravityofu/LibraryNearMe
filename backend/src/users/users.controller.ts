@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -69,5 +69,12 @@ export class UsersController {
   @UseGuards(AdminGuard)
   update(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     return this.usersService.update(req.user.libraryId, parseInt(id, 10), body);
+  }
+
+  // DELETE 요청: 회원/관리자 계정 삭제 — 관리자만
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.usersService.remove(req.user.libraryId, parseInt(id, 10));
   }
 }
