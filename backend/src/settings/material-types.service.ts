@@ -143,10 +143,10 @@ export class MaterialTypesService {
       if (!Number.isFinite(next) || next < 1) {
         throw new BadRequestException('대출 가능 권수를 올바르게 입력하세요.');
       }
-      const maxChildLimit = existing.kdcRules.reduce((m, r) => Math.max(m, r.maxLoanCount), 0);
-      if (next < maxChildLimit) {
+      const childSum = existing.kdcRules.reduce((sum, r) => sum + r.maxLoanCount, 0);
+      if (next < childSum) {
         throw new BadRequestException(
-          `하위 KDC 규칙 중 ${maxChildLimit}권으로 설정된 항목이 있어, 그보다 작게 설정할 수 없습니다.`,
+          `하위 KDC 규칙의 대출 가능 권수 합계(${childSum}권)보다 작게 설정할 수 없습니다.`,
         );
       }
       maxLoanCount = next;
@@ -221,6 +221,17 @@ export class MaterialTypesService {
         `상위 자료(${materialType.nameKo})의 대출 가능 권수(${materialType.maxLoanCount}권)보다 크게 설정할 수 없습니다.`,
       );
     }
+    const siblingRules = await this.prisma.bookKdcRule.findMany({
+      where: { materialTypeId },
+      select: { maxLoanCount: true },
+    });
+    const siblingSum = siblingRules.reduce((sum, r) => sum + r.maxLoanCount, 0);
+    const totalWithNew = siblingSum + maxLoanCount;
+    if (totalWithNew > materialType.maxLoanCount) {
+      throw new BadRequestException(
+        `KDC 하위 규칙들의 대출 가능 권수 합계(${totalWithNew}권)가 상위 자료(${materialType.nameKo})의 대출 가능 권수(${materialType.maxLoanCount}권)보다 많습니다.`,
+      );
+    }
     try {
       return await this.prisma.bookKdcRule.create({
         data: { libraryId, materialTypeId, kdcPrefix, label, maxLoanCount },
@@ -253,6 +264,19 @@ export class MaterialTypesService {
         throw new BadRequestException(
           `상위 자료(${existing.materialType.nameKo})의 대출 가능 권수(${existing.materialType.maxLoanCount}권)보다 크게 설정할 수 없습니다.`,
         );
+      }
+      if (existing.materialType.maxLoanCount !== null) {
+        const siblingRules = await this.prisma.bookKdcRule.findMany({
+          where: { materialTypeId: existing.materialTypeId, id: { not: id } },
+          select: { maxLoanCount: true },
+        });
+        const siblingSum = siblingRules.reduce((sum, r) => sum + r.maxLoanCount, 0);
+        const totalWithNext = siblingSum + next;
+        if (totalWithNext > existing.materialType.maxLoanCount) {
+          throw new BadRequestException(
+            `KDC 하위 규칙들의 대출 가능 권수 합계(${totalWithNext}권)가 상위 자료(${existing.materialType.nameKo})의 대출 가능 권수(${existing.materialType.maxLoanCount}권)보다 많습니다.`,
+          );
+        }
       }
       maxLoanCount = next;
     }
