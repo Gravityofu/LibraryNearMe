@@ -16,13 +16,16 @@ type MemberLoanSetting = {
   reservationHoldDays: number;
 };
 
+type KdcRule = { id: number; kdcPrefix: string; label: string; maxLoanCount: number };
 type MaterialType = {
   id: number;
+  code: string;
   nameKo: string;
   category: "PHYSICAL" | "DIGITAL";
   maxLoanCount: number | null;
   loanPeriodDays: number | null;
   maxReservationCount: number | null;
+  kdcRules: KdcRule[];
 };
 
 const EMPTY_MEMBER_FORM = {
@@ -38,6 +41,8 @@ const EMPTY_MATERIAL_FORM = {
   maxReservationCount: "",
 };
 
+const EMPTY_KDC_FORM = { kdcPrefix: "", label: "", maxLoanCount: "" };
+
 export default function LoanSettingsForm() {
   const { t } = useI18n();
   const { notify } = useNotify();
@@ -52,6 +57,11 @@ export default function LoanSettingsForm() {
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
   const [materialForm, setMaterialForm] = useState(EMPTY_MATERIAL_FORM);
+
+  const [showKdcModal, setShowKdcModal] = useState(false);
+  const [showKdcForm, setShowKdcForm] = useState(false);
+  const [kdcEditingId, setKdcEditingId] = useState<number | null>(null);
+  const [kdcForm, setKdcForm] = useState(EMPTY_KDC_FORM);
 
   async function loadMemberSettings() {
     const token = localStorage.getItem("token");
@@ -170,6 +180,87 @@ export default function LoanSettingsForm() {
   }
 
   const physicalTypes = materialTypes.filter((mt) => mt.category === "PHYSICAL");
+  const bookType = physicalTypes.find((mt) => mt.code === "book");
+
+  function openKdcModal() {
+    setShowKdcForm(false);
+    setKdcEditingId(null);
+    setKdcForm(EMPTY_KDC_FORM);
+    setShowKdcModal(true);
+  }
+
+  function closeKdcModal() {
+    setShowKdcModal(false);
+    setShowKdcForm(false);
+    setKdcEditingId(null);
+    setKdcForm(EMPTY_KDC_FORM);
+  }
+
+  function openAddKdcForm() {
+    setKdcEditingId(null);
+    setKdcForm(EMPTY_KDC_FORM);
+    setShowKdcForm(true);
+  }
+
+  function openEditKdcForm(rule: KdcRule) {
+    setKdcEditingId(rule.id);
+    setKdcForm({ kdcPrefix: rule.kdcPrefix, label: rule.label, maxLoanCount: String(rule.maxLoanCount) });
+    setShowKdcForm(true);
+  }
+
+  async function handleSaveKdc() {
+    if (!bookType) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    if (!kdcForm.kdcPrefix.trim() || !kdcForm.label.trim() || !kdcForm.maxLoanCount.trim()) {
+      notify("❌ " + t("settings.materialTypes.kdc.fieldsRequired"), "error");
+      return;
+    }
+    const body = {
+      kdcPrefix: kdcForm.kdcPrefix.trim(),
+      label: kdcForm.label.trim(),
+      maxLoanCount: Number(kdcForm.maxLoanCount),
+    };
+    const url = kdcEditingId
+      ? `${API_URL}/material-types/kdc-rules/${kdcEditingId}`
+      : `${API_URL}/material-types/${bookType.id}/kdc-rules`;
+    const res = await fetch(url, {
+      method: kdcEditingId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.materialTypes.kdc.saveSuccess"), "success");
+      setShowKdcForm(false);
+      setKdcEditingId(null);
+      setKdcForm(EMPTY_KDC_FORM);
+      await loadMaterialTypes();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.materialTypes.kdc.saveFail")), "error");
+    }
+  }
+
+  async function handleDeleteKdc() {
+    if (!kdcEditingId) return;
+    if (!window.confirm(t("settings.materialTypes.kdc.deleteConfirm"))) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/material-types/kdc-rules/${kdcEditingId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.materialTypes.kdc.deleteSuccess"), "success");
+      setShowKdcForm(false);
+      setKdcEditingId(null);
+      setKdcForm(EMPTY_KDC_FORM);
+      await loadMaterialTypes();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.materialTypes.kdc.deleteFail")), "error");
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -237,13 +328,24 @@ export default function LoanSettingsForm() {
                     <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.loanPeriodDays ?? "-"}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxReservationCount ?? "-"}</td>
                     <td className="whitespace-nowrap px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => openMaterialModal(item)}
-                        className="cursor-pointer rounded border px-2 py-1 text-xs"
-                      >
-                        {t("settings.loan.editBtn")}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openMaterialModal(item)}
+                          className="cursor-pointer rounded border px-2 py-1 text-xs"
+                        >
+                          {t("settings.loan.editBtn")}
+                        </button>
+                        {item.code === "book" && (
+                          <button
+                            type="button"
+                            onClick={openKdcModal}
+                            className="cursor-pointer rounded border px-2 py-1 text-xs"
+                          >
+                            {t("settings.materialTypes.kdcBtn")}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -373,6 +475,108 @@ export default function LoanSettingsForm() {
               <ThemedButton preset="버튼1" onClick={handleSaveMaterial} className="mt-5 w-full">
                 {t("settings.loan.save")}
               </ThemedButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showKdcModal && bookType && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeKdcModal}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-h-[80vh] overflow-y-auto p-6">
+              <p className="mb-1 text-sm font-semibold">{t("settings.materialTypes.kdc.modalTitle")}</p>
+              <p className="mb-4 text-xs text-neutral-400">
+                {t("settings.materialTypes.kdc.parentMaxLoanCountLabel")}: {bookType.maxLoanCount ?? "-"}
+                {bookType.maxLoanCount !== null ? t("settings.materialTypes.kdc.countUnit") : ""}
+              </p>
+
+              <div className="flex flex-col gap-2">
+                {bookType.kdcRules.length === 0 && (
+                  <p className="text-sm text-neutral-400">{t("settings.materialTypes.kdc.empty")}</p>
+                )}
+                {bookType.kdcRules.map((rule) => (
+                  <button
+                    key={rule.id}
+                    type="button"
+                    onClick={() => openEditKdcForm(rule)}
+                    className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${
+                      kdcEditingId === rule.id ? "border-neutral-800" : "border-neutral-200"
+                    }`}
+                  >
+                    <span>{rule.label} ({rule.kdcPrefix})</span>
+                    <span className="text-neutral-500">{rule.maxLoanCount}권</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={openAddKdcForm}
+                className="mt-3 w-full cursor-pointer rounded-lg border border-dashed border-neutral-300 py-2 text-xs font-medium text-neutral-500 hover:bg-neutral-50"
+              >
+                {t("settings.materialTypes.kdc.addBtn")}
+              </button>
+
+              {showKdcForm && (
+                <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
+                  <p className="text-sm font-semibold">
+                    {kdcEditingId ? t("settings.materialTypes.kdc.modal.editTitle") : t("settings.materialTypes.kdc.modal.addTitle")}
+                  </p>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("settings.materialTypes.kdc.field.kdcPrefix")}</span>
+                    <input
+                      value={kdcForm.kdcPrefix}
+                      onChange={(e) => setKdcForm({ ...kdcForm, kdcPrefix: e.target.value })}
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("settings.materialTypes.kdc.field.label")}</span>
+                    <input
+                      value={kdcForm.label}
+                      onChange={(e) => setKdcForm({ ...kdcForm, label: e.target.value })}
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("settings.materialTypes.kdc.field.maxLoanCount")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={kdcForm.maxLoanCount}
+                      onChange={(e) => setKdcForm({ ...kdcForm, maxLoanCount: e.target.value })}
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    />
+                  </label>
+
+                  <ThemedButton preset="버튼1" onClick={handleSaveKdc} className="w-full">
+                    {t("settings.materialTypes.kdc.save")}
+                  </ThemedButton>
+
+                  {kdcEditingId && (
+                    <button
+                      onClick={handleDeleteKdc}
+                      className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                    >
+                      {t("settings.materialTypes.kdc.deleteBtn")}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={closeKdcModal}
+                className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+              >
+                {t("settings.materialTypes.kdc.close")}
+              </button>
             </div>
           </div>
         </div>

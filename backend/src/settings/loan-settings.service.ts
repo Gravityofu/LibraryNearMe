@@ -58,6 +58,25 @@ export class LoanSettingsService {
       maxSuspensionDays = n;
     }
 
+    // 실물 자료별로 정한 대출/예약 가능 권수의 합계보다 작게 설정할 수 없습니다.
+    const physicalTypes = await this.prisma.materialType.findMany({
+      where: { libraryId, category: 'PHYSICAL' },
+      select: { maxLoanCount: true, maxReservationCount: true },
+    });
+    const totalLoanCount = physicalTypes.reduce((sum, m) => sum + (m.maxLoanCount || 0), 0);
+    const totalReservationCount = physicalTypes.reduce((sum, m) => sum + (m.maxReservationCount || 0), 0);
+
+    if (maxLoanCount < totalLoanCount) {
+      throw new BadRequestException(
+        `실물 자료별 대출 가능 권수의 합(${totalLoanCount}권)보다 최대 대출 권수를 작게 설정할 수 없습니다.`,
+      );
+    }
+    if (maxReservationCount < totalReservationCount) {
+      throw new BadRequestException(
+        `실물 자료별 예약 가능 권수의 합(${totalReservationCount}권)보다 최대 예약 권수를 작게 설정할 수 없습니다.`,
+      );
+    }
+
     const existing = await this.prisma.loanSetting.findFirst({ where: { libraryId, memberTypeId } });
 
     const setting = existing

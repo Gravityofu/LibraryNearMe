@@ -75,10 +75,50 @@ export class MaterialTypesService {
     }
   }
 
+  // 실물 자료별로 정한 대출 가능 권수/예약 가능 권수를 모두 더한 값이,
+  // 어떤 회원구분의 최대 대출 권수/최대 예약 권수보다 많아지면 안 됩니다. (같은 값은 괜찮습니다.)
+  // excludeId: 지금 수정 중인 자료(기존 값 대신 새 값으로 계산에 넣기 위해 합계에서는 빼고 새 값을 따로 더함)
+  private async checkAgainstMemberLimits(
+    libraryId: number,
+    excludeId: number,
+    newMaxLoanCount: number | null,
+    newMaxReservationCount: number | null,
+  ) {
+    const others = await this.prisma.materialType.findMany({
+      where: { libraryId, category: 'PHYSICAL', id: { not: excludeId } },
+      select: { maxLoanCount: true, maxReservationCount: true },
+    });
+
+    const totalLoanCount = others.reduce((sum, m) => sum + (m.maxLoanCount || 0), 0) + (newMaxLoanCount || 0);
+    const totalReservationCount =
+      others.reduce((sum, m) => sum + (m.maxReservationCount || 0), 0) + (newMaxReservationCount || 0);
+
+    const memberTypes = await this.prisma.memberType.findMany({ where: { libraryId } });
+    const settings = await this.prisma.loanSetting.findMany({ where: { libraryId } });
+    const settingByType = new Map(settings.map((s) => [s.memberTypeId, s]));
+
+    for (const mt of memberTypes) {
+      const s = settingByType.get(mt.id);
+      // 아직 '대출' 화면에서 한 번도 설정을 열어보지 않은 회원구분은, LoanSetting의 기본값(대출 5권/예약 3권)을 기준으로 봅니다.
+      const memberMaxLoanCount = s ? s.maxLoanCount : 5;
+      const memberMaxReservationCount = s ? s.maxReservationCount : 3;
+
+      if (totalLoanCount > memberMaxLoanCount) {
+        throw new BadRequestException(
+          `실물 자료별 대출 가능 권수의 합(${totalLoanCount}권)이 '${mt.name}'의 최대 대출 권수(${memberMaxLoanCount}권)보다 많습니다.`,
+        );
+      }
+      if (totalReservationCount > memberMaxReservationCount) {
+        throw new BadRequestException(
+          `실물 자료별 예약 가능 권수의 합(${totalReservationCount}권)이 '${mt.name}'의 최대 예약 권수(${memberMaxReservationCount}권)보다 많습니다.`,
+        );
+      }
+    }
+  }
+
   // 자료 종류 수정.
   // - 이름(nameKo/nameEn) 수정은 '자료 종류' 화면에서 옵니다.
   // - 대출 가능 권수/대출 일수/예약 가능 권수 수정은 '대출' 화면에서 옵니다. (같은 API를 함께 씁니다.)
-  // 실물 자료의 대출 가능 권수는, 그 아래 KDC 하위 규칙 중 가장 큰 값보다 작게 낮출 수 없습니다.
   async update(libraryId: number, id: number, data: any) {
     const existing = await this.prisma.materialType.findFirst({
       where: { id, libraryId },
@@ -128,6 +168,11 @@ export class MaterialTypesService {
       maxReservationCount = next;
     }
 
+    // 대출/예약 가능 권수가 바뀔 때만, 회원구분 최대치와 비교합니다.
+    if (data.maxLoanCount !== undefined || data.maxReservationCount !== undefined) {
+      await this.checkAgainstMemberLimits(libraryId, id, maxLoanCount, maxReservationCount);
+    }
+
     return this.prisma.materialType.update({
       where: { id },
       data: { nameKo, nameEn: nameEn || nameKo, maxLoanCount, loanPeriodDays, maxReservationCount },
@@ -152,7 +197,7 @@ export class MaterialTypesService {
     return { success: true };
   }
 
-  // --- '도서' 등 특정 자료 종류 안의 KDC 하위 규칙 ---
+  // --- '도서' 등 특정 자료 종류 안의 KDC 하위 규칙 (관리 화면은 '설정 > 대출'에 있습니다) ---
 
   async createKdcRule(libraryId: number, materialTypeId: number, data: any) {
     const materialType = await this.prisma.materialType.findFirst({ where: { id: materialTypeId, libraryId } });
