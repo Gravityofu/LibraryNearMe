@@ -270,7 +270,7 @@ export default function LoanSettingsForm() {
         <div className="mb-4">
           <p className="mb-2 text-sm font-medium text-neutral-600">{t("settings.loan.defaultTitle")}</p>
           <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[600px] text-left text-sm">
               <thead className="bg-neutral-100 text-neutral-500">
                 <tr>
                   <th className="px-3 py-2">{t("settings.loan.col.memberType")}</th>
@@ -278,12 +278,15 @@ export default function LoanSettingsForm() {
                   <th className="px-3 py-2">{t("settings.loan.col.maxReservationCount")}</th>
                   <th className="px-3 py-2">{t("settings.loan.col.maxSuspensionDays")}</th>
                   <th className="px-3 py-2">{t("settings.loan.col.reservationHoldDays")}</th>
-                  <th className="px-3 py-2">{t("settings.loan.col.action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {memberSettings.map((item) => (
-                  <tr key={item.memberTypeId}>
+                  <tr
+                    key={item.memberTypeId}
+                    onClick={() => openMemberModal(item)}
+                    className="cursor-pointer hover:bg-neutral-50"
+                  >
                     <td className="whitespace-nowrap px-3 py-2 font-medium">{item.memberTypeName}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxLoanCount}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxReservationCount}</td>
@@ -291,15 +294,6 @@ export default function LoanSettingsForm() {
                       {item.maxSuspensionDays !== null ? item.maxSuspensionDays : t("settings.loan.noLimit")}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.reservationHoldDays}</td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => openMemberModal(item)}
-                        className="cursor-pointer rounded border px-2 py-1 text-xs"
-                      >
-                        {t("settings.loan.editBtn")}
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -310,36 +304,32 @@ export default function LoanSettingsForm() {
         <div>
           <p className="mb-2 text-sm font-medium text-neutral-600">{t("settings.loan.materialTitle")}</p>
           <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="bg-neutral-100 text-neutral-500">
                 <tr>
                   <th className="px-3 py-2">{t("settings.loan.col.materialType")}</th>
                   <th className="px-3 py-2">{t("settings.loan.col.materialMaxLoanCount")}</th>
                   <th className="px-3 py-2">{t("settings.loan.col.loanPeriodDays")}</th>
                   <th className="px-3 py-2">{t("settings.loan.col.materialMaxReservationCount")}</th>
-                  <th className="px-3 py-2">{t("settings.loan.col.action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {physicalTypes.map((item) => (
-                  <tr key={item.id}>
-                    <td className="whitespace-nowrap px-3 py-2 font-medium">{item.nameKo}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxLoanCount ?? "-"}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.loanPeriodDays ?? "-"}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxReservationCount ?? "-"}</td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openMaterialModal(item)}
-                          className="cursor-pointer rounded border px-2 py-1 text-xs"
-                        >
-                          {t("settings.loan.editBtn")}
-                        </button>
+                  <tr
+                    key={item.id}
+                    onClick={() => openMaterialModal(item)}
+                    className="cursor-pointer hover:bg-neutral-50"
+                  >
+                    <td className="whitespace-nowrap px-3 py-2 font-medium">
+                      <div className="flex items-center gap-3">
+                        <span>{item.nameKo}</span>
                         {item.code === "book" && (
                           <button
                             type="button"
-                            onClick={openKdcModal}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openKdcModal();
+                            }}
                             className="cursor-pointer rounded border px-2 py-1 text-xs"
                           >
                             {t("settings.materialTypes.kdcBtn")}
@@ -347,12 +337,16 @@ export default function LoanSettingsForm() {
                         )}
                       </div>
                     </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxLoanCount ?? "-"}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.loanPeriodDays ?? "-"}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.maxReservationCount ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+        
       </div>
 
       <div>
