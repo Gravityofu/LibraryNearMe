@@ -33,6 +33,19 @@ export default function AdminSettingsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_TAG);
 
+  // 지금 보고 있는 탭이 무엇인지 기억해두었다가, 저장 후 새로고침되어도 같은 탭으로 돌아오게 해요.
+  const [activeTab, setActiveTab] = useState("kormarcTags");
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("admin-settings-tab");
+    if (saved) setActiveTab(saved);
+  }, []);
+
+  function handleTabChange(value: string) {
+    setActiveTab(value);
+    sessionStorage.setItem("admin-settings-tab", value);
+  }
+
   async function loadTags() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -114,7 +127,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="p-6">
-      <Tabs defaultValue="kormarcTags">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="gap-2">
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="copyOptions">{t("settings.tabs.copyOptions")}</TabsTrigger>
