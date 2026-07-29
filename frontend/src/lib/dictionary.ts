@@ -256,7 +256,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
 
     "settings.tabs.design": "디자인",
     "settings.tabs.copyOptions": "목록",
-    "settings.tabs.materialTypes": "자료 종류",
+    "settings.tabs.materialTypes": "자료",
     "settings.tabs.loan": "대출",
     "settings.copyOptions.category.status": "상태",
     "settings.copyOptions.category.specialCode": "별치기호",
@@ -742,7 +742,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
 
     "settings.tabs.design": "Design",
     "settings.tabs.copyOptions": "Lists",
-    "settings.tabs.materialTypes": "Material Types",
+    "settings.tabs.materialTypes": "Materials",
     "settings.tabs.loan": "Loan",
     "settings.copyOptions.category.status": "Status",
     "settings.copyOptions.category.specialCode": "Special Code",
