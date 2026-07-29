@@ -20,6 +20,7 @@ export class LibraryService {
     fontFamily?: string;
     fontWeight?: string;
     maxSubjectKeywords?: number;
+    scanMode?: string;
   }) {
     const library = await this.prisma.library.findFirst();
     if (!library) return null;
@@ -38,6 +39,7 @@ export class LibraryService {
         fontFamily: data.fontFamily || undefined,
         fontWeight: data.fontWeight || undefined,
         maxSubjectKeywords: data.maxSubjectKeywords ?? undefined,
+        scanMode: data.scanMode || undefined,
       },
     });
   }

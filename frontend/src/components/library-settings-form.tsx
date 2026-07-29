@@ -17,6 +17,7 @@ export default function LibrarySettingsForm() {
   const [logoUrl, setLogoUrl] = useState("");
   const [footerVersion, setFooterVersion] = useState("1.0.0");
   const [footerCopyright, setFooterCopyright] = useState("ⓒ 2026 Gravityofu");
+  const [scanMode, setScanMode] = useState("SINGLE");
 
   useEffect(() => {
     fetch(`${API_URL}/library`)
@@ -28,6 +29,7 @@ export default function LibrarySettingsForm() {
           setLogoUrl(data.logoUrl || "");
           setFooterVersion(data.footerVersion || "1.0.0");
           setFooterCopyright(data.footerCopyright || "ⓒ 2026 Gravityofu");
+          setScanMode(data.scanMode || "SINGLE");
         }
       });
   }, []);
@@ -44,6 +46,7 @@ export default function LibrarySettingsForm() {
         logoUrl,
         footerVersion,
         footerCopyright,
+        scanMode,
       }),
     });
     if (res.ok) {
@@ -76,6 +79,19 @@ export default function LibrarySettingsForm() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="footerCopyright">{t("admin.settings.footerCopyright")}</Label>
           <Input id="footerCopyright" value={footerCopyright} onChange={(e) => setFooterCopyright(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="scanMode">{t("admin.settings.scanMode.label")}</Label>
+          <select
+            id="scanMode"
+            value={scanMode}
+            onChange={(e) => setScanMode(e.target.value)}
+            className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+          >
+            <option value="SINGLE">{t("admin.settings.scanMode.single")}</option>
+            <option value="SDK">{t("admin.settings.scanMode.sdk")}</option>
+          </select>
+          <span className="text-xs text-neutral-400">{t("admin.settings.scanMode.hint")}</span>
         </div>
         <Button className="cursor-pointer" onClick={handleSave}>
           {t("admin.settings.save")}

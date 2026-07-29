@@ -246,6 +246,10 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.chromeTextColor": "Footer/사이드바 글자색",
     "admin.settings.footerVersion": "버전",
     "admin.settings.footerCopyright": "저작권 문구",
+    "admin.settings.scanMode.label": "스캔 방식",
+    "admin.settings.scanMode.single": "단일 태그 인식 (바코드 / RFID 단일 태그)",
+    "admin.settings.scanMode.sdk": "다중 태그 인식 (제조사 SDK 연동, 추후 지원 예정)",
+    "admin.settings.scanMode.hint": "대출/반납 화면에서 등록번호를 입력받는 방식이에요. '다중 태그 인식'은 지금은 선택만 가능하고, 실제 리더기 연동 기능은 나중에 추가될 예정이에요.",
     "footer.terms": "이용 약관",
     "footer.privacy": "개인정보 처리방침",
 
@@ -732,6 +736,10 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.chromeTextColor": "Footer/Sidebar Text Color",
     "admin.settings.footerVersion": "Version",
     "admin.settings.footerCopyright": "Copyright Text",
+    "admin.settings.scanMode.label": "Scan Mode",
+    "admin.settings.scanMode.single": "Single-tag recognition (barcode / RFID single tag)",
+    "admin.settings.scanMode.sdk": "Multi-tag recognition (vendor SDK integration, coming later)",
+    "admin.settings.scanMode.hint": "This controls how registration numbers are entered on the loan/return screens. 'Multi-tag recognition' can be selected now, but the actual reader integration will be added later.",
     "footer.terms": "Terms of Use",
     "footer.privacy": "Privacy Policy",
 
