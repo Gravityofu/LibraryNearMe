@@ -129,6 +129,7 @@ function CopiesPageInner() {
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [showModal, setShowModal] = useState(false);
   const [copyOptions, setCopyOptions] = useState<OptionsState>(EMPTY_OPTIONS);
+  const [showDeleteCopyConfirm, setShowDeleteCopyConfirm] = useState(false);
 
   async function loadMaterial(id: string) {
     const token = localStorage.getItem("token");
@@ -409,10 +410,9 @@ function CopiesPageInner() {
     }
   }
 
-  // 실물 삭제하기
+  // 실물 삭제하기 (삭제 확인 모달에서 '삭제'를 눌렀을 때 호출됩니다.)
   async function handleDeleteCopy() {
     if (!selectedCopyId || !material) return;
-    if (!window.confirm(t("materials.copies.deleteConfirm"))) return;
     const token = localStorage.getItem("token");
     if (!token) return;
     const res = await fetch(`${API_URL}/copies/${selectedCopyId}`, {
@@ -421,10 +421,12 @@ function CopiesPageInner() {
     });
     if (res.ok) {
       notify("✅ " + t("materials.copies.deleteSuccess"), "success");
+      setShowDeleteCopyConfirm(false);
       await refreshMaterial(material.id);
       closeModal();
     } else {
       const data = await res.json().catch(() => null);
+      setShowDeleteCopyConfirm(false);
       notify("❌ " + (data?.message || t("materials.copies.deleteFail")), "error");
     }
   }
@@ -488,6 +490,13 @@ function CopiesPageInner() {
                   className="mt-3 cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold"
                 >
                   {t("materials.copies.marcEditSave")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteMaterial}
+                  className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  {t("materials.copies.deleteMaterialBtn")}
                 </button>
               </>
             ) : (
@@ -733,13 +742,44 @@ function CopiesPageInner() {
 
             {selectedCopyId && (
               <button
-                onClick={handleDeleteCopy}
+                onClick={() => setShowDeleteCopyConfirm(true)}
                 className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
               >
                 {t("materials.copies.deleteBtn")}
               </button>
             )}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* 실물 자료 삭제 확인 모달 */}
+      {showDeleteCopyConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowDeleteCopyConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="whitespace-pre-line text-center text-[15px] leading-relaxed text-neutral-800">
+              {t("materials.copies.deleteConfirm")}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowDeleteCopyConfirm(false)}
+                className="w-full cursor-pointer rounded-lg border border-neutral-200 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                {t("materials.copies.deleteCancelBtn")}
+              </button>
+              <button
+                onClick={handleDeleteCopy}
+                className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {t("materials.copies.deleteBtn")}
+              </button>
+            </div>
           </div>
         </div>
       )}
