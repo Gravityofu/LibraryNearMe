@@ -130,6 +130,7 @@ function CopiesPageInner() {
   const [showModal, setShowModal] = useState(false);
   const [copyOptions, setCopyOptions] = useState<OptionsState>(EMPTY_OPTIONS);
   const [showDeleteCopyConfirm, setShowDeleteCopyConfirm] = useState(false);
+  const [showDeleteMaterialConfirm, setShowDeleteMaterialConfirm] = useState(false);
 
   async function loadMaterial(id: string) {
     const token = localStorage.getItem("token");
@@ -334,9 +335,9 @@ function CopiesPageInner() {
   }
 
   // 자료(서지) 자체를 삭제합니다. 실물이 남아있으면 서버가 막고 이유를 알려줘요.
+  // (삭제 확인 모달에서 '삭제'를 눌렀을 때 호출됩니다.)
   async function handleDeleteMaterial() {
     if (!material) return;
-    if (!window.confirm(t("materials.copies.deleteMaterialConfirm"))) return;
     const token = localStorage.getItem("token");
     if (!token) return;
     const res = await fetch(`${API_URL}/materials/${material.id}`, {
@@ -345,9 +346,11 @@ function CopiesPageInner() {
     });
     if (res.ok) {
       notify("✅ " + t("materials.copies.deleteMaterialSuccess"), "success");
+      setShowDeleteMaterialConfirm(false);
       router.push("/admin/materials/list");
     } else {
       const data = await res.json().catch(() => null);
+      setShowDeleteMaterialConfirm(false);
       notify("❌ " + (data?.message || t("materials.copies.deleteMaterialFail")), "error");
     }
   }
@@ -493,7 +496,7 @@ function CopiesPageInner() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleDeleteMaterial}
+                  onClick={() => setShowDeleteMaterialConfirm(true)}
                   className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   {t("materials.copies.deleteMaterialBtn")}
@@ -516,7 +519,6 @@ function CopiesPageInner() {
                     </label>
                   ))}
                 </div>
-
                 <div className="mt-4">
                   <ThemedButton preset="버튼1" onClick={handleSaveSimple} className="w-full">
                     {t("materials.copies.save")}
@@ -524,7 +526,7 @@ function CopiesPageInner() {
                 </div>
 
                 <button
-                  onClick={handleDeleteMaterial}
+                  onClick={() => setShowDeleteMaterialConfirm(true)}
                   className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   {t("materials.copies.deleteMaterialBtn")}
@@ -778,6 +780,37 @@ function CopiesPageInner() {
                 className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
               >
                 {t("materials.copies.deleteBtn")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 자료(서지) 삭제 확인 모달 */}
+      {showDeleteMaterialConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowDeleteMaterialConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="whitespace-pre-line text-center text-[15px] leading-relaxed text-neutral-800">
+              {t("materials.copies.deleteMaterialConfirm")}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowDeleteMaterialConfirm(false)}
+                className="w-full cursor-pointer rounded-lg border border-neutral-200 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                {t("materials.copies.deleteCancelBtn")}
+              </button>
+              <button
+                onClick={handleDeleteMaterial}
+                className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {t("materials.copies.deleteMaterialBtn")}
               </button>
             </div>
           </div>
