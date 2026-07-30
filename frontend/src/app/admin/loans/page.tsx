@@ -36,6 +36,12 @@ type LoanRecord = {
   };
 };
 
+const EMPTY_DETAIL_FORM = { name: "", memberNo: "", phone: "", loginId: "", email: "", address: "" };
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 // 회원 정보 박스 안에서 "라벨: 값" 한 줄을 보여주는 작은 부품입니다.
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -54,6 +60,12 @@ export default function AdminLoansPage() {
   const [results, setResults] = useState<Member[]>([]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+
+  const [showDetailSearchModal, setShowDetailSearchModal] = useState(false);
+  const [detailForm, setDetailForm] = useState(EMPTY_DETAIL_FORM);
+
+  const [loanDateStr, setLoanDateStr] = useState(todayStr());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [registrationNo, setRegistrationNo] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -97,10 +109,35 @@ export default function AdminLoansPage() {
 
     const data: Member[] = await res.json();
     if (data.length === 1) {
-      // 검색 결과가 정확히 1명이면, 모달 없이 바로 선택합니다.
       selectMember(data[0]);
     } else {
-      // 결과가 0명이거나 여러 명이면 모달로 보여줍니다.
+      setResults(data);
+      setShowSearchModal(true);
+    }
+  }
+
+  // 상세 검색 모달에서 '검색'을 눌렀을 때 호출됩니다.
+  async function handleDetailSearch() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const params = new URLSearchParams();
+    Object.entries(detailForm).forEach(([key, value]) => {
+      if (value.trim()) params.set(key, value.trim());
+    });
+
+    const res = await fetch(`${API_URL}/loans/members/search-detail?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+
+    const data: Member[] = await res.json();
+    setShowDetailSearchModal(false);
+    setDetailForm(EMPTY_DETAIL_FORM);
+
+    if (data.length === 1) {
+      selectMember(data[0]);
+    } else {
       setResults(data);
       setShowSearchModal(true);
     }
@@ -120,6 +157,8 @@ export default function AdminLoansPage() {
     setRegistrationNo("");
     setShowSearchModal(false);
     setLoanedItems([]);
+    setLoanDateStr(todayStr());
+    setShowDatePicker(false);
   }
 
   // 실제로 서버에 대출 요청을 보내는 부분입니다. 큐에서 하나씩 순서대로 호출됩니다.
@@ -133,7 +172,7 @@ export default function AdminLoansPage() {
       const res = await fetch(`${API_URL}/loans`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ userId: selectedMember.id, registrationNo: regNo }),
+        body: JSON.stringify({ userId: selectedMember.id, registrationNo: regNo, loanDate: loanDateStr }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
@@ -164,6 +203,49 @@ export default function AdminLoansPage() {
         </TabsList>
 
         <TabsContent value="checkout" className="mt-4">
+          {/* 상단: 상세 검색 + 대출일 변경 */}
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+            <button
+              type="button"
+              onClick={() => setShowDetailSearchModal(true)}
+              className="cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
+            >
+              {t("loans.detailSearch.btn")}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDatePicker((v) => !v)}
+                className="cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
+              >
+                {t("loans.dateOverride.btn")}
+              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={loanDateStr}
+                  className="w-32 cursor-not-allowed rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
+                />
+                {showDatePicker && (
+                  <input
+                    type="date"
+                    autoFocus
+                    value={loanDateStr}
+                    onChange={(e) => {
+                      setLoanDateStr(e.target.value || todayStr());
+                      setShowDatePicker(false);
+                    }}
+                    onBlur={() => setShowDatePicker(false)}
+                    className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             {/* 왼쪽: 회원 검색 + 등록번호 입력 */}
             <div className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -236,13 +318,13 @@ export default function AdminLoansPage() {
               </div>
             </div>
 
-            {/* 아래: 대출 자료 목록 (두 박스를 합한 가로 길이) */}
-            <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-2">
+            {/* 아래: 대출 자료 목록 (두 박스를 합한 가로 길이, 연한 파란색 배경) */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-2">
               <p className="mb-2 text-sm font-semibold">{t("loans.history.title")}</p>
               {loanedItems.length === 0 ? (
                 <p className="text-sm text-neutral-400">{t("loans.history.empty")}</p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                <div className="overflow-x-auto rounded-lg border border-blue-100 bg-white">
                   <table className="w-full min-w-[820px] text-left text-sm">
                     <thead className="bg-neutral-100 text-neutral-500">
                       <tr>
@@ -328,6 +410,82 @@ export default function AdminLoansPage() {
               type="button"
               onClick={() => setShowSearchModal(false)}
               className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 상세 검색 모달 */}
+      {showDetailSearchModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowDetailSearchModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("loans.detailSearch.modalTitle")}</p>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.name")}</span>
+                <input
+                  value={detailForm.name}
+                  onChange={(e) => setDetailForm({ ...detailForm, name: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberNo")}</span>
+                <input
+                  value={detailForm.memberNo}
+                  onChange={(e) => setDetailForm({ ...detailForm, memberNo: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.phone")}</span>
+                <input
+                  value={detailForm.phone}
+                  onChange={(e) => setDetailForm({ ...detailForm, phone: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.loginId")}</span>
+                <input
+                  value={detailForm.loginId}
+                  onChange={(e) => setDetailForm({ ...detailForm, loginId: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.email")}</span>
+                <input
+                  value={detailForm.email}
+                  onChange={(e) => setDetailForm({ ...detailForm, email: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.address")}</span>
+                <input
+                  value={detailForm.address}
+                  onChange={(e) => setDetailForm({ ...detailForm, address: e.target.value })}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+
+            <ThemedButton preset="버튼1" onClick={handleDetailSearch} className="mt-4 w-full">
+              {t("loans.member.searchBtn")}
+            </ThemedButton>
+            <button
+              type="button"
+              onClick={() => setShowDetailSearchModal(false)}
+              className="mt-2 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
             >
               {t("loans.member.closeBtn")}
             </button>

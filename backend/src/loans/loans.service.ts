@@ -62,7 +62,8 @@ export class LoansService {
   }
 
   // 대출 처리하기: 회원 1명 + 등록번호 1개를 받아서, 여러 조건을 확인한 뒤 대출을 만듭니다.
-  async createLoan(libraryId: number, userId: number, registrationNo: string) {
+  // loanDateOverride를 넘기면 오늘 날짜 대신 그 날짜로 대출일이 저장됩니다. ('대출/반납일 변경' 기능용)
+  async createLoan(libraryId: number, userId: number, registrationNo: string, loanDateOverride?: Date) {
 
     // 1. 회원 확인
     const member = await this.prisma.user.findFirst({
@@ -158,12 +159,13 @@ export class LoansService {
     }
 
     // 7. 모든 조건 통과 → 대출 만들고, 자료 상태를 "대출중"으로 바꾸기
-    const dueDate = new Date();
+    const loanDate = loanDateOverride || new Date();
+    const dueDate = new Date(loanDate);
     dueDate.setDate(dueDate.getDate() + materialType.loanPeriodDays);
 
     const [loan] = await this.prisma.$transaction([
       this.prisma.loan.create({
-        data: { libraryId, copyId: copy.id, userId, dueDate },
+        data: { libraryId, copyId: copy.id, userId, loanDate, dueDate },
       }),
       this.prisma.copy.update({
         where: { id: copy.id },
@@ -187,6 +189,37 @@ export class LoansService {
       where: { libraryId, userId, returnedAt: null },
       include: { copy: { include: { material: true } } },
       orderBy: { loanDate: 'desc' },
+    });
+  }
+
+  // 이름/회원번호 외에 휴대폰번호/아이디/이메일/주소로도 회원을 찾을 때 씁니다. (상세 검색용)
+  async findMembersDetailed(
+    libraryId: number,
+    filters: { name?: string; memberNo?: string; phone?: string; loginId?: string; email?: string; address?: string },
+  ) {
+    const where: any = { libraryId, role: 'MEMBER', status: 'ACTIVE' };
+    if (filters.name?.trim()) where.name = { contains: filters.name.trim() };
+    if (filters.memberNo?.trim()) where.memberNo = { contains: filters.memberNo.trim() };
+    if (filters.phone?.trim()) where.phone = { contains: filters.phone.trim() };
+    if (filters.loginId?.trim()) where.loginId = { contains: filters.loginId.trim() };
+    if (filters.email?.trim()) where.email = { contains: filters.email.trim() };
+    if (filters.address?.trim()) where.address = { contains: filters.address.trim() };
+
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        memberNo: true,
+        status: true,
+        birthDate: true,
+        email: true,
+        address: true,
+        memberType: { select: { id: true, name: true } },
+      },
+      take: 20,
+      orderBy: { name: 'asc' },
     });
   }
 }
