@@ -42,6 +42,15 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// 사용자가 입력한 글자에서 숫자만 뽑아, "YYYY-MM-DD" 형태로 하이픈을 자동으로 넣어줍니다.
+// 예: "20140212" -> "2014-02-12", "202402" -> "2024-02"
+function formatDateInput(raw: string) {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
 // 회원 정보 박스 안에서 "라벨: 값" 한 줄을 보여주는 작은 부품입니다.
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -77,6 +86,9 @@ export default function AdminLoansPage() {
 
   // 회원이 선택되면 이 입력폼으로 커서를 옮기기 위해 사용합니다.
   const registrationInputRef = useRef<HTMLInputElement>(null);
+
+  // '초기화'를 눌렀을 때 이 입력폼으로 커서를 옮기기 위해 사용합니다.
+  const keywordInputRef = useRef<HTMLInputElement>(null);
 
   // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
   async function loadLoanedItems(memberId: number) {
@@ -163,6 +175,7 @@ export default function AdminLoansPage() {
     setLoanedItems([]);
     setLoanDateStr(todayStr());
     setShowDatePicker(false);
+    keywordInputRef.current?.focus();
   }
 
   // 실제로 서버에 대출 요청을 보내는 부분입니다. 큐에서 하나씩 순서대로 호출됩니다.
@@ -229,7 +242,8 @@ export default function AdminLoansPage() {
                 <input
                   type="text"
                   value={loanDateStr}
-                  onChange={(e) => setLoanDateStr(e.target.value)}
+                  onChange={(e) => setLoanDateStr(formatDateInput(e.target.value))}
+                  onFocus={(e) => e.target.select()}
                   placeholder={t("loans.dateOverride.placeholder")}
                   className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                 />
@@ -267,6 +281,7 @@ export default function AdminLoansPage() {
               </div>
               <div className="flex gap-2">
                 <input
+                  ref={keywordInputRef}
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearchMember()}
