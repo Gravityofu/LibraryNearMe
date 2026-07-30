@@ -102,6 +102,9 @@ export default function AdminLoansPage() {
   const lastValidLoanDateRef = useRef(todayStr());
   const [showDateFormatError, setShowDateFormatError] = useState(false);
 
+  // 대출 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
+  const [loanErrorMessage, setLoanErrorMessage] = useState<string | null>(null);
+
   // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다.
   const hiddenDateInputRef = useRef<HTMLInputElement>(null);
 
@@ -236,7 +239,7 @@ export default function AdminLoansPage() {
         notify("✅ " + t("loans.success"), "success");
         await loadLoanedItems(selectedMember.id);
       } else {
-        notify("❌ " + (data?.message || regNo), "error");
+        setLoanErrorMessage(data?.message || regNo);
       }
     } finally {
       setProcessing(false);
@@ -576,6 +579,30 @@ export default function AdminLoansPage() {
           </div>
         </div>
       )}
+
+      {/* 대출 실패 안내 모달 (정지 회원, 대출 한도 초과 등 서버가 알려주는 이유를 그대로 보여줍니다) */}
+      {loanErrorMessage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setLoanErrorMessage(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold text-red-600">{t("loans.error.title")}</p>
+            <p className="text-sm text-neutral-600">{loanErrorMessage}</p>
+            <button
+              type="button"
+              onClick={() => setLoanErrorMessage(null)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }

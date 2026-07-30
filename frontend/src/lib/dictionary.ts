@@ -357,6 +357,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.success": "대출 처리되었습니다.",
     "loans.dueDateLabel": "반납예정일",
     "loans.processing": "처리 중...",
+    "loans.error.title": "대출할 수 없습니다",
 
     "settings.materialTypes.sectionPhysical": "실물 자료",
     "settings.materialTypes.sectionDigital": "디지털 자료",
@@ -885,6 +886,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.success": "Checked out successfully.",
     "loans.dueDateLabel": "Due Date",
     "loans.processing": "Processing...",
+    "loans.error.title": "Unable to Check Out",
 
     "settings.materialTypes.sectionPhysical": "Physical Materials",
     "settings.materialTypes.sectionDigital": "Digital Materials",
