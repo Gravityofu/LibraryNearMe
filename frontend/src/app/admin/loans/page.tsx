@@ -75,6 +75,9 @@ export default function AdminLoansPage() {
   // 여기(큐)에 작업을 이어붙입니다.
   const queueRef = useRef<Promise<void>>(Promise.resolve());
 
+  // 회원이 선택되면 이 입력폼으로 커서를 옮기기 위해 사용합니다.
+  const registrationInputRef = useRef<HTMLInputElement>(null);
+
   // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
   async function loadLoanedItems(memberId: number) {
     const token = localStorage.getItem("token");
@@ -87,10 +90,11 @@ export default function AdminLoansPage() {
     }
   }
 
-  // 선택된 회원이 바뀔 때마다 대출 자료 목록을 새로 불러옵니다.
+  // 선택된 회원이 바뀔 때마다 대출 자료 목록을 새로 불러오고, 등록번호 입력폼으로 커서를 옮깁니다.
   useEffect(() => {
     if (selectedMember) {
       loadLoanedItems(selectedMember.id);
+      registrationInputRef.current?.focus();
     } else {
       setLoanedItems([]);
     }
@@ -224,10 +228,10 @@ export default function AdminLoansPage() {
               <div className="relative">
                 <input
                   type="text"
-                  readOnly
-                  disabled
                   value={loanDateStr}
-                  className="w-32 cursor-not-allowed rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
+                  onChange={(e) => setLoanDateStr(e.target.value)}
+                  placeholder={t("loans.dateOverride.placeholder")}
+                  className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                 />
                 {showDatePicker && (
                   <input
@@ -246,9 +250,9 @@ export default function AdminLoansPage() {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
-            {/* 왼쪽: 회원 검색 + 등록번호 입력 */}
-            <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-10">
+            {/* 왼쪽: 회원 검색 + 등록번호 입력 (전체 가로폭의 4/10) */}
+            <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-4">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-semibold">{t("loans.member.searchLabel")}</p>
                 {selectedMember && (
@@ -278,7 +282,7 @@ export default function AdminLoansPage() {
                 <div className="mt-4">
                   <span className="mb-1 block text-sm text-neutral-500">{t("loans.registrationNo.label")}</span>
                   <input
-                    autoFocus
+                    ref={registrationInputRef}
                     value={registrationNo}
                     onChange={(e) => setRegistrationNo(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleRegistrationSubmit()}
@@ -290,8 +294,8 @@ export default function AdminLoansPage() {
               )}
             </div>
 
-            {/* 오른쪽: 회원 정보 (항목 이름은 항상 보이고, 값만 채워지거나 "-"로 보입니다) */}
-            <div className="rounded-lg border border-neutral-200 bg-white p-4">
+            {/* 오른쪽: 회원 정보 (항목 이름은 항상 보이고, 값만 채워지거나 "-"로 보입니다) (전체 가로폭의 6/10) */}
+            <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-6">
               <p className="mb-2 text-sm font-semibold">{t("loans.member.info.title")}</p>
               <div className="grid grid-cols-2 gap-x-6">
                 <div className="flex flex-col">
@@ -319,7 +323,7 @@ export default function AdminLoansPage() {
             </div>
 
             {/* 아래: 대출 자료 목록 (두 박스를 합한 가로 길이, 연한 파란색 배경) */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-10">
               <p className="mb-2 text-sm font-semibold">{t("loans.history.title")}</p>
               {loanedItems.length === 0 ? (
                 <p className="text-sm text-neutral-400">{t("loans.history.empty")}</p>
