@@ -457,12 +457,11 @@ export default function AdminLoansPage() {
                     key={m.id}
                     type="button"
                     onClick={() => selectMember(m)}
-                    className="flex cursor-pointer items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    className="grid cursor-pointer grid-cols-[1fr_84px_112px] items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
                   >
-                    <span className="font-medium">{m.name}</span>
-                    <span className="text-neutral-500">
-                      {m.memberNo ?? "-"} · {m.phone ?? "-"}
-                    </span>
+                    <span className="truncate font-medium">{m.name}</span>
+                    <span className="truncate text-neutral-500">{m.memberNo ?? "-"}</span>
+                    <span className="truncate text-neutral-500">{m.phone ?? "-"}</span>
                   </button>
                 ))}
               </div>
