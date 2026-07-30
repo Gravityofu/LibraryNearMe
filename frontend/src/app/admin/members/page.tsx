@@ -17,6 +17,7 @@ type MemberRow = {
   memberNo: string | null;
   birthDate: string | null;
   address: string | null;
+  addressDetail: string | null;
   role: string;
   status: string;
   createdAt: string;
@@ -195,7 +196,7 @@ export default function MembersPage() {
       birthMonth: bm,
       birthDay: bd,
       addressMain: row.address || "",
-      addressDetail: "",
+      addressDetail: row.addressDetail || "",
       role: row.role,
       status: row.status,
       memberTypeId: row.memberTypeId
@@ -247,8 +248,6 @@ export default function MembersPage() {
       ? `${form.birthYear}-${form.birthMonth.padStart(2, "0")}-${form.birthDay.padStart(2, "0")}`
       : undefined;
 
-    const address = [form.addressMain, form.addressDetail].filter((v) => v.trim()).join(" ");
-
     const url = editingId ? `${API_URL}/users/${editingId}` : `${API_URL}/users/admin`;
 
     const memberTypeIdValue = form.role === "MEMBER" ? parseInt(form.memberTypeId, 10) : null;
@@ -260,7 +259,8 @@ export default function MembersPage() {
           email: form.email,
           memberNo: form.memberNo,
           birthDate: birthDateValue,
-          address,
+          address: form.addressMain.trim() || undefined,
+          addressDetail: form.addressDetail.trim() || undefined,
           status: form.status,
           role: form.role,
           password: form.password || undefined,
@@ -274,7 +274,8 @@ export default function MembersPage() {
           email: form.email,
           memberNo: form.memberNo,
           birthDate: birthDateValue,
-          address,
+          address: form.addressMain.trim() || undefined,
+          addressDetail: form.addressDetail.trim() || undefined,
           role: form.role,
           memberTypeId: memberTypeIdValue,
         };

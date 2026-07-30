@@ -131,6 +131,7 @@ export class UsersService {
           memberNo: true,
           birthDate: true,
           address: true,
+          addressDetail: true,
           role: true,
           status: true,
           createdAt: true,
@@ -157,6 +158,7 @@ export class UsersService {
       memberNo?: string;
       birthDate?: string;
       address?: string;
+      addressDetail?: string;
       role?: string;
       memberTypeId?: number;
     },
@@ -206,6 +208,7 @@ export class UsersService {
           memberNo: data.memberNo || undefined,
           birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
           address: data.address || undefined,
+          addressDetail: data.addressDetail || undefined,
           role,
           memberTypeId,
           cardToken,
@@ -232,6 +235,7 @@ export class UsersService {
       memberNo?: string;
       birthDate?: string;
       address?: string;
+      addressDetail?: string;
       status?: string;
       role?: string;
       password?: string;
@@ -263,6 +267,7 @@ export class UsersService {
       memberNo: data.memberNo || undefined,
       birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
       address: data.address || undefined,
+      addressDetail: data.addressDetail || undefined,
       status: data.status ? (data.status as UserStatus) : undefined,
     };
 

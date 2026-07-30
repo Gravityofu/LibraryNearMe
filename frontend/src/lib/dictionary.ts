@@ -476,7 +476,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "members.list.field.memberNo": "회원번호",
     "members.list.field.status": "상태",
     "members.list.anyStatus": "전체",
-    "members.status.ACTIVE": "활성",
+    "members.status.ACTIVE": "대출가능",
     "members.status.PENDING": "대기",
     "members.status.SUSPENDED": "정지",
     "members.status.WITHDRAWN": "탈퇴",

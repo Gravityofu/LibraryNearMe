@@ -62,7 +62,8 @@ model User {
   phoneVerified Boolean    @default(false)    // 번호 인증 여부 (나중 문자 인증용)
   email         String?                      // 이메일 (선택)
   birthDate     DateTime?                     // 생년월일 (선택)
-  address       String?                       // 주소 (선택)
+  address       String?                       // 주소 (도로명 주소, 선택)
+  addressDetail String?                       // 상세 주소 (동/호수 등, 선택)
   postalCode    String?                       // 우편번호 (선택)
 
   memberNo      String?                       // 회원증 번호(사람이 읽는). 기존 "U012345" 그대로 or 신규 발급
