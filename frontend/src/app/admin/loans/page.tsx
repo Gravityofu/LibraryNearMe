@@ -83,7 +83,6 @@ export default function AdminLoansPage() {
   const [detailForm, setDetailForm] = useState(EMPTY_DETAIL_FORM);
 
   const [loanDateStr, setLoanDateStr] = useState(todayStr());
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [registrationNo, setRegistrationNo] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -102,6 +101,22 @@ export default function AdminLoansPage() {
   // 마지막으로 정상적으로 입력되었던 대출일을 기억해둡니다. (잘못된 값을 입력했을 때 되돌리기 위함입니다.)
   const lastValidLoanDateRef = useRef(todayStr());
   const [showDateFormatError, setShowDateFormatError] = useState(false);
+
+  // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다.
+  const hiddenDateInputRef = useRef<HTMLInputElement>(null);
+
+  // '대출/반납일 변경' 버튼을 눌렀을 때 호출됩니다. 보이지 않는 달력 입력 칸의 달력 팝업을 엽니다.
+  function openDatePicker() {
+    const el = hiddenDateInputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      el.showPicker();
+    } else {
+      // showPicker를 지원하지 않는 구형 브라우저를 위한 대안입니다.
+      el.focus();
+      el.click();
+    }
+  }
 
   // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
   async function loadLoanedItems(memberId: number) {
@@ -255,11 +270,11 @@ export default function AdminLoansPage() {
               {t("loans.detailSearch.btn")}
             </button>
 
-            <div className="flex items-stretch overflow-hidden rounded-lg border border-neutral-300">
+            <div className="flex items-stretch rounded-lg border border-neutral-300">
               <button
                 type="button"
-                onClick={() => setShowDatePicker((v) => !v)}
-                className="cursor-pointer border-r border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-medium hover:bg-neutral-200"
+                onClick={openDatePicker}
+                className="cursor-pointer rounded-l-lg border-r border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-medium hover:bg-neutral-200"
               >
                 {t("loans.dateOverride.btn")}
               </button>
@@ -272,23 +287,21 @@ export default function AdminLoansPage() {
                   onBlur={handleLoanDateBlur}
                   onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                   placeholder={t("loans.dateOverride.placeholder")}
-                  className="h-full w-32 border-0 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
+                  className="h-full w-32 rounded-r-lg border-0 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
                 />
-                {showDatePicker && (
-                  <input
-                    type="date"
-                    autoFocus
-                    value={loanDateStr}
-                    onChange={(e) => {
-                      const next = e.target.value || todayStr();
-                      setLoanDateStr(next);
-                      lastValidLoanDateRef.current = next;
-                      setShowDatePicker(false);
-                    }}
-                    onBlur={() => setShowDatePicker(false)}
-                    className="absolute left-0 top-full z-10 mt-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg"
-                  />
-                )}
+                {/* 화면에는 보이지 않는 달력 입력 칸입니다. 버튼을 누르면 이 칸의 달력 팝업만 뜹니다. */}
+                <input
+                  ref={hiddenDateInputRef}
+                  type="date"
+                  value={loanDateStr}
+                  onChange={(e) => {
+                    const next = e.target.value || todayStr();
+                    setLoanDateStr(next);
+                    lastValidLoanDateRef.current = next;
+                  }}
+                  tabIndex={-1}
+                  className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                />
               </div>
             </div>
 
