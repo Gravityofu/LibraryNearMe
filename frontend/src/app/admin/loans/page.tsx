@@ -255,11 +255,11 @@ export default function AdminLoansPage() {
               {t("loans.detailSearch.btn")}
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-stretch overflow-hidden rounded-lg border border-neutral-300">
               <button
                 type="button"
                 onClick={() => setShowDatePicker((v) => !v)}
-                className="cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
+                className="cursor-pointer border-r border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-medium hover:bg-neutral-200"
               >
                 {t("loans.dateOverride.btn")}
               </button>
@@ -272,7 +272,7 @@ export default function AdminLoansPage() {
                   onBlur={handleLoanDateBlur}
                   onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                   placeholder={t("loans.dateOverride.placeholder")}
-                  className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                  className="h-full w-32 border-0 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
                 />
                 {showDatePicker && (
                   <input
@@ -291,6 +291,7 @@ export default function AdminLoansPage() {
                 )}
               </div>
             </div>
+
           </div>
 
           <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-10">
