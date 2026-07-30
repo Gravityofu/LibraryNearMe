@@ -19,7 +19,6 @@ export class LoansService {
     return this.prisma.user.findMany({
       where: {
         libraryId,
-        role: 'MEMBER',
         status: 'ACTIVE',
         OR: [
           { name: { contains: kw } },
@@ -197,7 +196,7 @@ export class LoansService {
     libraryId: number,
     filters: { name?: string; memberNo?: string; phone?: string; loginId?: string; email?: string; address?: string },
   ) {
-    const where: any = { libraryId, role: 'MEMBER', status: 'ACTIVE' };
+    const where: any = { libraryId, status: 'ACTIVE' };
     if (filters.name?.trim()) where.name = { contains: filters.name.trim() };
     if (filters.memberNo?.trim()) where.memberNo = { contains: filters.memberNo.trim() };
     if (filters.phone?.trim()) where.phone = { contains: filters.phone.trim() };
