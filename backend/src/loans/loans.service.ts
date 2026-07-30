@@ -12,7 +12,7 @@ export class LoansService {
     private loanRestrictionsService: LoanRestrictionsService,
   ) {}
 
-  // 대출 화면에서 회원을 찾을 때 씁니다. 이름/휴대폰번호/아이디/회원번호 중 일부만 입력해도 찾을 수 있어요.
+  // 대출 화면에서 회원을 찾을 때 씁니다. 이름 또는 회원번호로 찾을 수 있어요.
   async findMembers(libraryId: number, keyword: string) {
     const kw = (keyword || '').trim();
     if (!kw) return [];
@@ -23,8 +23,6 @@ export class LoansService {
         status: 'ACTIVE',
         OR: [
           { name: { contains: kw } },
-          { phone: { contains: kw } },
-          { loginId: { contains: kw } },
           { memberNo: { contains: kw } },
         ],
       },
@@ -33,7 +31,10 @@ export class LoansService {
         name: true,
         phone: true,
         memberNo: true,
-        loginId: true,
+        status: true,
+        birthDate: true,
+        email: true,
+        address: true,
         memberType: { select: { id: true, name: true } },
       },
       take: 10,
