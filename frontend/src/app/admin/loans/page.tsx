@@ -443,7 +443,7 @@ export default function AdminLoansPage() {
           onClick={() => setShowSearchModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="mb-3 text-sm font-semibold">{t("loans.member.searchModalTitle")}</p>
@@ -457,7 +457,7 @@ export default function AdminLoansPage() {
                     key={m.id}
                     type="button"
                     onClick={() => selectMember(m)}
-                    className="grid cursor-pointer grid-cols-[1fr_84px_112px] items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    className="grid cursor-pointer grid-cols-[1fr_92px_130px] items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
                   >
                     <span className="truncate font-medium">{m.name}</span>
                     <span className="truncate text-neutral-500">{m.memberNo ?? "-"}</span>
