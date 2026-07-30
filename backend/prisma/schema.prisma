@@ -300,6 +300,7 @@ model Loan {
   loanDate    DateTime  @default(now())  // 대출한 날
   dueDate     DateTime                    // 반납 예정일
   returnedAt  DateTime?                   // 실제로 반납한 날짜/시각 (반납 전이면 비어있음)
+  renewCount  Int       @default(0)       // 연장 횟수 (지금은 항상 0, 나중에 연장 기능에서 올라갑니다)
 
   createdAt   DateTime  @default(now())
 

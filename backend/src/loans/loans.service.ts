@@ -180,4 +180,13 @@ export class LoansService {
       dueDate: loan.dueDate,
     };
   }
+
+  // 이 회원이 지금 대출 중인(아직 반납하지 않은) 자료 목록을 가져옵니다. ('대출 자료 목록' 박스에서 씁니다.)
+  async listActiveLoans(libraryId: number, userId: number) {
+    return this.prisma.loan.findMany({
+      where: { libraryId, userId, returnedAt: null },
+      include: { copy: { include: { material: true } } },
+      orderBy: { loanDate: 'desc' },
+    });
+  }
 }

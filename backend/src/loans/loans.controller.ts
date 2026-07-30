@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { LoansService } from './loans.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -18,5 +18,12 @@ export class LoansController {
   @UseGuards(AdminGuard)
   create(@Req() req: any, @Body() body: { userId: number; registrationNo: string }) {
     return this.loansService.createLoan(req.user.libraryId, body.userId, body.registrationNo);
+  }
+
+  // GET 요청: 회원의 현재 대출 중인 자료 목록 — 관리자만
+  @Get('members/:id/active')
+  @UseGuards(AdminGuard)
+  listActiveLoans(@Req() req: any, @Param('id') id: string) {
+    return this.loansService.listActiveLoans(req.user.libraryId, parseInt(id, 10));
   }
 }

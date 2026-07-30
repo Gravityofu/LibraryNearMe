@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Loan" ADD COLUMN     "renewCount" INTEGER NOT NULL DEFAULT 0;

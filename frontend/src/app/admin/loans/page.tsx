@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
 import { useI18n } from "@/components/language-provider";
@@ -20,14 +20,20 @@ type Member = {
   memberType: { id: number; name: string } | null;
 };
 
-type HistoryItem = {
+// 서버에서 내려오는 대출 기록 1건의 모양 (실물 정보와 서지 정보를 포함해서 옵니다)
+type LoanRecord = {
   id: number;
-  registrationNo: string;
-  ok: boolean;
-  message: string;
-  memberName?: string;
-  materialTitle?: string;
-  dueDate?: string;
+  loanDate: string;
+  dueDate: string;
+  renewCount: number;
+  copy: {
+    registrationNo: string;
+    callNumber: string | null;
+    volume: string | null;
+    copyNumber: string | null;
+    status: string;
+    material: { title: string };
+  };
 };
 
 // 회원 정보 박스 안에서 "라벨: 값" 한 줄을 보여주는 작은 부품입니다.
@@ -51,11 +57,33 @@ export default function AdminLoansPage() {
 
   const [registrationNo, setRegistrationNo] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loanedItems, setLoanedItems] = useState<LoanRecord[]>([]);
 
   // 등록번호가 아무리 빠르게 여러 번 들어와도, 이전 처리가 끝난 뒤 순서대로 하나씩 처리되도록
   // 여기(큐)에 작업을 이어붙입니다.
   const queueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
+  async function loadLoanedItems(memberId: number) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/loans/members/${memberId}/active`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setLoanedItems(await res.json());
+    }
+  }
+
+  // 선택된 회원이 바뀔 때마다 대출 자료 목록을 새로 불러옵니다.
+  useEffect(() => {
+    if (selectedMember) {
+      loadLoanedItems(selectedMember.id);
+    } else {
+      setLoanedItems([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMember?.id]);
 
   async function handleSearchMember() {
     const token = localStorage.getItem("token");
@@ -91,6 +119,7 @@ export default function AdminLoansPage() {
     setKeyword("");
     setRegistrationNo("");
     setShowSearchModal(false);
+    setLoanedItems([]);
   }
 
   // 실제로 서버에 대출 요청을 보내는 부분입니다. 큐에서 하나씩 순서대로 호출됩니다.
@@ -108,28 +137,9 @@ export default function AdminLoansPage() {
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
-        setHistory((prev) => [
-          {
-            id: data.id,
-            registrationNo: data.registrationNo,
-            ok: true,
-            message: t("loans.success"),
-            memberName: data.memberName,
-            materialTitle: data.materialTitle,
-            dueDate: data.dueDate,
-          },
-          ...prev,
-        ]);
+        notify("✅ " + t("loans.success"), "success");
+        await loadLoanedItems(selectedMember.id);
       } else {
-        setHistory((prev) => [
-          {
-            id: Date.now(),
-            registrationNo: regNo,
-            ok: false,
-            message: data?.message || t("loans.processing"),
-          },
-          ...prev,
-        ]);
         notify("❌ " + (data?.message || regNo), "error");
       }
     } finally {
@@ -226,30 +236,51 @@ export default function AdminLoansPage() {
               </div>
             </div>
 
-            {/* 아래: 처리 내역 (두 박스를 합한 가로 길이) */}
+            {/* 아래: 대출 자료 목록 (두 박스를 합한 가로 길이) */}
             <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-2">
               <p className="mb-2 text-sm font-semibold">{t("loans.history.title")}</p>
-              {history.length === 0 && <p className="text-sm text-neutral-400">{t("loans.history.empty")}</p>}
-              <div className="flex flex-col gap-2">
-                {history.map((h) => (
-                  <div
-                    key={h.id}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
-                      h.ok ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
-                    }`}
-                  >
-                    <p className="font-medium">
-                      {h.registrationNo} — {h.ok ? "✅" : "❌"} {h.message}
-                    </p>
-                    {h.ok && (
-                      <p className="mt-0.5 text-xs text-neutral-500">
-                        {h.memberName} · {h.materialTitle} · {t("loans.dueDateLabel")}:{" "}
-                        {h.dueDate ? new Date(h.dueDate).toLocaleDateString() : "-"}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              {loanedItems.length === 0 ? (
+                <p className="text-sm text-neutral-400">{t("loans.history.empty")}</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                  <table className="w-full min-w-[820px] text-left text-sm">
+                    <thead className="bg-neutral-100 text-neutral-500">
+                      <tr>
+                        <th className="px-3 py-2">{t("loans.list.col.no")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.regNo")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.title")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.callNumber")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.volume")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.copyNumber")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.loanDate")}</th>
+                        <th className="px-3 py-2">{t("loans.dueDateLabel")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.copyStatus")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.renewCount")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {loanedItems.map((item, i) => (
+                        <tr key={item.id}>
+                          <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
+                          <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
+                          <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.callNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.volume || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                            {new Date(item.loanDate).toLocaleDateString()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                            {new Date(item.dueDate).toLocaleDateString()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.status}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.renewCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>
