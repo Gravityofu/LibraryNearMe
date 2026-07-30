@@ -51,6 +51,15 @@ function formatDateInput(raw: string) {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
+// "YYYY-MM-DD" 형식이면서, 실제로 존재하는 날짜인지 확인합니다.
+// (예: "2122-13-32"는 형식은 비슷해 보여도 13월, 32일이 없으므로 false를 돌려줍니다.)
+function isValidDateStr(str: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+  const [y, m, d] = str.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
 // 회원 정보 박스 안에서 "라벨: 값" 한 줄을 보여주는 작은 부품입니다.
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -89,6 +98,10 @@ export default function AdminLoansPage() {
 
   // '초기화'를 눌렀을 때 이 입력폼으로 커서를 옮기기 위해 사용합니다.
   const keywordInputRef = useRef<HTMLInputElement>(null);
+
+  // 마지막으로 정상적으로 입력되었던 대출일을 기억해둡니다. (잘못된 값을 입력했을 때 되돌리기 위함입니다.)
+  const lastValidLoanDateRef = useRef(todayStr());
+  const [showDateFormatError, setShowDateFormatError] = useState(false);
 
   // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
   async function loadLoanedItems(memberId: number) {
@@ -174,8 +187,20 @@ export default function AdminLoansPage() {
     setShowSearchModal(false);
     setLoanedItems([]);
     setLoanDateStr(todayStr());
+    lastValidLoanDateRef.current = todayStr();
     setShowDatePicker(false);
     keywordInputRef.current?.focus();
+  }
+
+  // 대출일 입력 칸에서 포커스가 빠져나갈 때(다른 곳을 클릭했을 때) 호출됩니다.
+  // 값이 올바른 날짜면 "마지막 정상 날짜"로 기억해두고, 아니라면 알림창을 띄우고 값을 되돌립니다.
+  function handleLoanDateBlur() {
+    if (isValidDateStr(loanDateStr)) {
+      lastValidLoanDateRef.current = loanDateStr;
+    } else {
+      setLoanDateStr(lastValidLoanDateRef.current);
+      setShowDateFormatError(true);
+    }
   }
 
   // 실제로 서버에 대출 요청을 보내는 부분입니다. 큐에서 하나씩 순서대로 호출됩니다.
@@ -244,6 +269,8 @@ export default function AdminLoansPage() {
                   value={loanDateStr}
                   onChange={(e) => setLoanDateStr(formatDateInput(e.target.value))}
                   onFocus={(e) => e.target.select()}
+                  onBlur={handleLoanDateBlur}
+                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                   placeholder={t("loans.dateOverride.placeholder")}
                   className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                 />
@@ -253,7 +280,9 @@ export default function AdminLoansPage() {
                     autoFocus
                     value={loanDateStr}
                     onChange={(e) => {
-                      setLoanDateStr(e.target.value || todayStr());
+                      const next = e.target.value || todayStr();
+                      setLoanDateStr(next);
+                      lastValidLoanDateRef.current = next;
                       setShowDatePicker(false);
                     }}
                     onBlur={() => setShowDatePicker(false)}
@@ -505,6 +534,29 @@ export default function AdminLoansPage() {
               type="button"
               onClick={() => setShowDetailSearchModal(false)}
               className="mt-2 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 대출일 형식 오류 알림 모달 */}
+      {showDateFormatError && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowDateFormatError(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("loans.dateOverride.invalidTitle")}</p>
+            <p className="text-sm text-neutral-600">{t("loans.dateOverride.invalidMessage")}</p>
+            <button
+              type="button"
+              onClick={() => setShowDateFormatError(false)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
             >
               {t("loans.member.closeBtn")}
             </button>
