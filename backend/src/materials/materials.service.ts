@@ -291,12 +291,24 @@ export class MaterialsService {
   }
 
   async getLatestRegistrationNo(libraryId: number) {
-    const latest = await this.prisma.copy.findFirst({
+    // 등록번호는 1,2,3...처럼 순수 숫자입니다. '가장 최근에 저장된 것'이 아니라
+    // '등록번호 중 가장 큰 숫자'를 찾아서 돌려줍니다.
+    const copies = await this.prisma.copy.findMany({
       where: { libraryId },
-      orderBy: { createdAt: 'desc' },
       select: { registrationNo: true },
     });
-    return { registrationNo: latest?.registrationNo ?? null };
+
+    let maxRegistrationNo: string | null = null;
+    let maxValue = -Infinity;
+    for (const copy of copies) {
+      const value = parseInt(copy.registrationNo, 10);
+      if (!Number.isNaN(value) && value > maxValue) {
+        maxValue = value;
+        maxRegistrationNo = copy.registrationNo;
+      }
+    }
+
+    return { registrationNo: maxRegistrationNo };
   }
 
   // MARC를 쓰지 않는 자료(비도서)의 정보를 수정합니다. 입력받은 값을 그대로 저장해요.

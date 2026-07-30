@@ -107,7 +107,11 @@ export default function CopyOptionsSettingsForm() {
         notify("❌ " + t("settings.copyOptions.noFloorOptions"), "error");
         return;
       }
-      body = { category: modalCategory, floor: floorValue, detail: detailValue };
+      if (!detailValue.trim()) {
+        notify("❌ " + t("settings.copyOptions.detailRequired"), "error");
+        return;
+      }
+      body = { category: modalCategory, floor: floorValue, detail: detailValue.trim() };
     } else {
       const finalValue = valueText.trim();
       if (!finalValue) {
@@ -210,7 +214,7 @@ export default function CopyOptionsSettingsForm() {
                       </select>
                     </label>
                     <label className="mt-3 block">
-                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.detailLabel")}</span>
+                      <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.detailLabel")} *</span>
                       <input
                         value={detailValue}
                         onChange={(e) => setDetailValue(e.target.value)}

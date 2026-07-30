@@ -176,7 +176,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.newEntry": "입력 데이터 비우기",
     "materials.copies.newRegistrationRow": "새 실물 자료 등록",
     "materials.copies.save": "저장",
-    "materials.copies.latestRegNo": "최근 저장된 등록번호",
+    "materials.copies.latestRegNo": "마지막 등록번호",
     "materials.copies.update": "수정",
     "materials.copies.updateSuccess": "실물 정보가 수정되었습니다.",
     "materials.copies.updateFail": "수정에 실패했습니다.",
@@ -284,6 +284,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.copyOptions.detailLabel": "세부 위치",
     "settings.copyOptions.detailPlaceholder": "예: 그림책, 문학",
     "settings.copyOptions.noFloorOptions": "먼저 '층' 목록에 값을 하나 이상 추가해주세요.",
+    "settings.copyOptions.detailRequired": "세부 위치를 입력해주세요.",
 
     "settings.memberTypes.title": "회원 구분",
     "settings.memberTypes.addBtn": "+ 값 추가",
@@ -705,7 +706,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "materials.copies.newEntry": "Clear Form",
     "materials.copies.newRegistrationRow": "+ Register New Copy",
     "materials.copies.save": "Save",
-    "materials.copies.latestRegNo": "Last saved registration No.",
+    "materials.copies.latestRegNo": "Last registration No.",
     "materials.copies.update": "Update",
     "materials.copies.updateSuccess": "Copy updated.",
     "materials.copies.updateFail": "Failed to update.",
@@ -813,6 +814,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.copyOptions.detailLabel": "Detail",
     "settings.copyOptions.detailPlaceholder": "e.g. Picture books, Literature",
     "settings.copyOptions.noFloorOptions": "Please add at least one 'Floor' value first.",
+    "settings.copyOptions.detailRequired": "Please enter a detail location.",
 
     "settings.memberTypes.title": "Member Types",
     "settings.memberTypes.addBtn": "+ Add Value",
