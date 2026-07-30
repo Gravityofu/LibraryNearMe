@@ -60,12 +60,37 @@ function isValidDateStr(str: string) {
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
 }
 
+// 회원 상태에 따라 글자 색을 다르게 보여주기 위한 도우미 함수입니다.
+function statusColorClass(status: string | undefined) {
+  switch (status) {
+    case "ACTIVE":
+      return "text-blue-600";
+    case "PENDING":
+      return "text-yellow-600";
+    case "SUSPENDED":
+      return "text-orange-600";
+    case "WITHDRAWN":
+      return "text-red-600";
+    default:
+      return "";
+  }
+}
+
 // 회원 정보 박스 안에서 "라벨: 값" 한 줄을 보여주는 작은 부품입니다.
-function InfoRow({ label, value }: { label: string; value: string }) {
+// valueClassName을 넘기면 값 글자에 추가로 스타일(예: 색상)을 입힐 수 있습니다.
+function InfoRow({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-neutral-100 py-1.5 text-sm last:border-b-0">
       <span className="shrink-0 text-neutral-500">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className={`text-right font-medium ${valueClassName || ""}`}>{value}</span>
     </div>
   );
 }
@@ -366,6 +391,7 @@ export default function AdminLoansPage() {
                   <InfoRow
                     label={t("members.form.field.status")}
                     value={selectedMember ? t(`members.status.${selectedMember.status}`) : "-"}
+                    valueClassName={statusColorClass(selectedMember?.status)}
                   />
                 </div>
                 <div className="flex flex-col">
