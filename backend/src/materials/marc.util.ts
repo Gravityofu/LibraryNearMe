@@ -44,6 +44,15 @@ function stripRoleLabel(value?: string): string | undefined {
   return cleaned || undefined;
 }
 
+// 발행년(260 ▼c) 값에서 4자리 숫자(년도)만 뽑아냅니다.
+// 예: "2022.7" -> "2022", "c2022" -> "2022", "[2022]" -> "2022"
+// 4자리 숫자를 찾지 못하면(형식이 아예 다른 경우) 원래 값을 그대로 돌려줍니다.
+function extractYear(value?: string): string | undefined {
+  if (!value) return value;
+  const matched = value.match(/\d{4}/);
+  return matched ? matched[0] : value;
+}
+
 // MARC 태그 목록에서 표의 각 칸 값을 뽑아냅니다.
 export function extractColumns(marc: MarcField[]) {
   const one = (tag: string, code: string) => {
@@ -69,7 +78,7 @@ export function extractColumns(marc: MarcField[]) {
     title: stripTrailingPunct(one("245", "a")),                                    // 서명
     creator: stripTrailingPunct(stripRoleLabel(one("100", "a") || one("245", "d"))), // 저자(100 없으면 245 ▼d)
     publisher: one("260", "b"),                // 발행처
-    pubYear: one("260", "c"),                  // 발행년
+    pubYear: extractYear(one("260", "c")),      // 발행년 (월/일 등이 붙어 있으면 4자리 년도만 남깁니다)
     isbn: one("020", "a"),                     // ISBN
     classNumber: one("056", "a") || one("090", "a"), // 분류기호 (056 ▼a가 없으면 090 ▼a를 대신 씁니다)
     format: cleanTag("300") || undefined,      // 형태사항
