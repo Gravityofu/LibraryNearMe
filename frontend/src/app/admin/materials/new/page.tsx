@@ -378,8 +378,9 @@ export default function NewMaterialPage() {
                         <div className="text-sm">
                           <p className="font-medium">{renderTitle(r.title)}</p>
                           <p className="text-neutral-400">
-                            {truncate(r.author)} · {truncate(r.publisher)} · {truncate(r.pubYear)} ·{" "}
-                            {truncate(r.libName)}
+                            {[truncate(r.author), truncate(r.publisher), truncate(r.pubYear), truncate(r.libName)]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </p>
                         </div>
                         <button
