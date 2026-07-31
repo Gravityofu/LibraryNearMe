@@ -21,6 +21,15 @@ const SIMPLE_FIELDS = [
   { key: "summary", labelKey: "materials.new.field.summary" },
 ];
 
+type KolisResult = {
+  recKey: string;
+  title?: string;
+  author?: string;
+  publisher?: string;
+  pubYear?: string;
+  libName?: string;
+};
+
 type MaterialType = {
   id: number;
   code: string;
@@ -52,12 +61,15 @@ export default function NewMaterialPage() {
   const subjectInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [kolisKeyword, setKolisKeyword] = useState("");
-  const [kolisResults, setKolisResults] = useState<
-    { recKey: string; title?: string; author?: string; publisher?: string; pubYear?: string; libName?: string }[]
-  >([]);
+  const [kolisResults, setKolisResults] = useState<KolisResult[]>([]);
   const [kolisLoading, setKolisLoading] = useState(false);
   const [kolisPage, setKolisPage] = useState(1);
   const [kolisTotal, setKolisTotal] = useState(0);
+
+  // 검색 결과 모달을 보이거나 숨길 때 씁니다.
+  const [showKolisModal, setShowKolisModal] = useState(false);
+  // 검색 결과 중에서 실제로 선택한 자료의 요약 정보를 기억해둡니다. (검색창 아래에 한 줄로 보여줄 용도입니다.)
+  const [selectedKolisResult, setSelectedKolisResult] = useState<KolisResult | null>(null);
 
   const [showTagHelp, setShowTagHelp] = useState(false);
   const [tagHelpList, setTagHelpList] = useState<
@@ -172,6 +184,7 @@ export default function NewMaterialPage() {
         setKolisResults(data.items);
         setKolisTotal(data.total);
         setKolisPage(data.page);
+        setShowKolisModal(true);
       } else {
         notify("❌ " + t("materials.new.kolisSearchFail"), "error");
       }
@@ -180,16 +193,18 @@ export default function NewMaterialPage() {
     }
   }
 
-  async function importKolis(recKey: string) {
+  async function importKolis(item: KolisResult) {
     const token = localStorage.getItem("token");
     if (!token) return;
-    const res = await fetch(`${API_URL}/materials/kolis-marc?recKey=${recKey}`, {
+    const res = await fetch(`${API_URL}/materials/kolis-marc?recKey=${item.recKey}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
       const data = await res.json();
       setMarc(data.marc);
       setMarcRaw(data.raw);
+      setSelectedKolisResult(item);
+      setShowKolisModal(false);
       notify("✅ " + t("materials.new.importSuccess"), "success");
     } else {
       const data = await res.json().catch(() => null);
@@ -361,53 +376,19 @@ export default function NewMaterialPage() {
 
                 {kolisLoading && <p className="mt-2 text-sm text-neutral-400">{t("materials.searching")}</p>}
 
-                {kolisResults.length > 0 && (
-                  <ul className="mt-3 divide-y divide-neutral-200">
-                    {kolisResults.map((r) => (
-                      <li key={r.recKey} className="flex items-center justify-between gap-2 py-2">
-                        <div className="text-sm">
-                          <p className="font-medium">{renderTitle(r.title)}</p>
-                          <p className="text-neutral-400">
-                            {[truncate(r.author), truncate(r.publisher), truncate(r.pubYear), truncate(r.libName)]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => importKolis(r.recKey)}
-                          className="shrink-0 cursor-pointer rounded border px-3 py-1.5 text-sm"
-                        >
-                          {t("materials.new.kolisImport")}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {kolisTotal > 10 && (
-                  <div className="mt-3 flex items-center justify-center gap-3 text-sm">
-                    <button
-                      type="button"
-                      disabled={kolisPage <= 1}
-                      onClick={() => searchKolis(kolisPage - 1)}
-                      className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {t("materials.new.pagePrev")}
-                    </button>
-                    <span className="text-neutral-500">
-                      {kolisPage} / {Math.ceil(kolisTotal / 10)} {t("materials.pageWord")} ({t("materials.totalWord")}{" "}
-                      {kolisTotal}
-                      {t("materials.countUnit")})
-                    </span>
-                    <button
-                      type="button"
-                      disabled={kolisPage >= Math.ceil(kolisTotal / 10)}
-                      onClick={() => searchKolis(kolisPage + 1)}
-                      className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {t("materials.new.pageNext")}
-                    </button>
+                {selectedKolisResult && (
+                  <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
+                    <p className="font-medium">{renderTitle(selectedKolisResult.title)}</p>
+                    <p className="text-neutral-400">
+                      {[
+                        truncate(selectedKolisResult.author, 999),
+                        truncate(selectedKolisResult.publisher, 999),
+                        truncate(selectedKolisResult.pubYear, 999),
+                        truncate(selectedKolisResult.libName, 999),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
                   </div>
                 )}
               </div>
@@ -465,6 +446,82 @@ export default function NewMaterialPage() {
           >
             {t("materials.new.save")}
           </button>
+        </div>
+      )}
+
+      {showKolisModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowKolisModal(false)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-h-[75vh] overflow-auto p-6">
+              <p className="mb-3 text-sm font-semibold">{t("materials.new.kolisModalTitle")}</p>
+
+              {kolisResults.length === 0 ? (
+                <p className="text-sm text-neutral-400">{t("materials.list.noResults")}</p>
+              ) : (
+                <ul className="divide-y divide-neutral-200">
+                  {kolisResults.map((r) => (
+                    <li key={r.recKey} className="flex items-center justify-between gap-2 py-2">
+                      <div className="text-sm">
+                        <p className="font-medium">{renderTitle(r.title)}</p>
+                        <p className="text-neutral-400">
+                          {[truncate(r.author), truncate(r.publisher), truncate(r.pubYear), truncate(r.libName)]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => importKolis(r)}
+                        className="shrink-0 cursor-pointer rounded border px-3 py-1.5 text-sm"
+                      >
+                        {t("materials.new.kolisImport")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {kolisTotal > 10 && (
+                <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+                  <button
+                    type="button"
+                    disabled={kolisPage <= 1}
+                    onClick={() => searchKolis(kolisPage - 1)}
+                    className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t("materials.new.pagePrev")}
+                  </button>
+                  <span className="text-neutral-500">
+                    {kolisPage} / {Math.ceil(kolisTotal / 10)} {t("materials.pageWord")} ({t("materials.totalWord")}{" "}
+                    {kolisTotal}
+                    {t("materials.countUnit")})
+                  </span>
+                  <button
+                    type="button"
+                    disabled={kolisPage >= Math.ceil(kolisTotal / 10)}
+                    onClick={() => searchKolis(kolisPage + 1)}
+                    className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t("materials.new.pageNext")}
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowKolisModal(false)}
+                className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+              >
+                {t("loans.member.closeBtn")}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
