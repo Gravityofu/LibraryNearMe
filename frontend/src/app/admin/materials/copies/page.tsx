@@ -487,20 +487,22 @@ function CopiesPageInner() {
                   />
                 </label>
                 <MarcEditor fields={marc} onChange={setMarc} />
-                <button
-                  type="button"
-                  onClick={handleSaveMarc}
-                  className="mt-3 cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold"
-                >
-                  {t("materials.copies.marcEditSave")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteMaterialConfirm(true)}
-                  className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
-                >
-                  {t("materials.copies.deleteMaterialBtn")}
-                </button>
+                <div className="mt-3 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveMarc}
+                    className="w-full cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-semibold"
+                  >
+                    {t("materials.copies.marcEditSave")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteMaterialConfirm(true)}
+                    className="w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    {t("materials.copies.deleteMaterialBtn")}
+                  </button>
+                </div>
               </>
             ) : (
               <div>

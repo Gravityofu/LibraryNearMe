@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 import MarcEditor, { DEFAULT_FIELDS, MarcField } from "@/components/marc-editor";
@@ -40,6 +41,7 @@ type MaterialType = {
 };
 
 export default function NewMaterialPage() {
+  const router = useRouter();
   const { notify } = useNotify();
   const { t, lang } = useI18n();
 
@@ -248,12 +250,16 @@ export default function NewMaterialPage() {
     });
 
     if (res.ok) {
+      const data = await res.json();
       notify("✅ " + t("materials.new.saveSuccess"), "success");
-      setForm({});
-      setMarc(DEFAULT_FIELDS);
-      setMarcRaw(undefined);
-      setKolisResults([]);
-      setSubjectWords([""]);
+
+      // '목록' 화면이 열릴 때 이 조건으로 자동 검색하도록, 방금 저장한 자료의 제목을 미리 저장해둡니다.
+      // (이 키 이름은 '목록' 화면의 검색 조건 기억 기능과 반드시 똑같아야 합니다.)
+      sessionStorage.setItem(
+        "lnm-materials-list-search",
+        JSON.stringify({ filters: { title: data?.title || "" }, page: 1, pageSize: 10 }),
+      );
+      router.push("/admin/materials/list");
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("materials.new.saveFail")), "error");
