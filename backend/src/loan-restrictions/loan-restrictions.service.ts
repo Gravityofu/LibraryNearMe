@@ -56,4 +56,12 @@ export class LoanRestrictionsService {
       this.logger.log(`대출제한이 끝난 회원 ${releasedCount}명을 '활성' 상태로 되돌렸습니다.`);
     }
   }
+
+  // 이 회원의 대출제한 이력 전체를 최신순으로 돌려줍니다. (지금 진행 중인 것 + 과거 것 모두 포함)
+  async findHistory(libraryId: number, userId: number) {
+    return this.prisma.loanRestriction.findMany({
+      where: { libraryId, userId },
+      orderBy: { startDate: 'desc' },
+    });
+  }
 }

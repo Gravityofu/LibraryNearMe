@@ -6,20 +6,19 @@ const NONE_SPECIAL_CODE = '(없음)';
 
 // 처음 이 도서관이 '목록' 기능을 쓸 때 자동으로 채워지는 기본값입니다.
 const DEFAULT_OPTIONS: Record<string, string[]> = {
-  STATUS: ['이용가능', '대출중', '예약됨', '수선중', '분실', '제적'],
+  STATUS: ['대출가능', '대출중', '예약보관중', '보수중', '제적'],
   SPECIAL_CODE: [NONE_SPECIAL_CODE, '아동'],
-  FLOOR: ['1층', '2층', '지하1층'],
+  FLOOR: ['1층', '2층', '3층'],
   LOCATION: ['2층 문학'],
 };
 
 // 예전에는 '상태'가 영문 코드(AVAILABLE 등)로 저장되어 있었어요.
 // 새로 한글 값으로 바뀌면서, 기존 실물 자료들의 상태값도 딱 한 번 자동으로 바꿔줍니다.
 const LEGACY_STATUS_MAP: Record<string, string> = {
-  AVAILABLE: '이용가능',
+  AVAILABLE: '대출가능',
   ON_LOAN: '대출중',
-  RESERVED: '예약됨',
-  REPAIR: '수선중',
-  LOST: '분실',
+  RESERVED: '예약보관중',
+  REPAIR: '보수중',
   WITHDRAWN: '제적',
 };
 

@@ -25,6 +25,7 @@ import { LoanSettingsController } from './settings/loan-settings.controller';
 import { LoanSettingsService } from './settings/loan-settings.service';
 import { LoansController } from './loans/loans.controller';
 import { LoansService } from './loans/loans.service';
+import { LoanRestrictionsController } from './loan-restrictions/loan-restrictions.controller';
 import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.service';
 
 @Module({
@@ -49,6 +50,7 @@ import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.s
     MemberTypesController,
     LoanSettingsController,
     LoansController,
+    LoanRestrictionsController,
   ],
   providers: [
     AppService,

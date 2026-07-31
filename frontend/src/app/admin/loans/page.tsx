@@ -20,6 +20,14 @@ type Member = {
   memberType: { id: number; name: string } | null;
 };
 
+// 서버에서 내려오는 대출제한 기록 1건의 모양입니다.
+type RestrictionRecord = {
+  id: number;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+};
+
 // 서버에서 내려오는 대출 기록 1건의 모양 (실물 정보와 서지 정보를 포함해서 옵니다)
 type LoanRecord = {
   id: number;
@@ -112,6 +120,8 @@ export default function AdminLoansPage() {
   const [registrationNo, setRegistrationNo] = useState("");
   const [processing, setProcessing] = useState(false);
   const [loanedItems, setLoanedItems] = useState<LoanRecord[]>([]);
+  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
 
   // 등록번호가 아무리 빠르게 여러 번 들어와도, 이전 처리가 끝난 뒤 순서대로 하나씩 처리되도록
   // 여기(큐)에 작업을 이어붙입니다.
@@ -158,13 +168,27 @@ export default function AdminLoansPage() {
     }
   }
 
-  // 선택된 회원이 바뀔 때마다 대출 자료 목록을 새로 불러오고, 등록번호 입력폼으로 커서를 옮깁니다.
+  // 선택된 회원의 대출제한 이력 전체를 새로 불러옵니다. (최신순)
+  async function loadRestrictions(memberId: number) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/loan-restrictions/${memberId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setRestrictions(await res.json());
+    }
+  }
+
+  // 선택된 회원이 바뀔 때마다 대출 자료 목록과 정지 이력을 새로 불러오고, 등록번호 입력폼으로 커서를 옮깁니다.
   useEffect(() => {
     if (selectedMember) {
       loadLoanedItems(selectedMember.id);
+      loadRestrictions(selectedMember.id);
       registrationInputRef.current?.focus();
     } else {
       setLoanedItems([]);
+      setRestrictions([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMember?.id]);
@@ -229,6 +253,8 @@ export default function AdminLoansPage() {
     setRegistrationNo("");
     setShowSearchModal(false);
     setLoanedItems([]);
+    setRestrictions([]);
+    setShowRestrictionModal(false);
     setLoanDateStr(todayStr());
     lastValidLoanDateRef.current = todayStr();
     setShowDatePicker(false);
@@ -278,6 +304,9 @@ export default function AdminLoansPage() {
     setRegistrationNo("");
     queueRef.current = queueRef.current.then(() => processOne(regNo));
   }
+
+  // 정지 이력 중에서 "지금 아직 끝나지 않은" 것이 있으면 그것을 씁니다. (상태 값 아래에 작게 보여주기 위함)
+  const activeRestriction = restrictions.find((r) => new Date(r.endDate) >= new Date()) || null;
 
   return (
     <div className="p-6">
@@ -382,7 +411,18 @@ export default function AdminLoansPage() {
 
             {/* 오른쪽: 회원 정보 (항목 이름은 항상 보이고, 값만 채워지거나 "-"로 보입니다) (전체 가로폭의 6/10) */}
             <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-6">
-              <p className="mb-2 text-sm font-semibold">{t("loans.member.info.title")}</p>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-semibold">{t("loans.member.info.title")}</p>
+                {selectedMember && (
+                  <button
+                    type="button"
+                    onClick={() => setShowRestrictionModal(true)}
+                    className="cursor-pointer rounded border px-2 py-1 text-xs"
+                  >
+                    {t("loans.member.restrictionHistoryBtn")}
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-x-6">
                 <div className="flex flex-col">
                   <InfoRow label={t("members.form.field.name")} value={selectedMember?.name || "-"} />
@@ -393,6 +433,14 @@ export default function AdminLoansPage() {
                     value={selectedMember ? t(`members.status.${selectedMember.status}`) : "-"}
                     valueClassName={statusColorClass(selectedMember?.status)}
                   />
+                  {activeRestriction && (
+                    <p className="pb-1.5 text-right text-xs text-orange-600">
+                      {t("loans.restriction.badge.until")}
+                      {activeRestriction.endDate.slice(0, 10)}
+                      {t("loans.restriction.badge.reason")}
+                      {activeRestriction.reason || "-"}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <InfoRow
@@ -486,11 +534,14 @@ export default function AdminLoansPage() {
                     key={m.id}
                     type="button"
                     onClick={() => selectMember(m)}
-                    className="grid cursor-pointer grid-cols-[1fr_92px_130px] items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    className="grid cursor-pointer grid-cols-[1fr_92px_130px_60px] items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50"
                   >
                     <span className="truncate font-medium">{m.name}</span>
                     <span className="truncate text-neutral-500">{m.memberNo ?? "-"}</span>
                     <span className="truncate text-neutral-500">{m.phone ?? "-"}</span>
+                    <span className={`truncate text-xs font-semibold ${statusColorClass(m.status)}`}>
+                      {t(`members.status.${m.status}`)}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -499,6 +550,54 @@ export default function AdminLoansPage() {
             <button
               type="button"
               onClick={() => setShowSearchModal(false)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 정지 이력 모달 */}
+      {showRestrictionModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowRestrictionModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("loans.restrictionHistory.modalTitle")}</p>
+
+            {restrictions.length === 0 ? (
+              <p className="text-sm text-neutral-400">{t("loans.restrictionHistory.empty")}</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-neutral-100 text-neutral-500">
+                    <tr>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.startDate")}</th>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.endDate")}</th>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.reason")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {restrictions.map((r) => (
+                      <tr key={r.id}>
+                        <td className="whitespace-nowrap px-3 py-2">{r.startDate.slice(0, 10)}</td>
+                        <td className="whitespace-nowrap px-3 py-2">{r.endDate.slice(0, 10)}</td>
+                        <td className="px-3 py-2">{r.reason || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowRestrictionModal(false)}
               className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
             >
               {t("loans.member.closeBtn")}
