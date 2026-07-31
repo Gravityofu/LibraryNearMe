@@ -305,8 +305,22 @@ export default function AdminLoansPage() {
     queueRef.current = queueRef.current.then(() => processOne(regNo));
   }
 
-  // 정지 이력 중에서 "지금 아직 끝나지 않은" 것이 있으면 그것을 씁니다. (상태 값 아래에 작게 보여주기 위함)
-  const activeRestriction = restrictions.find((r) => new Date(r.endDate) >= new Date()) || null;
+  // 오늘 날짜의 자정(00:00) 시각을 구합니다. 백엔드와 같은 기준으로 "지금 제한 중인지"를 판단하기 위함입니다.
+  function todayStartUTC() {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+  }
+
+  // 날짜 문자열에 하루를 더한 "YYYY-MM-DD" 문자열을 돌려줍니다. (제한 마지막 날 다음 날 = 대출 가능일)
+  function addOneDay(dateStr: string) {
+    const d = new Date(dateStr.slice(0, 10) + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // 정지 이력 중에서 "제한 마지막 날이 오늘이거나 오늘보다 나중인" 것이 있으면 그것을 씁니다.
+  const activeRestriction = restrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) || null;
 
   return (
     <div className="p-6">
@@ -435,8 +449,8 @@ export default function AdminLoansPage() {
                   />
                   {activeRestriction && (
                     <p className="pb-1.5 text-right text-xs text-orange-600">
-                      {t("loans.restriction.badge.until")}
-                      {activeRestriction.endDate.slice(0, 10)}
+                      {addOneDay(activeRestriction.endDate)}
+                      {t("loans.restriction.badge.availableFrom")}
                       {t("loans.restriction.badge.reason")}
                       {activeRestriction.reason || "-"}
                     </p>

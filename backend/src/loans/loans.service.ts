@@ -82,11 +82,14 @@ export class LoansService {
 
     // 이중 안전장치: 회원 상태가 '정지'인지와 별개로, 지금 이 순간 실제로 유효한 대출제한이 있는지 다시 확인합니다.
     // (대출제한이 끝난 회원을 매일 자정 자동으로 '활성'으로 되돌리는 작업이 있지만,
-    //  서버가 그 시각에 꺼져 있었다면 자동 해제를 놓칠 수 있어서, 대출을 시도하는 이 순간 한 번 더 확인합니다.)
+    //  서버가 그 시각에 꺼져 있었다면 자동 해제를 놓칠 수 있어서, 대출을 시도하는 이 순간 한 번 더 확인합니다.)        
     const activeRestriction = await this.loanRestrictionsService.findActiveRestriction(libraryId, userId);
     if (activeRestriction) {
+      // 제한 마지막 날 다음 날부터 대출이 가능하므로, 하루를 더해서 안내합니다.
+      const availableFrom = new Date(activeRestriction.endDate);
+      availableFrom.setUTCDate(availableFrom.getUTCDate() + 1);
       throw new BadRequestException(
-        `대출 제한 중입니다. (해제 예정일: ${activeRestriction.endDate.toISOString().slice(0, 10)})`,
+        `대출 제한 중입니다. (대출 가능일: ${availableFrom.toISOString().slice(0, 10)}부터)`,
       );
     }
 

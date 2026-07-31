@@ -33,11 +33,21 @@ export class LoanRestrictionsService {
     return restriction;
   }
 
+  // 오늘 날짜의 자정(00:00) 시각을 구합니다.
+  // "제한 마지막 날"은 그 날짜 하루 전체 동안은 계속 막혀 있어야 하므로, 시:분:초가 섞인
+  // "지금 이 순간"이 아니라 "오늘 날짜(자정 기준)"으로 비교해야 정확합니다.
+  private todayStart(): Date {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+  }
+
   // 지금 이 회원에게 아직 끝나지 않은(유효한) 대출제한이 있는지 확인합니다.
+  // "제한 마지막 날"이 오늘이거나 오늘보다 나중이면 아직 제한 중인 것으로 봅니다.
   async findActiveRestriction(libraryId: number, userId: number) {
-    const now = new Date();
+    const today = this.todayStart();
     return this.prisma.loanRestriction.findFirst({
-      where: { libraryId, userId, endDate: { gte: now } },
+      where: { libraryId, userId, endDate: { gte: today } },
       orderBy: { endDate: 'desc' },
     });
   }
@@ -45,7 +55,7 @@ export class LoanRestrictionsService {
   // 매일 자정에 자동으로 실행됩니다: 대출제한이 끝났는데도 '정지' 상태로 남아있는 회원을 찾아 '활성'으로 되돌립니다.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async releaseExpiredRestrictions() {
-    const now = new Date();
+    const today = this.todayStart();
     const suspendedUsers = await this.prisma.user.findMany({
       where: { status: 'SUSPENDED' },
       select: { id: true },
@@ -54,7 +64,7 @@ export class LoanRestrictionsService {
     let releasedCount = 0;
     for (const u of suspendedUsers) {
       const stillActive = await this.prisma.loanRestriction.findFirst({
-        where: { userId: u.id, endDate: { gte: now } },
+        where: { userId: u.id, endDate: { gte: today } },
       });
       if (!stillActive) {
         await this.prisma.user.update({ where: { id: u.id }, data: { status: 'ACTIVE' } });
