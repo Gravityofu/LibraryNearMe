@@ -26,6 +26,24 @@ export function clean(value: string): string {
     .trim();
 }
 
+// 끝에 남아있는 문장부호(콜론, 세미콜론, 슬래시, 쉼표 등)와 공백을 없앱니다.
+// 예: "비행운 :" -> "비행운"
+function stripTrailingPunct(value?: string): string | undefined {
+  if (!value) return value;
+  const cleaned = value.replace(/[\s:：;,\/]+$/g, "").trim();
+  return cleaned || undefined;
+}
+
+// 맨 앞에 "지은이", "지음"처럼 역할을 나타내는 흔한 말이 붙어 있으면 떼어냅니다.
+// 예: "지은이: 김애란" -> "김애란"
+function stripRoleLabel(value?: string): string | undefined {
+  if (!value) return value;
+  const cleaned = value
+    .replace(/^(지은이|지음|글쓴이|저자|엮은이|엮음|편저|편|옮긴이|옮김|그림|글)\s*[:：]?\s*/, "")
+    .trim();
+  return cleaned || undefined;
+}
+
 // MARC 태그 목록에서 표의 각 칸 값을 뽑아냅니다.
 export function extractColumns(marc: MarcField[]) {
   const one = (tag: string, code: string) => {
@@ -48,8 +66,8 @@ export function extractColumns(marc: MarcField[]) {
   const languageFrom008 = field008 ? field008.substring(35, 38).trim() : undefined;
 
   return {
-    title: one("245", "a"),                    // 서명
-    creator: one("100", "a") || one("245", "d"), // 저자(100 없으면 245 ▼d)
+    title: stripTrailingPunct(one("245", "a")),                                    // 서명
+    creator: stripTrailingPunct(stripRoleLabel(one("100", "a") || one("245", "d"))), // 저자(100 없으면 245 ▼d)
     publisher: one("260", "b"),                // 발행처
     pubYear: one("260", "c"),                  // 발행년
     isbn: one("020", "a"),                     // ISBN
