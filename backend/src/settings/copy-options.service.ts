@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
+// 별치기호의 '없음' 값입니다. 이 값은 항상 존재해야 하고, 삭제/수정할 수 없습니다.
+const NONE_SPECIAL_CODE = '(없음)';
+
 // 처음 이 도서관이 '목록' 기능을 쓸 때 자동으로 채워지는 기본값입니다.
 const DEFAULT_OPTIONS: Record<string, string[]> = {
   STATUS: ['이용가능', '대출중', '예약됨', '수선중', '분실', '제적'],
-  SPECIAL_CODE: ['아동'],
+  SPECIAL_CODE: [NONE_SPECIAL_CODE, '아동'],
   FLOOR: ['1층', '2층', '지하1층'],
   LOCATION: ['2층 문학'],
 };
@@ -62,6 +65,29 @@ export class CopyOptionsService {
     }
   }
 
+  // 아직 별치기호에 '(없음)' 값이 없는 도서관에, 맨 앞자리에 끼워 넣어줍니다.
+  // (이미 다른 별치기호 값들이 있어도, 순서만 한 칸씩 뒤로 밀고 '(없음)'을 0번으로 넣습니다.)
+  private async ensureNoneSpecialCode(libraryId: number) {
+    const existing = await this.prisma.copyOption.findFirst({
+      where: { libraryId, category: 'SPECIAL_CODE', value: NONE_SPECIAL_CODE },
+    });
+    if (existing) return;
+
+    const others = await this.prisma.copyOption.findMany({
+      where: { libraryId, category: 'SPECIAL_CODE' },
+      orderBy: { order: 'asc' },
+    });
+
+    await this.prisma.$transaction([
+      ...others.map((o, i) =>
+        this.prisma.copyOption.update({ where: { id: o.id }, data: { order: i + 1 } }),
+      ),
+      this.prisma.copyOption.create({
+        data: { libraryId, category: 'SPECIAL_CODE', value: NONE_SPECIAL_CODE, order: 0 },
+      }),
+    ]);
+  }
+
   // 전체 목록(상태/별치기호/층/소장처)을 한 번에 가져옵니다.
   // 이 도서관에 어떤 목록 종류가 하나도 없으면(=처음 쓰는 경우), 그 종류만 기본값을 자동으로 채워 넣습니다.
   async listAll(libraryId: number) {
@@ -87,6 +113,9 @@ export class CopyOptionsService {
         }
       }
     }
+
+    // 이미 별치기호를 쓰고 있던 도서관에도 '(없음)'이 반드시 있도록 확인합니다.
+    await this.ensureNoneSpecialCode(libraryId);
 
     // 층 정보가 비어있는 예전 소장처들을 자동으로 채워줍니다.
     await this.backfillLocationFloors(libraryId);
@@ -147,6 +176,10 @@ export class CopyOptionsService {
     const existing = await this.prisma.copyOption.findFirst({ where: { id, libraryId } });
     if (!existing) {
       throw new NotFoundException('값을 찾을 수 없습니다.');
+    }
+
+    if (existing.category === 'SPECIAL_CODE' && existing.value === NONE_SPECIAL_CODE) {
+      throw new BadRequestException("'(없음)'은 수정할 수 없습니다.");
     }
 
     // 1) '층'을 수정하는 경우: 이 층을 쓰는 소장처들도 연쇄로 값이 바뀝니다.
@@ -256,6 +289,10 @@ export class CopyOptionsService {
     const existing = await this.prisma.copyOption.findFirst({ where: { id, libraryId } });
     if (!existing) {
       throw new NotFoundException('값을 찾을 수 없습니다.');
+    }
+
+    if (existing.category === 'SPECIAL_CODE' && existing.value === NONE_SPECIAL_CODE) {
+      throw new BadRequestException("'(없음)'은 삭제할 수 없습니다.");
     }
 
     const siblingCount = await this.prisma.copyOption.count({

@@ -112,6 +112,7 @@ function computeNextRegNo(latest: string | null): string {
 }
 
 // 청구기호 = 별치기호 + 분류기호 + 저자기호 + 권/호 + 복본. 값이 있는 것만 이어 붙입니다.
+// 별치기호가 '(없음)'이면 청구기호에서 아예 빼고 분류기호부터 시작합니다.
 function computeCallNumber(
   specialCode: string,
   classNumber: string,
@@ -121,7 +122,7 @@ function computeCallNumber(
 ): string {
   return [specialCode, classNumber, authorCode, volume, copyNumber]
     .map((v) => (v || "").trim())
-    .filter(Boolean)
+    .filter((v) => v && v !== "(없음)")
     .join(" ");
 }
 

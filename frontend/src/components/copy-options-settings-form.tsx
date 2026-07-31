@@ -35,6 +35,8 @@ export default function CopyOptionsSettingsForm() {
   const [modalCategory, setModalCategory] = useState<keyof OptionsState>("STATUS");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [valueText, setValueText] = useState("");
+  // 지금 열려있는 수정 모달이 보호된 값(별치기호의 '(없음)')인지 여부입니다.
+  const [editingIsProtected, setEditingIsProtected] = useState(false);
 
   // 소장처를 층 + 세부위치로 나눠서 입력할지 여부입니다.
   // 새로 추가할 때는 항상 true, 수정할 때는 그 소장처가 층 정보를 갖고 있을 때만 true입니다.
@@ -64,6 +66,7 @@ export default function CopyOptionsSettingsForm() {
     setModalCategory(category);
     setEditingId(null);
     setValueText("");
+    setEditingIsProtected(false);
     if (category === "LOCATION") {
       setLocationHasFloor(true);
       setFloorValue(options.FLOOR[0]?.value || "");
@@ -78,6 +81,7 @@ export default function CopyOptionsSettingsForm() {
     setModalCategory(category);
     setEditingId(item.id);
     setValueText(item.value);
+    setEditingIsProtected(category === "SPECIAL_CODE" && item.value === "(없음)");
     if (category === "LOCATION" && item.floor) {
       // 층 정보가 있는 소장처는 수정할 때도 층 선택 + 세부위치 입력 방식을 씁니다.
       setLocationHasFloor(true);
@@ -230,8 +234,12 @@ export default function CopyOptionsSettingsForm() {
                   <input
                     value={valueText}
                     onChange={(e) => setValueText(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    disabled={editingIsProtected}
+                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
                   />
+                  {editingIsProtected && (
+                    <p className="mt-1 text-xs text-neutral-400">{t("settings.copyOptions.protectedNote")}</p>
+                  )}
                 </label>
               )}
 
@@ -239,7 +247,7 @@ export default function CopyOptionsSettingsForm() {
                 {t("settings.copyOptions.save")}
               </ThemedButton>
 
-              {editingId && (
+              {editingId && !editingIsProtected && (
                 <button
                   onClick={handleDelete}
                   className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
@@ -247,6 +255,7 @@ export default function CopyOptionsSettingsForm() {
                   {t("settings.copyOptions.deleteBtn")}
                 </button>
               )}
+
             </div>
           </div>
         </div>
