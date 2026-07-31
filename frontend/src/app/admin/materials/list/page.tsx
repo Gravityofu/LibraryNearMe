@@ -139,7 +139,8 @@ export default function MaterialsListPage() {
     } else {
       notify("❌ " + t("materials.list.searchFail"), "error");
     }
-
+  }
+  
   function applyDetailSearch() {
     const f: Filters = {
       type: detailForm.type || undefined,
