@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/language-provider";
 
 export type MarcField = { tag: string; ind1: string; ind2: string; value: string };
 
@@ -36,7 +37,9 @@ export default function MarcEditor({
   fields: MarcField[];
   onChange: (f: MarcField[]) => void;
 }) {
+  const { t } = useI18n();
   const [newTag, setNewTag] = useState("");
+  const [showTagRequiredError, setShowTagRequiredError] = useState(false);
   const sorted = [...fields].sort((a, b) => a.tag.localeCompare(b.tag));
 
   function update(i: number, key: keyof MarcField, val: string) {
@@ -44,7 +47,11 @@ export default function MarcEditor({
   }
   function addField() {
     const tag = newTag.trim();
-    if (!/^\d{3}$/.test(tag)) return; // 세 자리 숫자만
+    if (!/^\d{3}$/.test(tag)) {
+      // 태그를 비워두었거나, 3자리 숫자가 아니면 알림 모달을 띄웁니다.
+      setShowTagRequiredError(true);
+      return;
+    }
     onChange([...sorted, { tag, ind1: " ", ind2: " ", value: "▼a" }]);
     setNewTag("");
   }
@@ -138,6 +145,28 @@ export default function MarcEditor({
           + 태그 추가
         </button>
       </div>
+
+      {showTagRequiredError && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowTagRequiredError(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("materials.marcEditor.tagRequiredTitle")}</p>
+            <p className="text-sm text-neutral-600">{t("materials.marcEditor.tagRequiredMessage")}</p>
+            <button
+              type="button"
+              onClick={() => setShowTagRequiredError(false)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

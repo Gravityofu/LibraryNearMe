@@ -111,6 +111,20 @@ function computeNextRegNo(latest: string | null): string {
   return String(n + 1);
 }
 
+// 청구기호 = 별치기호 + 분류기호 + 저자기호 + 권/호 + 복본. 값이 있는 것만 이어 붙입니다.
+function computeCallNumber(
+  specialCode: string,
+  classNumber: string,
+  authorCode: string,
+  volume: string,
+  copyNumber: string,
+): string {
+  return [specialCode, classNumber, authorCode, volume, copyNumber]
+    .map((v) => (v || "").trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
 function CopiesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -247,6 +261,19 @@ function CopiesPageInner() {
       .catch(() => {});
   }, []);
 
+  // 별치기호, 저자기호, 권/호, 복본이 바뀔 때마다 청구기호를 자동으로 다시 계산합니다.
+  useEffect(() => {
+    const computed = computeCallNumber(
+      form.specialCode,
+      material?.classNumber || "",
+      form.authorCode,
+      form.volume,
+      form.copyNumber,
+    );
+    setForm((prev) => (prev.callNumber === computed ? prev : { ...prev, callNumber: computed }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.specialCode, form.authorCode, form.volume, form.copyNumber, material?.classNumber]);
+
   function selectCopy(copy: CopyItem) {
     setSelectedCopyId(copy.id);
     setForm({
@@ -355,12 +382,13 @@ function CopiesPageInner() {
     }
   }
 
-  // 등록번호·상태·청구기호·별치기호·소장처, 이 5개 항목이 모두 채워졌는지 확인합니다.
+  // 등록번호·상태·청구기호·저자기호·별치기호·소장처, 이 6개 항목이 모두 채워졌는지 확인합니다.
   function validateRequiredFields(): boolean {
     if (
       !form.registrationNo.trim() ||
       !form.status.trim() ||
       !form.callNumber.trim() ||
+      !form.authorCode.trim() ||
       !form.specialCode.trim() ||
       !form.location.trim()
     ) {
@@ -640,15 +668,16 @@ function CopiesPageInner() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.callNumber")} *</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.callNumber")}</span>
                 <input
                   value={form.callNumber}
-                  onChange={(e) => setForm({ ...form, callNumber: e.target.value })}
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                  readOnly
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.authorCode")}</span>
+                <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.authorCode")} *</span>
                 <input
                   value={form.authorCode}
                   onChange={(e) => setForm({ ...form, authorCode: e.target.value })}

@@ -71,7 +71,7 @@ export function extractColumns(marc: MarcField[]) {
     publisher: one("260", "b"),                // 발행처
     pubYear: one("260", "c"),                  // 발행년
     isbn: one("020", "a"),                     // ISBN
-    classNumber: one("056", "a"),              // 분류기호
+    classNumber: one("056", "a") || one("090", "a"), // 분류기호 (056 ▼a가 없으면 090 ▼a를 대신 씁니다)
     format: cleanTag("300") || undefined,      // 형태사항
     subject: subjects || undefined,            // 주제어
     language: one("041", "a") || languageFrom008 || undefined, // 언어(041 없으면 008로 대체)
