@@ -92,6 +92,22 @@ function openAddressSearch(onSelect: (address: string) => void) {
   }).open();
 }
 
+// 회원 상태에 따라 글자 색을 다르게 보여주기 위한 도우미 함수입니다.
+function statusColorClass(status: string | undefined) {
+  switch (status) {
+    case "ACTIVE":
+      return "text-blue-600";
+    case "PENDING":
+      return "text-yellow-600";
+    case "SUSPENDED":
+      return "text-orange-600";
+    case "WITHDRAWN":
+      return "text-red-600";
+    default:
+      return "";
+  }
+}
+
 export default function MembersPage() {
   const { notify } = useNotify();
   const { t } = useI18n();
@@ -110,6 +126,7 @@ export default function MembersPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [restrictionForm, setRestrictionForm] = useState({ endDate: "", reason: "" });
 
   const [memberTypes, setMemberTypes] = useState<MemberType[]>([]);
 
@@ -169,6 +186,7 @@ export default function MembersPage() {
   async function openAddModal() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, memberTypeId: memberTypes[0] ? String(memberTypes[0].id) : "" });
+    setRestrictionForm({ endDate: "", reason: "" });
     setShowForm(true);
 
     const token = localStorage.getItem("token");
@@ -205,6 +223,7 @@ export default function MembersPage() {
         ? String(memberTypes[0].id)
         : "",
     });
+    setRestrictionForm({ endDate: "", reason: "" });
     setShowForm(true);
   }
 
@@ -293,6 +312,37 @@ export default function MembersPage() {
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("members.form.saveFail")), "error");
+    }
+  }
+
+  // '등록' 버튼을 눌렀을 때 호출됩니다. 이 회원에게 새 정지 기록을 남기고, 상태를 '정지'로 바꿉니다.
+  async function handleAddRestriction() {
+    if (!editingId) return;
+    if (!restrictionForm.endDate) {
+      notify("❌ " + t("members.restriction.endDateRequired"), "error");
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const res = await fetch(`${API_URL}/loan-restrictions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        userId: editingId,
+        endDate: restrictionForm.endDate,
+        reason: restrictionForm.reason.trim() || undefined,
+      }),
+    });
+
+    if (res.ok) {
+      notify("✅ " + t("members.restriction.saveSuccess"), "success");
+      setRestrictionForm({ endDate: "", reason: "" });
+      setForm((prev) => ({ ...prev, status: "SUSPENDED" }));
+      await fetchList(page, pageSize, filters);
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("members.restriction.saveFail")), "error");
     }
   }
 
@@ -396,7 +446,7 @@ export default function MembersPage() {
                 <td className="whitespace-nowrap px-4 py-2.5">{row.memberNo || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{t(`members.role.${row.role}`)}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.memberType?.name || "-"}</td>
-                <td className="whitespace-nowrap px-4 py-2.5">
+                <td className={`whitespace-nowrap px-4 py-2.5 font-semibold ${statusColorClass(row.status)}`}>
                   {t(`members.status.${row.status}`)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
@@ -704,6 +754,7 @@ export default function MembersPage() {
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                   </label>
+
                   <label className="block">
                     <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.status")}</span>
                     <select
@@ -718,6 +769,41 @@ export default function MembersPage() {
                       ))}
                     </select>
                   </label>
+
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                    <p className="mb-2 text-sm font-semibold text-orange-700">
+                      {t("members.restriction.formTitle")}
+                    </p>
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-neutral-500">
+                        {t("members.restriction.field.endDate")} *
+                      </span>
+                      <input
+                        type="date"
+                        value={restrictionForm.endDate}
+                        onChange={(e) => setRestrictionForm({ ...restrictionForm, endDate: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="mt-2 block">
+                      <span className="mb-1 block text-sm text-neutral-500">
+                        {t("members.restriction.field.reason")}
+                      </span>
+                      <input
+                        value={restrictionForm.reason}
+                        onChange={(e) => setRestrictionForm({ ...restrictionForm, reason: e.target.value })}
+                        placeholder={t("members.restriction.field.reasonPlaceholder")}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAddRestriction}
+                      className="mt-3 w-full cursor-pointer rounded-lg bg-orange-600 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+                    >
+                      {t("members.restriction.addBtn")}
+                    </button>
+                  </div>
                 </>
               )}
 

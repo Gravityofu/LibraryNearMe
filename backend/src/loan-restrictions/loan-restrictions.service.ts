@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 
@@ -9,8 +9,18 @@ export class LoanRestrictionsService {
   constructor(private prisma: PrismaService) {}
 
   // 대출제한 기록을 새로 만들고, 회원 상태를 '정지'로 바꿉니다.
-  // (실제로 이 함수를 호출하는 "반납 처리(연체 계산)" 기능은 다음 단계에서 만듭니다.)
+  // (관리자가 '회원 정보 수정' 모달에서 직접 등록하거나, 나중에 "반납 처리(연체 계산)"
+  // 기능에서 자동으로 호출할 수 있습니다.)
   async createRestriction(libraryId: number, userId: number, endDate: Date, reason?: string) {
+    if (Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException('제한 종료일이 올바르지 않습니다.');
+    }
+
+    const member = await this.prisma.user.findFirst({ where: { id: userId, libraryId } });
+    if (!member) {
+      throw new NotFoundException('해당 회원을 찾을 수 없습니다.');
+    }
+
     const [restriction] = await this.prisma.$transaction([
       this.prisma.loanRestriction.create({
         data: { libraryId, userId, endDate, reason },
