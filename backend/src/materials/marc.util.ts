@@ -106,17 +106,34 @@ export function parseIso2709(buf: Buffer): MarcField[] {
   // latin1로 옮겨둔 조각을 진짜 한글(UTF-8)로 되돌리는 함수. 실제 "내용"을 읽을 때만 이걸 씁니다.
   const toUtf8 = (s: string) => Buffer.from(s, "latin1").toString("utf8");
 
-  const fields: MarcField[] = [];
-
+  // 목차(directory)에서는 "태그 이름이 어떤 순서로 나오는지"만 사용합니다.
+  // 목차에 적힌 시작 위치/길이 숫자는 KOLIS-NET이 원본 인코딩(EUC-KR 등) 기준 바이트 수로
+  // 계산해 둔 값인데, 실제로 우리에게 오는 내용물은 UTF-8로 다시 인코딩되어 있어서
+  // 한글이 나오는 순간부터 "숫자로 계산한 위치"와 "진짜 위치"가 어긋납니다.
+  // (이게 245번 태그부터 깨지던 원인입니다.)
+  const tags: string[] = [];
   for (let i = 0; i + 12 <= directory.length; i += 12) {
     const entry = directory.substring(i, i + 12);
     const tag = entry.substring(0, 3);
-    const length = parseInt(entry.substring(3, 7), 10);
-    const start = parseInt(entry.substring(7, 12), 10);
-    if (!tag || Number.isNaN(length) || Number.isNaN(start)) continue;
+    if (tag) tags.push(tag);
+  }
 
-    let content = dataArea.substr(start, length);
-    if (content.endsWith(FT)) content = content.slice(0, -1);
+  // 숫자 위치를 믿는 대신, 실제 내용물을 필드 구분자(FT)로 그대로 나눠서
+  // 위에서 뽑은 태그 순서와 하나씩 순서대로 짝지어줍니다.
+  // FT/US는 한글이 몇 바이트로 인코딩되든 상관없이 항상 고정된 특수 문자이기 때문에,
+  // 이 방법은 인코딩이 무엇이든 흔들리지 않고 정확하게 각 태그의 경계를 찾아냅니다.
+  const rawContents = dataArea.split(FT);
+  // 맨 끝 조각은 레코드 종결 문자(RT, \x1d)만 남은 빈 조각이라 버립니다.
+  if (rawContents.length && rawContents[rawContents.length - 1].replace(/\x1d/g, "") === "") {
+    rawContents.pop();
+  }
+
+  const fields: MarcField[] = [];
+
+  tags.forEach((tag, idx) => {
+    let content = rawContents[idx];
+    if (content === undefined) return; // 혹시 개수가 안 맞으면 그 태그는 건너뜁니다.
+    content = content.replace(/\x1d$/, ""); // 혹시 마지막 필드 끝에 RT가 붙어 있으면 제거
 
     if (tag.startsWith("00")) {
       fields.push({ tag, ind1: " ", ind2: " ", value: toUtf8(content) });
@@ -131,7 +148,7 @@ export function parseIso2709(buf: Buffer): MarcField[] {
         .join("");
       fields.push({ tag, ind1, ind2, value });
     }
-  }
+  });
 
   return fields;
 }
