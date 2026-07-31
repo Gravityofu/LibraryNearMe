@@ -51,6 +51,10 @@ type MaterialType = {
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const COLUMN_COUNT = 11;
 
+// 마지막으로 검색했던 조건/페이지를 기억해두는 저장소 이름입니다.
+// (sessionStorage는 같은 탭 안에서만 유지되고, 탭을 닫으면 사라집니다.)
+const SEARCH_STATE_KEY = "lnm-materials-list-search";
+
 export default function MaterialsListPage() {
   const router = useRouter();
   const { notify } = useNotify();
@@ -86,6 +90,22 @@ export default function MaterialsListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 이 화면이 새로 열릴 때, 이전에 검색했던 조건이 저장되어 있으면 그 조건으로 자동으로 다시 검색합니다.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SEARCH_STATE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.filters) {
+        setFilters(parsed.filters);
+        fetchList(parsed.page || 1, parsed.pageSize || 10, parsed.filters);
+      }
+    } catch {
+      // 저장된 내용이 이상하면 그냥 무시하고 처음 화면 그대로 둡니다.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function fetchList(p: number, size: number, f: Filters) {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -102,6 +122,7 @@ export default function MaterialsListPage() {
     const res = await fetch(`${API_URL}/copies?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (res.ok) {
       const data = await res.json();
       setRows(data.items);
@@ -109,10 +130,15 @@ export default function MaterialsListPage() {
       setPage(data.page);
       setPageSize(data.pageSize);
       setHasSearched(true);
+
+      // 이번에 검색한 조건과 페이지를 저장해둡니다. 나중에 이 화면에 다시 돌아왔을 때 그대로 복원합니다.
+      sessionStorage.setItem(
+        SEARCH_STATE_KEY,
+        JSON.stringify({ filters: f, page: data.page, pageSize: data.pageSize }),
+      );
     } else {
       notify("❌ " + t("materials.list.searchFail"), "error");
     }
-  }
 
   function applyDetailSearch() {
     const f: Filters = {
