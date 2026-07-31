@@ -258,7 +258,9 @@ export default function NewMaterialPage() {
           >
             {t("materials.new.tagHelpBtn")}
           </button>
-          <AdminBackButton href="/admin/materials/list" />
+          {step === "category" && <AdminBackButton href="/admin/materials/list" />}
+          {step === "subtype" && <AdminBackButton onClick={backToCategory} />}
+          {step === "form" && <AdminBackButton onClick={backToSubtype} />}
         </div>
       </div>
 
@@ -286,14 +288,9 @@ export default function NewMaterialPage() {
 
       {step === "subtype" && (
         <div>
-          <button
-            type="button"
-            onClick={backToCategory}
-            className="mb-3 cursor-pointer text-sm text-neutral-500 hover:underline"
-          >
-            ← {t("materials.new.step.backToCategory")}
-          </button>
           <p className="mb-3 text-sm font-semibold">{t("materials.new.step.subtypeTitle")}</p>
+
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {materialTypes
               .filter((m) => m.category === category)
@@ -313,13 +310,6 @@ export default function NewMaterialPage() {
 
       {step === "form" && selected && (
         <div>
-          <button
-            type="button"
-            onClick={backToSubtype}
-            className="mb-3 cursor-pointer text-sm text-neutral-500 hover:underline"
-          >
-            ← {t("materials.new.step.backToSubtype")}
-          </button>
           <p className="mb-4 text-sm font-semibold">
             {t("materials.new.typeLabel")}: {lang === "ko" ? selected.nameKo : selected.nameEn}
           </p>
