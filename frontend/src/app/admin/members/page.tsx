@@ -48,6 +48,31 @@ const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const STATUS_VALUES = ["ACTIVE", "PENDING", "SUSPENDED", "WITHDRAWN"];
 const COLUMN_COUNT = 10;
 
+// 정규식에서 특별한 의미를 가지는 글자(. * + ? 등)를 그냥 글자 그대로 찾도록 앞에 \를 붙여줍니다.
+function escapeForSearch(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// text 안에서 query와 일치하는 부분을 찾아 굵게 표시합니다. (대소문자 구분 안 함)
+function Highlight({ text, query }: { text: string; query?: string }) {
+  if (!query || !query.trim() || !text) return <>{text}</>;
+  const q = query.trim();
+  const parts = text.split(new RegExp(`(${escapeForSearch(q)})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <strong key={i} className="font-bold">
+            {part}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 const EMPTY_FORM = {
   loginId: "",
   password: "",
@@ -203,6 +228,19 @@ export default function MembersPage() {
     setPageSize(size);
     if (hasSearched) fetchList(1, size, filters);
   }
+
+  // 지금 적용된 검색 조건(filters)을 사람이 읽을 수 있는 문구로 만들어줍니다.
+  function buildSearchSummary(f: Filters): string {
+    const parts: string[] = [];
+    if (f.name) parts.push(`${t("members.list.field.name")} '${f.name}'`);
+    if (f.phone) parts.push(`${t("members.list.field.phone")} '${f.phone}'`);
+    if (f.loginId) parts.push(`${t("members.list.field.loginId")} '${f.loginId}'`);
+    if (f.memberNo) parts.push(`${t("members.list.field.memberNo")} '${f.memberNo}'`);
+    if (f.status) parts.push(`${t("members.list.field.status")} '${t(`members.status.${f.status}`)}'`);
+    return parts.join(", ");
+  }
+
+  const searchSummary = hasSearched ? buildSearchSummary(filters) : "";
 
   // 이 회원의 정지 이력 전체를 새로 불러옵니다.
   async function loadRestrictions(userId: number) {
@@ -470,6 +508,13 @@ export default function MembersPage() {
         >
           {t("members.list.detailSearch")}
         </button>
+
+        {searchSummary && (
+          <span className="ml-2 text-sm text-neutral-500">
+            {t("members.list.searchSummaryLabel")}: {searchSummary}
+          </span>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-neutral-500">{t("members.list.pageSizeLabel")}</span>
           <select
@@ -528,11 +573,19 @@ export default function MembersPage() {
                 className="cursor-pointer hover:bg-neutral-50"
               >
                 <td className="whitespace-nowrap px-4 py-2.5">{(page - 1) * pageSize + i + 1}</td>
-                <td className="whitespace-nowrap px-4 py-2.5">{row.loginId || "-"}</td>
-                <td className="whitespace-nowrap px-4 py-2.5">{row.name}</td>
-                <td className="whitespace-nowrap px-4 py-2.5">{row.phone || "-"}</td>
+                <td className="whitespace-nowrap px-4 py-2.5">
+                  {row.loginId ? <Highlight text={row.loginId} query={filters.loginId} /> : "-"}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5">
+                  <Highlight text={row.name} query={filters.name} />
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5">
+                  {row.phone ? <Highlight text={row.phone} query={filters.phone} /> : "-"}
+                </td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.email || "-"}</td>
-                <td className="whitespace-nowrap px-4 py-2.5">{row.memberNo || "-"}</td>
+                <td className="whitespace-nowrap px-4 py-2.5">
+                  {row.memberNo ? <Highlight text={row.memberNo} query={filters.memberNo} /> : "-"}
+                </td>
                 <td className="whitespace-nowrap px-4 py-2.5">{t(`members.role.${row.role}`)}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.memberType?.name || "-"}</td>
                 <td className={`whitespace-nowrap px-4 py-2.5 font-semibold ${statusColorClass(row.status)}`}>

@@ -51,6 +51,31 @@ type MaterialType = {
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const COLUMN_COUNT = 11;
 
+// 정규식에서 특별한 의미를 가지는 글자(. * + ? 등)를 그냥 글자 그대로 찾도록 앞에 \를 붙여줍니다.
+function escapeForSearch(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// text 안에서 query와 일치하는 부분을 찾아 굵게 표시합니다. (대소문자 구분 안 함)
+function Highlight({ text, query }: { text: string; query?: string }) {
+  if (!query || !query.trim() || !text) return <>{text}</>;
+  const q = query.trim();
+  const parts = text.split(new RegExp(`(${escapeForSearch(q)})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <strong key={i} className="font-bold">
+            {part}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 // 마지막으로 검색했던 조건/페이지를 기억해두는 저장소 이름입니다.
 // (sessionStorage는 같은 탭 안에서만 유지되고, 탭을 닫으면 사라집니다.)
 const SEARCH_STATE_KEY = "lnm-materials-list-search";
@@ -175,6 +200,25 @@ export default function MaterialsListPage() {
     }
   }
 
+  // 지금 적용된 검색 조건(filters)을 사람이 읽을 수 있는 문구로 만들어줍니다.
+  function buildSearchSummary(f: Filters): string {
+    const parts: string[] = [];
+    if (f.type) {
+      const typeInfo = materialTypes.find((m) => m.code === f.type);
+      const name = typeInfo ? (lang === "ko" ? typeInfo.nameKo ?? f.type : typeInfo.nameEn ?? f.type) : f.type;
+      parts.push(`${t("materials.new.typeLabel")} '${name}'`);
+    }
+    if (f.title) parts.push(`${t("materials.new.field.title")} '${f.title}'`);
+    if (f.creator) parts.push(`${t("materials.new.field.creator")} '${f.creator}'`);
+    if (f.subject) parts.push(`${t("materials.new.field.subject")} '${f.subject}'`);
+    if (f.registrationNos && f.registrationNos.length > 0) {
+      parts.push(`${t("materials.list.col.registrationNo")} '${f.registrationNos.join(", ")}'`);
+    }
+    return parts.join(", ");
+  }
+
+  const searchSummary = hasSearched ? buildSearchSummary(filters) : "";
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -196,6 +240,12 @@ export default function MaterialsListPage() {
         >
           {t("materials.list.regNoSearch")}
         </button>
+
+        {searchSummary && (
+          <span className="ml-2 text-sm text-neutral-500">
+            {t("materials.list.searchSummaryLabel")}: {searchSummary}
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-neutral-500">{t("materials.list.pageSizeLabel")}</span>
@@ -274,9 +324,27 @@ export default function MaterialsListPage() {
                       {lang === "ko" ? typeInfo?.nameKo ?? row.material.type : typeInfo?.nameEn ?? row.material.type}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.materialId}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5">{row.registrationNo || "-"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5">{row.material.title}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5">{row.material.creator || "-"}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      {row.registrationNo ? (
+                        filters.registrationNos && filters.registrationNos.length > 0 ? (
+                          <strong className="font-bold">{row.registrationNo}</strong>
+                        ) : (
+                          row.registrationNo
+                        )
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      <Highlight text={row.material.title} query={filters.title} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      {row.material.creator ? (
+                        <Highlight text={row.material.creator} query={filters.creator} />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.material.publisher || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.material.pubYear || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.volume || "-"}</td>
