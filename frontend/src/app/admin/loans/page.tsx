@@ -142,12 +142,16 @@ export default function AdminLoansPage() {
   // 대출 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
   const [loanErrorMessage, setLoanErrorMessage] = useState<string | null>(null);
 
-  // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다.
+  // 지금 어느 탭('checkout' 대출 / 'return' 반납)이 열려 있는지 직접 관리합니다.
+  // 반납 탭으로 넘어왔을 때 등록번호 입력폼으로 커서를 자동으로 옮기기 위해 필요합니다.
+  const [activeTab, setActiveTab] = useState("checkout");
+
+  // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다. (대출 탭용)
   const hiddenDateInputRef = useRef<HTMLInputElement>(null);
 
-  // '대출/반납일 변경' 버튼을 눌렀을 때 호출됩니다. 보이지 않는 달력 입력 칸의 달력 팝업을 엽니다.
-  function openDatePicker() {
-    const el = hiddenDateInputRef.current;
+  // '대출/반납일 변경' 버튼을 눌렀을 때 호출됩니다. 넘겨받은 입력 칸의 달력 팝업을 엽니다.
+  function openDatePicker(ref: { current: HTMLInputElement | null }) {
+    const el = ref.current;
     if (!el) return;
     if (typeof el.showPicker === "function") {
       el.showPicker();
@@ -156,6 +160,110 @@ export default function AdminLoansPage() {
       el.focus();
       el.click();
     }
+  }
+
+  // ── 여기부터는 '반납' 탭에서만 쓰는 상태와 함수들입니다. ──
+
+  // 반납일 변경(대출 탭의 '대출일 변경'과 같은 방식)
+  const [returnDateStr, setReturnDateStr] = useState(todayStr());
+  const lastValidReturnDateRef = useRef(todayStr());
+  const returnHiddenDateInputRef = useRef<HTMLInputElement>(null);
+
+  // 등록번호 입력
+  const [returnRegistrationNo, setReturnRegistrationNo] = useState("");
+  const [returnProcessing, setReturnProcessing] = useState(false);
+  const returnRegistrationInputRef = useRef<HTMLInputElement>(null);
+  const returnQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // 방금 반납된 자료를 대출했던 회원의 정보, 방금 반납된 자료 1건, 그 회원이 아직 대출 중인 나머지 자료 목록
+  const [returnMember, setReturnMember] = useState<Member | null>(null);
+  const [returnedItem, setReturnedItem] = useState<LoanRecord | null>(null);
+  const [returnActiveLoans, setReturnActiveLoans] = useState<LoanRecord[]>([]);
+  const [returnRestrictions, setReturnRestrictions] = useState<RestrictionRecord[]>([]);
+  const [showReturnRestrictionModal, setShowReturnRestrictionModal] = useState(false);
+
+  // 반납 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
+  const [returnErrorMessage, setReturnErrorMessage] = useState<string | null>(null);
+
+  // 반납 탭으로 넘어올 때마다 등록번호 입력폼으로 커서를 옮깁니다.
+  useEffect(() => {
+    if (activeTab === "return") {
+      returnRegistrationInputRef.current?.focus();
+    }
+  }, [activeTab]);
+
+  // 반납일 입력 칸에서 포커스가 빠져나갈 때 호출됩니다. (대출 탭의 handleLoanDateBlur와 같은 방식)
+  function handleReturnDateBlur() {
+    if (isValidDateStr(returnDateStr)) {
+      lastValidReturnDateRef.current = returnDateStr;
+    } else {
+      setReturnDateStr(lastValidReturnDateRef.current);
+      setShowDateFormatError(true);
+    }
+  }
+
+  // 방금 반납한 자료를 대출했던 회원의 대출제한 이력을 불러옵니다.
+  async function loadReturnRestrictions(memberId: number) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/loan-restrictions/${memberId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setReturnRestrictions(await res.json());
+    }
+  }
+
+  // 실제로 서버에 반납 요청을 보내는 부분입니다. 큐에서 하나씩 순서대로 처리됩니다.
+  async function processReturn(regNo: string) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setReturnProcessing(true);
+    try {
+      const res = await fetch(`${API_URL}/loans/return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ registrationNo: regNo, returnDate: returnDateStr }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        // 반납 처리 알림창은 띄우지 않습니다. 목록 맨 위에 옅은 녹색 "반납완료"로 표시되는 것으로
+        // 반납 처리가 잘 됐다는 걸 알 수 있습니다.
+        setReturnedItem({
+          id: data.id,
+          loanDate: data.loanDate,
+          dueDate: data.dueDate,
+          renewCount: data.renewCount,
+          copy: data.copy,
+        });
+        setReturnMember(data.member);
+        await loadReturnRestrictions(data.member.id);
+
+        // 이 회원이 아직 대출 중인 나머지 자료를 반납예정일이 가까운 순서로 불러옵니다.
+        const activeRes = await fetch(`${API_URL}/loans/members/${data.member.id}/active`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (activeRes.ok) {
+          const active: LoanRecord[] = await activeRes.json();
+          active.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+          setReturnActiveLoans(active);
+        }
+      } else {
+        setReturnErrorMessage(data?.message || regNo);
+      }
+    } finally {
+      setReturnProcessing(false);
+      returnRegistrationInputRef.current?.focus();
+    }
+  }
+
+  // 등록번호 입력창에서 Enter를 누르면 호출됩니다.
+  function handleReturnSubmit() {
+    const regNo = returnRegistrationNo.trim();
+    if (!regNo) return;
+    setReturnRegistrationNo("");
+    returnQueueRef.current = returnQueueRef.current.then(() => processReturn(regNo));
   }
 
   // 선택된 회원이 지금 대출 중인 자료 목록을 새로 불러옵니다.
@@ -332,7 +440,7 @@ export default function AdminLoansPage() {
 
   return (
     <div className="p-6">
-      <Tabs defaultValue="checkout">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="gap-2">
           <TabsTrigger value="checkout">{t("loans.tabs.checkout")}</TabsTrigger>
           <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
@@ -352,7 +460,7 @@ export default function AdminLoansPage() {
             <div className="flex items-stretch rounded-lg border border-neutral-300">
               <button
                 type="button"
-                onClick={openDatePicker}
+                onClick={() => openDatePicker(hiddenDateInputRef)}
                 className="cursor-pointer rounded-l-lg border-r border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-medium hover:bg-neutral-200"
               >
                 {t("loans.dateOverride.btn")}
@@ -533,9 +641,162 @@ export default function AdminLoansPage() {
         </TabsContent>
 
         <TabsContent value="return" className="mt-4">
-          <p className="rounded-lg border border-dashed border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-500">
-            {t("loans.return.comingSoon")}
-          </p>
+          {/* 상단: 반납일 변경 */}
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+            <div className="flex items-stretch rounded-lg border border-neutral-300">
+              <button
+                type="button"
+                onClick={() => openDatePicker(returnHiddenDateInputRef)}
+                className="cursor-pointer rounded-l-lg border-r border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-medium hover:bg-neutral-200"
+              >
+                {t("loans.dateOverride.btn")}
+              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={returnDateStr}
+                  onChange={(e) => setReturnDateStr(formatDateInput(e.target.value))}
+                  onFocus={(e) => e.target.select()}
+                  onBlur={handleReturnDateBlur}
+                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                  placeholder={t("loans.dateOverride.placeholder")}
+                  className="h-full w-32 rounded-r-lg border-0 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
+                />
+                {/* 화면에는 보이지 않는 달력 입력 칸입니다. 버튼을 누르면 이 칸의 달력 팝업만 뜹니다. */}
+                <input
+                  ref={returnHiddenDateInputRef}
+                  type="date"
+                  value={returnDateStr}
+                  onChange={(e) => {
+                    const next = e.target.value || todayStr();
+                    setReturnDateStr(next);
+                    lastValidReturnDateRef.current = next;
+                  }}
+                  tabIndex={-1}
+                  className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-10">
+            {/* 왼쪽: 자료 등록번호 입력만 (회원 검색 없음) (전체 가로폭의 4/10) */}
+            <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-4">
+              <p className="mb-2 text-sm font-semibold">{t("loans.return.boxTitle")}</p>
+              <span className="mb-1 block text-sm text-neutral-500">{t("loans.registrationNo.label")}</span>
+              <input
+                ref={returnRegistrationInputRef}
+                value={returnRegistrationNo}
+                onChange={(e) => setReturnRegistrationNo(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleReturnSubmit()}
+                placeholder={t("loans.registrationNo.placeholder")}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+              />
+              {returnProcessing && <p className="mt-2 text-xs text-neutral-400">{t("loans.processing")}</p>}
+            </div>
+
+            {/* 오른쪽: 회원 정보 (방금 반납한 자료를 대출했던 회원) (전체 가로폭의 6/10) */}
+            <div className="rounded-lg border border-neutral-200 bg-white p-4 md:col-span-6">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-semibold">{t("loans.member.info.title")}</p>
+                {returnMember && (
+                  <button
+                    type="button"
+                    onClick={() => setShowReturnRestrictionModal(true)}
+                    className="cursor-pointer rounded border px-2 py-1 text-xs"
+                  >
+                    {t("loans.member.restrictionHistoryBtn")}
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-x-6">
+                <div className="flex flex-col">
+                  <InfoRow label={t("members.form.field.name")} value={returnMember?.name || "-"} />
+                  <InfoRow label={t("members.form.field.memberNo")} value={returnMember?.memberNo || "-"} />
+                  <InfoRow label={t("members.form.field.phone")} value={returnMember?.phone || "-"} />
+                  <InfoRow
+                    label={t("members.form.field.status")}
+                    value={returnMember ? t(`members.status.${returnMember.status}`) : "-"}
+                    valueClassName={statusColorClass(returnMember?.status)}
+                  />
+                  {returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) && (
+                    <p className="pb-1.5 text-right text-xs text-orange-600">
+                      {addOneDay(
+                        (returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) as RestrictionRecord)
+                          .endDate,
+                      )}
+                      {t("loans.restriction.badge.availableFrom")}
+                      {t("loans.restriction.badge.reason")}
+                      {(returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) as RestrictionRecord)
+                        .reason || "-"}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <InfoRow
+                    label={t("members.form.field.memberType")}
+                    value={returnMember?.memberType?.name || "-"}
+                  />
+                  <InfoRow
+                    label={t("members.form.field.birthDate")}
+                    value={returnMember?.birthDate ? returnMember.birthDate.slice(0, 10) : "-"}
+                  />
+                  <InfoRow label={t("members.form.field.email")} value={returnMember?.email || "-"} />
+                  <InfoRow label={t("members.form.field.address")} value={returnMember?.address || "-"} />
+                </div>
+              </div>
+            </div>
+
+            {/* 아래: 대출 자료 목록과 같은 위치, 배경색만 다르게 (연한 보라색) */}
+            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 md:col-span-10">
+              <p className="mb-2 text-sm font-semibold">{t("loans.history.title")}</p>
+              {!returnedItem && returnActiveLoans.length === 0 ? (
+                <p className="text-sm text-neutral-400">{t("loans.history.empty")}</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-purple-100 bg-white">
+                  <table className="w-full min-w-[820px] text-left text-sm">
+                    <thead className="bg-neutral-100 text-neutral-500">
+                      <tr>
+                        <th className="px-3 py-2">{t("loans.list.col.no")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.regNo")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.title")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.callNumber")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.volume")}</th>
+                        <th className="px-3 py-2">{t("materials.copies.copyNumber")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.loanDate")}</th>
+                        <th className="px-3 py-2">{t("loans.dueDateLabel")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.copyStatus")}</th>
+                        <th className="px-3 py-2">{t("loans.list.col.renewCount")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {/* 방금 반납한 자료를 맨 위에, 그 아래로 이 회원이 아직 대출 중인 자료를 반납예정일이 가까운 순으로 보여줍니다. */}
+                      {[...(returnedItem ? [returnedItem] : []), ...returnActiveLoans].map((item, i) => (
+                        <tr key={item.id} className={item.id === returnedItem?.id ? "bg-green-50" : undefined}>
+                          <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
+                          <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
+                          <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.callNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.volume || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                            {new Date(item.loanDate).toLocaleDateString()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                            {new Date(item.dueDate).toLocaleDateString()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                            {item.id === returnedItem?.id ? t("loans.return.status.completed") : item.copy.status}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.renewCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -746,6 +1007,77 @@ export default function AdminLoansPage() {
             <button
               type="button"
               onClick={() => setLoanErrorMessage(null)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 반납 실패 안내 모달 (등록번호가 잘못되었거나, 대출 중인 자료가 아닌 경우 서버가 알려주는 이유를 보여줍니다) */}
+      {returnErrorMessage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setReturnErrorMessage(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold text-red-600">{t("loans.return.error.title")}</p>
+            <p className="text-sm text-neutral-600">{returnErrorMessage}</p>
+            <button
+              type="button"
+              onClick={() => setReturnErrorMessage(null)}
+              className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 반납 탭에서 보는 정지 이력 모달 (대출 탭의 정지 이력 모달과 같은 모양입니다) */}
+      {showReturnRestrictionModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowReturnRestrictionModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("loans.restrictionHistory.modalTitle")}</p>
+
+            {returnRestrictions.length === 0 ? (
+              <p className="text-sm text-neutral-400">{t("loans.restrictionHistory.empty")}</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-neutral-100 text-neutral-500">
+                    <tr>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.startDate")}</th>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.endDate")}</th>
+                      <th className="px-3 py-2">{t("loans.restrictionHistory.col.reason")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {returnRestrictions.map((r) => (
+                      <tr key={r.id}>
+                        <td className="whitespace-nowrap px-3 py-2">{r.startDate.slice(0, 10)}</td>
+                        <td className="whitespace-nowrap px-3 py-2">{r.endDate.slice(0, 10)}</td>
+                        <td className="px-3 py-2">{r.reason || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowReturnRestrictionModal(false)}
               className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
             >
               {t("loans.member.closeBtn")}

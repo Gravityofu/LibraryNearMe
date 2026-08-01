@@ -5,6 +5,15 @@ import { LoanRestrictionsService } from '../loan-restrictions/loan-restrictions.
 const AVAILABLE = '대출가능';
 const ON_LOAN = '대출중';
 
+// 날짜(연/월/일)는 date에서, 시각(시/분/초)은 지금 이 순간에서 가져와 합칩니다.
+// '대출/반납일 변경'으로 다른 날짜를 지정해도, 실제로 처리한 시각은 정확하게 기록하기 위해 씁니다.
+function combineDateWithNow(date: Date): Date {
+  const now = new Date();
+  const combined = new Date(date);
+  combined.setUTCHours(now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds());
+  return combined;
+}
+
 @Injectable()
 export class LoansService {
   constructor(
@@ -168,8 +177,11 @@ export class LoansService {
     }
 
     // 7. 모든 조건 통과 → 대출 만들고, 자료 상태를 "대출중"으로 바꾸기
-    const loanDate = loanDateOverride || new Date();
-    const dueDate = new Date(loanDate);
+    // '대출/반납일 변경'으로 다른 날짜를 지정했다면 그 날짜를, 아니라면 오늘 날짜를 기준으로 하되,
+    // 시각(시:분:초)은 항상 지금 처리하는 실제 시각을 기록합니다. 반납예정일은 시각 없이 날짜만 기록합니다.
+    const chosenLoanDate = loanDateOverride || new Date();
+    const loanDate = combineDateWithNow(chosenLoanDate);
+    const dueDate = new Date(chosenLoanDate);
     dueDate.setDate(dueDate.getDate() + materialType.loanPeriodDays);
 
     const [loan] = await this.prisma.$transaction([
@@ -199,6 +211,64 @@ export class LoansService {
       include: { copy: { include: { material: true } } },
       orderBy: { loanDate: 'desc' },
     });
+  }
+
+  // 반납 처리하기: 등록번호 하나를 받아서, 그 자료를 대출 중인 기록을 찾아 반납 처리합니다.
+  // returnDateOverride를 넘기면 오늘 날짜 대신 그 날짜로 반납일이 저장됩니다. ('대출/반납일 변경' 기능용)
+  async returnLoan(libraryId: number, registrationNo: string, returnDateOverride?: Date) {
+    const copy = await this.findCopyByRegistrationNo(libraryId, registrationNo);
+
+    const loan = await this.prisma.loan.findFirst({
+      where: { libraryId, copyId: copy.id, returnedAt: null },
+      include: { user: { include: { memberType: true } } },
+    });
+    if (!loan) {
+      throw new BadRequestException('현재 대출 중인 자료가 아닙니다.');
+    }
+
+    const chosenReturnDate = returnDateOverride || new Date();
+    const returnedAt = combineDateWithNow(chosenReturnDate);
+
+    const [updatedLoan] = await this.prisma.$transaction([
+      this.prisma.loan.update({
+        where: { id: loan.id },
+        data: { returnedAt },
+      }),
+      this.prisma.copy.update({
+        where: { id: copy.id },
+        data: { status: AVAILABLE },
+      }),
+    ]);
+
+    // 화면에서 "방금 반납한 자료" 행과 "이 회원의 정보"를 바로 그릴 수 있도록,
+    // 대출 목록과 같은 모양(copy, material 포함)으로 함께 돌려줍니다.
+    return {
+      id: updatedLoan.id,
+      loanDate: updatedLoan.loanDate,
+      dueDate: updatedLoan.dueDate,
+      renewCount: updatedLoan.renewCount,
+      copy: {
+        registrationNo: copy.registrationNo,
+        callNumber: copy.callNumber,
+        volume: copy.volume,
+        copyNumber: copy.copyNumber,
+        status: AVAILABLE,
+        material: { title: copy.material.title },
+      },
+      member: {
+        id: loan.user.id,
+        name: loan.user.name,
+        phone: loan.user.phone,
+        memberNo: loan.user.memberNo,
+        status: loan.user.status,
+        birthDate: loan.user.birthDate,
+        email: loan.user.email,
+        address: loan.user.address,
+        memberType: loan.user.memberType
+          ? { id: loan.user.memberType.id, name: loan.user.memberType.name }
+          : null,
+      },
+    };
   }
 
   // 이름/회원번호 외에 휴대폰번호/아이디/이메일/주소로도 회원을 찾을 때 씁니다. (상세 검색용)

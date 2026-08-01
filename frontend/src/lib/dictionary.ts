@@ -371,6 +371,9 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.dueDateLabel": "반납예정일",
     "loans.processing": "처리 중...",
     "loans.error.title": "대출할 수 없습니다",
+    "loans.return.boxTitle": "자료 반납",
+    "loans.return.status.completed": "반납완료",
+    "loans.return.error.title": "반납할 수 없습니다",
 
     "settings.materialTypes.sectionPhysical": "실물 자료",
     "settings.materialTypes.sectionDigital": "디지털 자료",
@@ -933,6 +936,9 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.dueDateLabel": "Due Date",
     "loans.processing": "Processing...",
     "loans.error.title": "Unable to Check Out",
+    "loans.return.boxTitle": "Return Item",
+    "loans.return.status.completed": "Returned",
+    "loans.return.error.title": "Unable to Return",
 
     "settings.materialTypes.sectionPhysical": "Physical Materials",
     "settings.materialTypes.sectionDigital": "Digital Materials",

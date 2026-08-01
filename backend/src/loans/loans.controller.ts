@@ -25,6 +25,17 @@ export class LoansController {
     );
   }
 
+  // POST 요청: 반납 처리 — 관리자만
+  @Post('return')
+  @UseGuards(AdminGuard)
+  returnLoan(@Req() req: any, @Body() body: { registrationNo: string; returnDate?: string }) {
+    return this.loansService.returnLoan(
+      req.user.libraryId,
+      body.registrationNo,
+      body.returnDate ? new Date(body.returnDate) : undefined,
+    );
+  }
+
   // GET 요청: 회원의 현재 대출 중인 자료 목록 — 관리자만
   @Get('members/:id/active')
   @UseGuards(AdminGuard)
