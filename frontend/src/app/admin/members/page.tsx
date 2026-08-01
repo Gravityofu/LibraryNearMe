@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Script from "next/script";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 import { BirthDateField, isValidBirthDate } from "@/components/birth-date-field";
@@ -26,6 +27,14 @@ type MemberRow = {
 };
 
 type MemberType = { id: number; name: string };
+
+// 서버에서 내려오는 대출제한 기록 1건의 모양입니다.
+type RestrictionRecord = {
+  id: number;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+};
 
 type Filters = {
   name?: string;
@@ -108,6 +117,14 @@ function statusColorClass(status: string | undefined) {
   }
 }
 
+// 이 정지 이력의 제한 기간(시작일~마지막 날) 안에 오늘 날짜가 포함되어 있는지 확인합니다.
+// (지금 실제로 이 이력 때문에 대출이 막혀 있다는 뜻입니다.)
+function isRestrictionActiveToday(endDate: string) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  return new Date(endDate) >= today;
+}
+
 export default function MembersPage() {
   const { notify } = useNotify();
   const { t } = useI18n();
@@ -127,6 +144,9 @@ export default function MembersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [restrictionForm, setRestrictionForm] = useState({ endDate: "", reason: "" });
+  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
+  const [editingRestrictionId, setEditingRestrictionId] = useState<number | null>(null);
+  const [confirmDeleteRestrictionId, setConfirmDeleteRestrictionId] = useState<number | null>(null);
 
   const [memberTypes, setMemberTypes] = useState<MemberType[]>([]);
 
@@ -183,10 +203,25 @@ export default function MembersPage() {
     if (hasSearched) fetchList(1, size, filters);
   }
 
+  // 이 회원의 정지 이력 전체를 새로 불러옵니다.
+  async function loadRestrictions(userId: number) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/loan-restrictions/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setRestrictions(await res.json());
+    }
+  }
+
   async function openAddModal() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, memberTypeId: memberTypes[0] ? String(memberTypes[0].id) : "" });
     setRestrictionForm({ endDate: "", reason: "" });
+    setEditingRestrictionId(null);
+    setConfirmDeleteRestrictionId(null);
+    setRestrictions([]);
     setShowForm(true);
 
     const token = localStorage.getItem("token");
@@ -224,7 +259,22 @@ export default function MembersPage() {
         : "",
     });
     setRestrictionForm({ endDate: "", reason: "" });
+    setEditingRestrictionId(null);
+    setConfirmDeleteRestrictionId(null);
+    loadRestrictions(row.id);
     setShowForm(true);
+  }
+
+  // 정지 이력 목록에서 하나를 클릭했을 때 호출됩니다. 입력폼에 그 값을 채워서 '수정' 모드로 바꿉니다.
+  function selectRestrictionForEdit(r: RestrictionRecord) {
+    setEditingRestrictionId(r.id);
+    setRestrictionForm({ endDate: r.endDate.slice(0, 10), reason: r.reason || "" });
+  }
+
+  // 정지 이력 수정을 취소하고, 새로 등록하는 빈 폼으로 되돌립니다.
+  function cancelRestrictionEdit() {
+    setEditingRestrictionId(null);
+    setRestrictionForm({ endDate: "", reason: "" });
   }
 
   async function handleSave() {
@@ -315,8 +365,8 @@ export default function MembersPage() {
     }
   }
 
-  // '등록' 버튼을 눌렀을 때 호출됩니다. 이 회원에게 새 정지 기록을 남기고, 상태를 '정지'로 바꿉니다.
-  async function handleAddRestriction() {
+  // '등록'/'수정' 버튼을 눌렀을 때 호출됩니다. editingRestrictionId가 있으면 수정, 없으면 새로 등록합니다.
+  async function handleSaveRestriction() {
     if (!editingId) return;
     if (!restrictionForm.endDate) {
       notify("❌ " + t("members.restriction.endDateRequired"), "error");
@@ -325,24 +375,62 @@ export default function MembersPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const res = await fetch(`${API_URL}/loan-restrictions`, {
-      method: "POST",
+    const isEdit = editingRestrictionId !== null;
+    const url = isEdit
+      ? `${API_URL}/loan-restrictions/${editingRestrictionId}`
+      : `${API_URL}/loan-restrictions`;
+    const body = isEdit
+      ? {
+          endDate: restrictionForm.endDate,
+          reason: restrictionForm.reason.trim() || undefined,
+        }
+      : {
+          userId: editingId,
+          endDate: restrictionForm.endDate,
+          reason: restrictionForm.reason.trim() || undefined,
+        };
+
+    const res = await fetch(url, {
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        userId: editingId,
-        endDate: restrictionForm.endDate,
-        reason: restrictionForm.reason.trim() || undefined,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (res.ok) {
-      notify("✅ " + t("members.restriction.saveSuccess"), "success");
+      notify("✅ " + t(isEdit ? "members.restriction.updateSuccess" : "members.restriction.saveSuccess"), "success");
       setRestrictionForm({ endDate: "", reason: "" });
-      setForm((prev) => ({ ...prev, status: "SUSPENDED" }));
+      setEditingRestrictionId(null);
+      await loadRestrictions(editingId);
       await fetchList(page, pageSize, filters);
     } else {
       const data = await res.json().catch(() => null);
-      notify("❌ " + (data?.message || t("members.restriction.saveFail")), "error");
+      notify("❌ " + (data?.message || t(isEdit ? "members.restriction.updateFail" : "members.restriction.saveFail")), "error");
+    }
+  }
+
+  // 정지 이력 하나를 삭제합니다.
+  async function handleDeleteRestriction(id: number) {
+    if (!editingId) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const res = await fetch(`${API_URL}/loan-restrictions/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      notify("✅ " + t("members.restriction.deleteSuccess"), "success");
+      setConfirmDeleteRestrictionId(null);
+      if (editingRestrictionId === id) {
+        setEditingRestrictionId(null);
+        setRestrictionForm({ endDate: "", reason: "" });
+      }
+      await loadRestrictions(editingId);
+      await fetchList(page, pageSize, filters);
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("members.restriction.deleteFail")), "error");
     }
   }
 
@@ -576,26 +664,88 @@ export default function MembersPage() {
             <p className="mb-4 text-sm font-semibold">
               {editingId ? t("members.form.editTitle") : t("members.form.addTitle")}
             </p>
-            <div className="space-y-3">
 
-              {!editingId && (
+            {/* 기본정보 입력 칸들 (등록/수정 공통 부분입니다) */}
+            {(() => {
+              const basicFields = (
                 <>
                   <label className="block">
-                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.loginId")} *</span>
+                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.name")} *</span>
                     <input
-                      value={form.loginId}
-                      onChange={(e) => setForm({ ...form, loginId: e.target.value })}
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.phone")} *</span>
+                    <input
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
+                      placeholder="000-0000-0000"
+                      inputMode="numeric"
+                      maxLength={13}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.email")}</span>
+                    <input
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.password")} *</span>
+                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberNo")}</span>
                     <input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      value={form.memberNo}
+                      onChange={(e) => setForm({ ...form, memberNo: e.target.value })}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.birthDate")}</span>
+                    <BirthDateField
+                      value={{ year: form.birthYear, month: form.birthMonth, day: form.birthDay }}
+                      onChange={(next) =>
+                        setForm({ ...form, birthYear: next.year, birthMonth: next.month, birthDay: next.day })
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="text-sm text-neutral-500">{t("members.form.field.address")}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openAddressSearch((address) => setForm((prev) => ({ ...prev, addressMain: address, addressDetail: "" })))
+                        }
+                        className="cursor-pointer rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                      >
+                        {t("members.form.findAddressBtn")}
+                      </button>
+                    </div>
+
+                    {form.addressMain && (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          value={form.addressMain}
+                          disabled
+                          className="w-full rounded-lg border bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
+                        />
+                        <input
+                          value={form.addressDetail}
+                          onChange={(e) => setForm({ ...form, addressDetail: e.target.value })}
+                          placeholder={t("members.form.addressDetailPlaceholder")}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </div>
+                    )}
                   </label>
 
                   <label className="block">
@@ -627,152 +777,117 @@ export default function MembersPage() {
                     </label>
                   )}
 
+                  {!editingId && (
+                    <>
+                      <label className="block">
+                        <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.loginId")} *</span>
+                        <input
+                          value={form.loginId}
+                          onChange={(e) => setForm({ ...form, loginId: e.target.value })}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.password")} *</span>
+                        <input
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {editingId && (
+                    <>
+                      <label className="block">
+                        <span className="mb-1 block text-sm text-neutral-500">
+                          {t("members.form.field.newPassword")}
+                        </span>
+                        <input
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          placeholder={t("members.form.field.newPasswordHint")}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.status")}</span>
+                        <select
+                          value={form.status}
+                          onChange={(e) => setForm({ ...form, status: e.target.value })}
+                          className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
+                        >
+                          {STATUS_VALUES.map((s) => (
+                            <option key={s} value={s}>
+                              {t(`members.status.${s}`)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
                 </>
-              )}
+              );
 
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.name")} *</span>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.phone")} *</span>
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
-                  placeholder="000-0000-0000"
-                  inputMode="numeric"
-                  maxLength={13}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.email")}</span>
-                <input
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberNo")}</span>
-                <input
-                  value={form.memberNo}
-                  onChange={(e) => setForm({ ...form, memberNo: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </label>
-              
-              <label className="block">
-                <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.birthDate")}</span>
-                <BirthDateField
-                  value={{ year: form.birthYear, month: form.birthMonth, day: form.birthDay }}
-                  onChange={(next) =>
-                    setForm({ ...form, birthYear: next.year, birthMonth: next.month, birthDay: next.day })
-                  }
-                />
-              </label>
-
-              <label className="block">
-
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="text-sm text-neutral-500">{t("members.form.field.address")}</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openAddressSearch((address) => setForm((prev) => ({ ...prev, addressMain: address, addressDetail: "" })))
-                    }
-                    className="cursor-pointer rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
-                  >
-                    {t("members.form.findAddressBtn")}
-                  </button>
-                </div>
-
-                {form.addressMain && (
-                  <div className="flex flex-col gap-2">
-                    <input
-                      value={form.addressMain}
-                      disabled
-                      className="w-full rounded-lg border bg-neutral-100 px-3 py-2 text-sm text-neutral-500"
-                    />
-                    <input
-                      value={form.addressDetail}
-                      onChange={(e) => setForm({ ...form, addressDetail: e.target.value })}
-                      placeholder={t("members.form.addressDetailPlaceholder")}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-              </label>
-
-              {editingId && (
+              // 정지 이력 관리 화면 (수정할 때만 존재하는 탭입니다)
+              const restrictionTab = (
                 <>
+                  <div className="space-y-2">
+                    {restrictions.length === 0 ? (
+                      <p className="text-sm text-neutral-400">{t("members.restriction.empty")}</p>
+                    ) : (
+                      restrictions.map((r) => (
+                        <div key={r.id} className="rounded-lg border border-neutral-200 p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => selectRestrictionForEdit(r)}
+                              className={`flex-1 cursor-pointer text-left text-sm ${
+                                isRestrictionActiveToday(r.endDate) ? "font-semibold text-orange-600" : "text-neutral-700"
+                              }`}
+                            >
+                              {r.startDate.slice(0, 10)} ~ {r.endDate.slice(0, 10)}
+                              {r.reason ? ` · ${r.reason}` : ""}
+                            </button>
+                            {confirmDeleteRestrictionId === r.id ? (
+                              <div className="flex shrink-0 items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRestriction(r.id)}
+                                  className="cursor-pointer rounded border border-red-300 px-2 py-1 text-xs text-red-600"
+                                >
+                                  {t("members.restriction.deleteConfirmBtn")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteRestrictionId(null)}
+                                  className="cursor-pointer rounded border px-2 py-1 text-xs"
+                                >
+                                  {t("members.restriction.cancelEditBtn")}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteRestrictionId(r.id)}
+                                className="shrink-0 cursor-pointer rounded border border-red-200 px-2 py-1 text-xs text-red-600"
+                              >
+                                {t("members.restriction.deleteBtn")}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
 
-                  <label className="block">
-                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.role")}</span>
-                    <select
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                      className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <option value="MEMBER">{t("members.role.MEMBER")}</option>
-                      <option value="ADMIN">{t("members.role.ADMIN")}</option>
-                    </select>
-                  </label>
-
-                  {form.role === "MEMBER" && (
-                    <label className="block">
-                      <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.memberType")} *</span>
-                      <select
-                        value={form.memberTypeId}
-                        onChange={(e) => setForm({ ...form, memberTypeId: e.target.value })}
-                        className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
-                      >
-                        {memberTypes.map((mt) => (
-                          <option key={mt.id} value={mt.id}>
-                            {mt.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-
-                  <label className="block">
-                    <span className="mb-1 block text-sm text-neutral-500">
-                      {t("members.form.field.newPassword")}
-                    </span>
-                    <input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      placeholder={t("members.form.field.newPasswordHint")}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-sm text-neutral-500">{t("members.form.field.status")}</span>
-                    <select
-                      value={form.status}
-                      onChange={(e) => setForm({ ...form, status: e.target.value })}
-                      className="w-full cursor-pointer rounded-lg border px-3 py-2 text-sm"
-                    >
-                      {STATUS_VALUES.map((s) => (
-                        <option key={s} value={s}>
-                          {t(`members.status.${s}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                  <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3">
                     <p className="mb-2 text-sm font-semibold text-orange-700">
-                      {t("members.restriction.formTitle")}
+                      {editingRestrictionId ? t("members.restriction.editFormTitle") : t("members.restriction.formTitle")}
                     </p>
                     <label className="block">
                       <span className="mb-1 block text-sm text-neutral-500">
@@ -796,34 +911,72 @@ export default function MembersPage() {
                         className="w-full rounded-lg border px-3 py-2 text-sm"
                       />
                     </label>
-                    <button
-                      type="button"
-                      onClick={handleAddRestriction}
-                      className="mt-3 w-full cursor-pointer rounded-lg bg-orange-600 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-                    >
-                      {t("members.restriction.addBtn")}
-                    </button>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveRestriction}
+                        className="flex-1 cursor-pointer rounded-lg bg-orange-600 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+                      >
+                        {editingRestrictionId ? t("members.restriction.editBtn") : t("members.restriction.addBtn")}
+                      </button>
+                      {editingRestrictionId && (
+                        <button
+                          type="button"
+                          onClick={cancelRestrictionEdit}
+                          className="cursor-pointer rounded-lg border px-4 py-2 text-sm"
+                        >
+                          {t("members.restriction.cancelEditBtn")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </>
-              )}
+              );
 
-            </div>
+              const saveAndDeleteButtons = (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
+                  >
+                    {t("members.form.save")}
+                  </button>
 
-            <button
-              onClick={handleSave}
-              className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
-            >
-              {t("members.form.save")}
-            </button>
+                  {editingId && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                    >
+                      {t("members.form.deleteBtn")}
+                    </button>
+                  )}
+                </>
+              );
 
-            {editingId && (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="mt-2 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
-              >
-                {t("members.form.deleteBtn")}
-              </button>
-            )}
+              // 회원을 수정할 때만 탭으로 나누고, 새로 등록할 때는 기본정보만 보여줍니다.
+              if (editingId) {
+                return (
+                  <Tabs defaultValue="info">
+                    <TabsList className="mb-3">
+                      <TabsTrigger value="info">{t("members.form.tabInfo")}</TabsTrigger>
+                      <TabsTrigger value="restriction">{t("members.form.tabRestriction")}</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="info">
+                      <div className="space-y-3">{basicFields}</div>
+                      {saveAndDeleteButtons}
+                    </TabsContent>
+                    <TabsContent value="restriction">{restrictionTab}</TabsContent>
+                  </Tabs>
+                );
+              }
+
+              return (
+                <>
+                  <div className="space-y-3">{basicFields}</div>
+                  {saveAndDeleteButtons}
+                </>
+              );
+            })()}
 
             </div>
           </div>

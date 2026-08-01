@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { LoanRestrictionsService } from './loan-restrictions.service';
 import { AdminGuard } from '../auth/admin.guard';
 
@@ -23,5 +23,24 @@ export class LoanRestrictionsController {
   @UseGuards(AdminGuard)
   findHistory(@Req() req: any, @Param('userId') userId: string) {
     return this.loanRestrictionsService.findHistory(req.user.libraryId, parseInt(userId, 10));
+  }
+
+  // 정지(대출제한) 기록 하나를 수정합니다.
+  @Patch(':id')
+  @UseGuards(AdminGuard)
+  update(@Req() req: any, @Param('id') id: string, @Body() body: { endDate: string; reason?: string }) {
+    return this.loanRestrictionsService.updateRestriction(
+      req.user.libraryId,
+      parseInt(id, 10),
+      new Date(body.endDate),
+      body.reason,
+    );
+  }
+
+  // 정지(대출제한) 기록 하나를 삭제합니다.
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.loanRestrictionsService.removeRestriction(req.user.libraryId, parseInt(id, 10));
   }
 }

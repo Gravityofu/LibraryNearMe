@@ -84,4 +84,47 @@ export class LoanRestrictionsService {
       orderBy: { startDate: 'desc' },
     });
   }
+
+  // 정지 이력 하나를 수정합니다. 수정한 뒤 이 회원의 상태(정지/활성)도 다시 맞춰줍니다.
+  async updateRestriction(libraryId: number, id: number, endDate: Date, reason?: string) {
+    if (Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException('제한 마지막 날이 올바르지 않습니다.');
+    }
+
+    const existing = await this.prisma.loanRestriction.findFirst({ where: { id, libraryId } });
+    if (!existing) {
+      throw new NotFoundException('해당 정지 이력을 찾을 수 없습니다.');
+    }
+
+    await this.prisma.loanRestriction.update({ where: { id }, data: { endDate, reason } });
+    await this.syncMemberStatus(libraryId, existing.userId);
+    return { success: true };
+  }
+
+  // 정지 이력 하나를 삭제합니다. 삭제한 뒤 이 회원의 상태(정지/활성)도 다시 맞춰줍니다.
+  async removeRestriction(libraryId: number, id: number) {
+    const existing = await this.prisma.loanRestriction.findFirst({ where: { id, libraryId } });
+    if (!existing) {
+      throw new NotFoundException('해당 정지 이력을 찾을 수 없습니다.');
+    }
+
+    await this.prisma.loanRestriction.delete({ where: { id } });
+    await this.syncMemberStatus(libraryId, existing.userId);
+    return { success: true };
+  }
+
+  // 이 회원에게 지금 유효한(오늘을 포함한) 정지 이력이 있는지 다시 확인해서,
+  // 있으면 '정지'로, 없으면 '활성'으로 회원 상태를 맞춰줍니다.
+  // (정지 이력을 수정하거나 삭제하면, 회원이 지금도 정지 상태여야 하는지가 바뀔 수 있기 때문입니다.)
+  private async syncMemberStatus(libraryId: number, userId: number) {
+    const active = await this.findActiveRestriction(libraryId, userId);
+    const member = await this.prisma.user.findFirst({ where: { id: userId, libraryId } });
+    if (!member) return;
+
+    if (active && member.status !== 'SUSPENDED') {
+      await this.prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
+    } else if (!active && member.status === 'SUSPENDED') {
+      await this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
+    }
+  }
 }
