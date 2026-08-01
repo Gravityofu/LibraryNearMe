@@ -33,21 +33,32 @@ export class LoanRestrictionsService {
     return restriction;
   }
 
-  // 오늘 날짜의 자정(00:00) 시각을 구합니다.
+  // 주어진 날짜의 자정(00:00) 시각을 구합니다.
   // "제한 마지막 날"은 그 날짜 하루 전체 동안은 계속 막혀 있어야 하므로, 시:분:초가 섞인
-  // "지금 이 순간"이 아니라 "오늘 날짜(자정 기준)"으로 비교해야 정확합니다.
-  private todayStart(): Date {
-    const d = new Date();
+  // "그 순간"이 아니라 "날짜(자정 기준)"으로 비교해야 정확합니다.
+  private dayStart(date: Date): Date {
+    const d = new Date(date);
     d.setUTCHours(0, 0, 0, 0);
     return d;
   }
 
+  // 오늘 날짜의 자정(00:00) 시각을 구합니다.
+  private todayStart(): Date {
+    return this.dayStart(new Date());
+  }
+
   // 지금 이 회원에게 아직 끝나지 않은(유효한) 대출제한이 있는지 확인합니다.
-  // "제한 마지막 날"이 오늘이거나 오늘보다 나중이면 아직 제한 중인 것으로 봅니다.
-  async findActiveRestriction(libraryId: number, userId: number) {
-    const today = this.todayStart();
+  // "제한 마지막 날"이 기준일이거나 기준일보다 나중이면 아직 제한 중인 것으로 봅니다.
+  //
+  // asOf: 기준으로 삼을 날짜입니다. 넘기지 않으면 실제 오늘 날짜를 기준으로 확인합니다.
+  // (대출 처리에서 '대출/반납일 변경'으로 다른 날짜를 지정한 경우, 그 날짜를 여기로 넘겨서
+  //  "그 날짜 기준으로 대출제한이 풀렸는지"를 확인할 수 있습니다. 정지 이력 화면에 "지금 진행
+  //  중"인지 표시하거나, 매일 자정 자동 해제 작업처럼 실제 오늘 날짜가 필요한 곳에서는
+  //  asOf 없이 그대로 호출하면 됩니다.)
+  async findActiveRestriction(libraryId: number, userId: number, asOf?: Date) {
+    const baseline = asOf ? this.dayStart(asOf) : this.todayStart();
     return this.prisma.loanRestriction.findFirst({
-      where: { libraryId, userId, endDate: { gte: today } },
+      where: { libraryId, userId, endDate: { gte: baseline } },
       orderBy: { endDate: 'desc' },
     });
   }
