@@ -31,7 +31,7 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#F9F6F0] text-neutral-900`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#F9F6F0] text-[color:var(--default-text-color)]`}>
         <LanguageProvider>
           <NotifyProvider>
             <AuthProvider>

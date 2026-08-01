@@ -14,6 +14,7 @@ type ThemeState = {
   footerTextColor: string;
   sidebarBgColor: string;
   sidebarTextColor: string;
+  defaultTextColor: string;
   buttonStyles: ButtonStyle[];
   fontFamily: string;
   fontWeight: string;
@@ -24,6 +25,7 @@ const DEFAULT_THEME: ThemeState = {
   footerTextColor: "#F9F6F0",
   sidebarBgColor: "#383838",
   sidebarTextColor: "#F9F6F0",
+  defaultTextColor: "#737373",
   buttonStyles: [{ name: "버튼1", bgColor: "#383838", textColor: "#F9F6F0" }],
   fontFamily: "pretendard",
   fontWeight: "400",
@@ -46,6 +48,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           footerTextColor: data.footerTextColor || DEFAULT_THEME.footerTextColor,
           sidebarBgColor: data.sidebarBgColor || DEFAULT_THEME.sidebarBgColor,
           sidebarTextColor: data.sidebarTextColor || DEFAULT_THEME.sidebarTextColor,
+          defaultTextColor: data.defaultTextColor || DEFAULT_THEME.defaultTextColor,
           buttonStyles:
             Array.isArray(data.buttonStyles) && data.buttonStyles.length > 0
               ? data.buttonStyles
@@ -83,6 +86,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.body.style.fontFamily = option.stack;
     document.body.style.fontWeight = theme.fontWeight;
   }, [theme.fontFamily, theme.fontWeight]);
+
+  // 기본 글자색이 바뀔 때마다, CSS 변수(--default-text-color)에 실제 값을 넣어줍니다.
+  // 화면 곳곳(표의 각 칸 등)에서는 이 CSS 변수를 참조하기 때문에, 여기서 값만 바꿔주면
+  // '설정 → 도서관'에서 고른 색이 화면 전체에 그대로 반영됩니다.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--default-text-color", theme.defaultTextColor);
+  }, [theme.defaultTextColor]);
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }

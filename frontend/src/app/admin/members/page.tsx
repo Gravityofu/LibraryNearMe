@@ -596,7 +596,7 @@ export default function MembersPage() {
                 >
                   {t(`members.status.${row.status}`)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                <td className="whitespace-nowrap px-4 py-2.5 text-[color:var(--default-text-color)]">
                   {row.createdAt?.slice(0, 10)}
                 </td>
               </tr>

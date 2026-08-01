@@ -789,17 +789,17 @@ export default function AdminLoansPage() {
                           <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.callNumber || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.volume || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.callNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.volume || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.copyNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">
                             {new Date(item.loanDate).toLocaleDateString()}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">
                             {new Date(item.dueDate).toLocaleDateString()}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.status}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.renewCount}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.status}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.renewCount}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -955,19 +955,19 @@ export default function AdminLoansPage() {
                           <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.callNumber || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.volume || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>                          
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.callNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.volume || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.copy.copyNumber || "-"}</td>                          
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">
                             {new Date(item.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">
                             {new Date(item.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">
                             {item.id === returnedItem?.id ? t("loans.return.status.completed") : item.copy.status}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.renewCount}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[color:var(--default-text-color)]">{item.renewCount}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1080,7 +1080,7 @@ export default function AdminLoansPage() {
                         <td className="whitespace-nowrap px-4 py-2.5">
                           <HistoryHighlight text={row.registrationNo} query={historyFilters.registrationNo} />
                         </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                        <td className="whitespace-nowrap px-4 py-2.5 text-[color:var(--default-text-color)]">
                           {historyFilters.loanDate && toKstDateStr(row.loanDate) === historyFilters.loanDate ? (
                             <strong className="font-bold">
                               {new Date(row.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
@@ -1089,10 +1089,10 @@ export default function AdminLoansPage() {
                             new Date(row.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                        <td className="whitespace-nowrap px-4 py-2.5 text-[color:var(--default-text-color)]">
                           {new Date(row.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                        <td className="whitespace-nowrap px-4 py-2.5 text-[color:var(--default-text-color)]">
                           {row.returnedAt ? (
                             historyFilters.returnedDate &&
                             toKstDateStr(row.returnedAt) === historyFilters.returnedDate ? (

@@ -23,6 +23,7 @@ model Library {
   footerTextColor  String @default("#F9F6F0")                                         // Footer 글자색
   sidebarBgColor   String @default("#383838")                                         // 사이드바 배경색
   sidebarTextColor String @default("#F9F6F0")                                         // 사이드바 글자색
+  defaultTextColor String @default("#737373")                                         // 표/목록의 기본 글자색
   buttonStyles     Json   @default("[{\"name\": \"버튼1\", \"bgColor\": \"#383838\", \"textColor\": \"#F9F6F0\"}]")  // 버튼 색상 목록
   fontFamily       String @default("pretendard")
   fontWeight       String @default("400")

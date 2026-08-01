@@ -16,6 +16,7 @@ export class LibraryService {
     footerVersion?: string; footerCopyright?: string;
     footerBgColor?: string; footerTextColor?: string;
     sidebarBgColor?: string; sidebarTextColor?: string;
+    defaultTextColor?: string;
     buttonStyles?: any;
     fontFamily?: string;
     fontWeight?: string;
@@ -35,6 +36,7 @@ export class LibraryService {
         footerTextColor: data.footerTextColor || undefined,
         sidebarBgColor: data.sidebarBgColor || undefined,
         sidebarTextColor: data.sidebarTextColor || undefined,
+        defaultTextColor: data.defaultTextColor || undefined,
         buttonStyles: data.buttonStyles ?? undefined,
         fontFamily: data.fontFamily || undefined,
         fontWeight: data.fontWeight || undefined,

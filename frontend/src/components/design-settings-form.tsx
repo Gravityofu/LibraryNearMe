@@ -19,6 +19,7 @@ export default function DesignSettingsForm() {
   const [footerTextColor, setFooterTextColor] = useState("#F9F6F0");
   const [sidebarBgColor, setSidebarBgColor] = useState("#383838");
   const [sidebarTextColor, setSidebarTextColor] = useState("#F9F6F0");
+  const [defaultTextColor, setDefaultTextColor] = useState("#737373");
   const [fontFamily, setFontFamily] = useState("pretendard");
   const [fontWeight, setFontWeight] = useState("400");
   const [buttonStyles, setButtonStyles] = useState<ButtonStyle[]>([
@@ -34,6 +35,7 @@ export default function DesignSettingsForm() {
         setFooterTextColor(data.footerTextColor || "#F9F6F0");
         setSidebarBgColor(data.sidebarBgColor || "#383838");
         setSidebarTextColor(data.sidebarTextColor || "#F9F6F0");
+        setDefaultTextColor(data.defaultTextColor || "#737373");
         setFontFamily(data.fontFamily || "pretendard");
         setFontWeight(data.fontWeight || "400");
         setButtonStyles(
@@ -65,7 +67,7 @@ export default function DesignSettingsForm() {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, buttonStyles, fontFamily, fontWeight,
+        footerBgColor, footerTextColor, sidebarBgColor, sidebarTextColor, defaultTextColor, buttonStyles, fontFamily, fontWeight,
       }),
     });
     if (res.ok) {
@@ -135,6 +137,17 @@ export default function DesignSettingsForm() {
             <div className="flex flex-col gap-2">
               <Label>{t("design.sidebarTextColor")}</Label>
               <Input type="color" value={sidebarTextColor} onChange={(e) => setSidebarTextColor(e.target.value)} className="h-10 w-20 p-1" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-semibold">{t("design.defaultTextSection")}</p>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <Label>{t("design.defaultTextColor")}</Label>
+              <Input type="color" value={defaultTextColor} onChange={(e) => setDefaultTextColor(e.target.value)} className="h-10 w-20 p-1" />
+              <p className="text-xs text-neutral-400">{t("design.defaultTextColorHint")}</p>
             </div>
           </div>
         </div>
