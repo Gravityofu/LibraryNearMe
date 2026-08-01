@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 import { LoanRestrictionsService } from '../loan-restrictions/loan-restrictions.service';
 
-const AVAILABLE = '이용가능';
+const AVAILABLE = '대출가능';
 const ON_LOAN = '대출중';
 
 @Injectable()
