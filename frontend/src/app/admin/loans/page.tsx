@@ -185,11 +185,14 @@ export default function AdminLoansPage() {
   // 반납 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
   const [returnErrorMessage, setReturnErrorMessage] = useState<string | null>(null);
 
-  // 반납 탭으로 넘어올 때마다 등록번호 입력폼으로 커서를 옮깁니다.
+  // 탭을 전환할 때마다(대출 ↔ 반납) 그 탭의 이전 작업 기록을 지우고, 등록번호 입력폼으로 커서를 옮깁니다.
   useEffect(() => {
-    if (activeTab === "return") {
-      returnRegistrationInputRef.current?.focus();
+    if (activeTab === "checkout") {
+      resetAll();
+    } else if (activeTab === "return") {
+      resetReturnAll();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // 반납일 입력 칸에서 포커스가 빠져나갈 때 호출됩니다. (대출 탭의 handleLoanDateBlur와 같은 방식)
@@ -371,6 +374,20 @@ export default function AdminLoansPage() {
     setShowDatePicker(false);
     setLastLoanId(null);
     keywordInputRef.current?.focus();
+  }
+
+  // 반납 탭 전용 초기화입니다. resetAll()과 같은 역할을, 반납 탭에서 쓰는 상태들에 대해 합니다.
+  function resetReturnAll() {
+    setReturnRegistrationNo("");
+    setReturnMember(null);
+    setReturnedItem(null);
+    setReturnActiveLoans([]);
+    setReturnRestrictions([]);
+    setShowReturnRestrictionModal(false);
+    setReturnErrorMessage(null);
+    setReturnDateStr(todayStr());
+    lastValidReturnDateRef.current = todayStr();
+    returnRegistrationInputRef.current?.focus();
   }
 
   // 대출일 입력 칸에서 포커스가 빠져나갈 때(다른 곳을 클릭했을 때) 호출됩니다.
@@ -770,8 +787,13 @@ export default function AdminLoansPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100">
-                      {/* 방금 반납한 자료를 맨 위에, 그 아래로 이 회원이 아직 대출 중인 자료를 반납예정일이 가까운 순으로 보여줍니다. */}
-                      {[...(returnedItem ? [returnedItem] : []), ...returnActiveLoans].map((item, i) => (
+                      {/* 방금 반납한 자료를 맨 위에, 그 아래로 이 회원이 아직 대출 중인 자료를 반납예정일이 가까운 순으로 보여줍니다.
+                          returnActiveLoans에서 방금 반납한 자료와 같은 항목은 항상 제외해서, 두 목록을 새로 받아오는
+                          사이의 짧은 순간에도 같은 자료가 두 번 나타나는 일이 없도록 합니다. */}
+                      {[
+                        ...(returnedItem ? [returnedItem] : []),
+                        ...returnActiveLoans.filter((item) => item.id !== returnedItem?.id),
+                      ].map((item, i) => (
                         <tr key={item.id} className={item.id === returnedItem?.id ? "bg-green-50" : undefined}>
                           <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
