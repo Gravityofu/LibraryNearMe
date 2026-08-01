@@ -120,8 +120,9 @@ function statusColorClass(status: string | undefined) {
 // 이 정지 이력의 제한 기간(시작일~마지막 날) 안에 오늘 날짜가 포함되어 있는지 확인합니다.
 // (지금 실제로 이 이력 때문에 대출이 막혀 있다는 뜻입니다.)
 function isRestrictionActiveToday(endDate: string) {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  // 한국 시간 기준 오늘 자정(00:00 KST)을 구합니다. (loans/page.tsx의 todayStartKST와 같은 방식입니다.)
+  const todayKST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+  const today = new Date(todayKST + "T00:00:00+09:00");
   return new Date(endDate) >= today;
 }
 

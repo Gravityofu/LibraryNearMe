@@ -46,8 +46,10 @@ type LoanRecord = {
 
 const EMPTY_DETAIL_FORM = { name: "", memberNo: "", phone: "", loginId: "", email: "", address: "" };
 
+// 한국 시간(KST, UTC+9) 기준으로 오늘 날짜를 "YYYY-MM-DD" 형식으로 돌려줍니다.
+// 이 화면을 보는 컴퓨터의 시간대 설정과 상관없이, 항상 한국 시간 기준으로 계산합니다.
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
 // 사용자가 입력한 글자에서 숫자만 뽑아, "YYYY-MM-DD" 형태로 하이픈을 자동으로 넣어줍니다.
@@ -438,10 +440,10 @@ export default function AdminLoansPage() {
   }
 
   // 오늘 날짜의 자정(00:00) 시각을 구합니다. 백엔드와 같은 기준으로 "지금 제한 중인지"를 판단하기 위함입니다.
-  function todayStartUTC() {
-    const d = new Date();
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
+  // 한국 시간 기준 오늘 자정(00:00 KST)에 해당하는 실제 시각을 구합니다.
+  // 백엔드와 같은 기준(한국 시간)으로 "지금 제한 중인지"를 판단하기 위함입니다.
+  function todayStartKST() {
+    return new Date(todayStr() + "T00:00:00+09:00");
   }
 
   // 날짜 문자열에 하루를 더한 "YYYY-MM-DD" 문자열을 돌려줍니다. (제한 마지막 날 다음 날 = 대출 가능일)
@@ -452,7 +454,7 @@ export default function AdminLoansPage() {
   }
 
   // 정지 이력 중에서 "제한 마지막 날이 오늘이거나 오늘보다 나중인" 것이 있으면 그것을 씁니다.
-  const activeRestriction = restrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) || null;
+  const activeRestriction = restrictions.find((r) => new Date(r.endDate) >= todayStartKST()) || null;
 
   return (
     <div className="p-6">
@@ -735,15 +737,15 @@ export default function AdminLoansPage() {
                     value={returnMember ? t(`members.status.${returnMember.status}`) : "-"}
                     valueClassName={statusColorClass(returnMember?.status)}
                   />
-                  {returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) && (
+                  {returnRestrictions.find((r) => new Date(r.endDate) >= todayStartKST()) && (
                     <p className="pb-1.5 text-right text-xs text-orange-600">
                       {addOneDay(
-                        (returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) as RestrictionRecord)
+                        (returnRestrictions.find((r) => new Date(r.endDate) >= todayStartKST()) as RestrictionRecord)
                           .endDate,
                       )}
                       {t("loans.restriction.badge.availableFrom")}
                       {t("loans.restriction.badge.reason")}
-                      {(returnRestrictions.find((r) => new Date(r.endDate) >= todayStartUTC()) as RestrictionRecord)
+                      {(returnRestrictions.find((r) => new Date(r.endDate) >= todayStartKST()) as RestrictionRecord)
                         .reason || "-"}
                     </p>
                   )}
@@ -799,12 +801,12 @@ export default function AdminLoansPage() {
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
                           <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.callNumber || "-"}</td>
                           <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.volume || "-"}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{item.copy.copyNumber || "-"}</td>                          
                           <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
-                            {new Date(item.loanDate).toLocaleDateString()}
+                            {new Date(item.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
-                            {new Date(item.dueDate).toLocaleDateString()}
+                            {new Date(item.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-neutral-500">
                             {item.id === returnedItem?.id ? t("loans.return.status.completed") : item.copy.status}

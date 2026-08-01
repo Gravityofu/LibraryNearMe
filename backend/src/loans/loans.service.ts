@@ -10,7 +10,8 @@ const ON_LOAN = '대출중';
 function combineDateWithNow(date: Date): Date {
   const now = new Date();
   const combined = new Date(date);
-  combined.setUTCHours(now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds());
+  // 1단계에서 서버 시간대를 한국 시간으로 맞췄으므로, getHours() 등은 이제 한국 시간 기준입니다.
+  combined.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
   return combined;
 }
 

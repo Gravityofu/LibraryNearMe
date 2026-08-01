@@ -38,7 +38,9 @@ export class LoanRestrictionsService {
   // "그 순간"이 아니라 "날짜(자정 기준)"으로 비교해야 정확합니다.
   private dayStart(date: Date): Date {
     const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
+    // 1단계에서 서버 시간대를 한국 시간으로 맞췄으므로, setHours(0, 0, 0, 0)은
+    // "그날 한국 시간 자정(00:00 KST)"을 의미합니다.
+    d.setHours(0, 0, 0, 0);
     return d;
   }
 
