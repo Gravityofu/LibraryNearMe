@@ -588,7 +588,11 @@ export default function MembersPage() {
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5">{t(`members.role.${row.role}`)}</td>
                 <td className="whitespace-nowrap px-4 py-2.5">{row.memberType?.name || "-"}</td>
-                <td className={`whitespace-nowrap px-4 py-2.5 font-semibold ${statusColorClass(row.status)}`}>
+                <td
+                  className={`whitespace-nowrap px-4 py-2.5 ${
+                    filters.status && filters.status === row.status ? "font-bold" : "font-semibold"
+                  } ${statusColorClass(row.status)}`}
+                >
                   {t(`members.status.${row.status}`)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">

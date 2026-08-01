@@ -321,7 +321,17 @@ export default function MaterialsListPage() {
                   >
                     <td className="whitespace-nowrap px-4 py-2.5">{(page - 1) * pageSize + i + 1}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">
-                      {lang === "ko" ? typeInfo?.nameKo ?? row.material.type : typeInfo?.nameEn ?? row.material.type}
+                      {(() => {
+                        const typeName =
+                          lang === "ko" ? typeInfo?.nameKo ?? row.material.type : typeInfo?.nameEn ?? row.material.type;
+                        // '자료 종류'는 드롭다운에서 정확히 하나를 고르는 방식이라, 그 종류로 검색한
+                        // 상태라면(filters.type이 이 자료의 종류와 같다면) 칸 전체를 굵게 표시합니다.
+                        return filters.type && filters.type === row.material.type ? (
+                          <strong className="font-bold">{typeName}</strong>
+                        ) : (
+                          typeName
+                        );
+                      })()}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5">{row.materialId}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">
