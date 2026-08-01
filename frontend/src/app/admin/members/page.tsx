@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotify } from "@/components/notify-provider";
 import { useI18n } from "@/components/language-provider";
 import { BirthDateField, isValidBirthDate } from "@/components/birth-date-field";
+import Pagination from "@/components/pagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -606,27 +607,12 @@ export default function MembersPage() {
 
       {/* 페이지네이션 */}
       {hasSearched && total > 0 && (
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => fetchList(page - 1, pageSize, filters)}
-            className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {t("members.list.pagePrev")}
-          </button>
+        <div className="flex flex-col items-center justify-center gap-2 text-sm">
           <span className="text-neutral-500">
             {page} / {totalPages} {t("members.pageWord")} ({t("members.totalWord")} {total}
             {t("members.countUnit")})
           </span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => fetchList(page + 1, pageSize, filters)}
-            className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {t("members.list.pageNext")}
-          </button>
+          <Pagination page={page} totalPages={totalPages} onPageChange={(p) => fetchList(p, pageSize, filters)} />
         </div>
       )}
 

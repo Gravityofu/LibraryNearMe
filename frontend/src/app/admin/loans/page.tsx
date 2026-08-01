@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
+import Pagination from "@/components/pagination";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
 
@@ -72,7 +73,13 @@ type LoanHistoryRow = {
 };
 
 const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
-const HISTORY_COLUMN_COUNT = 12;
+const HISTORY_COLUMN_COUNT = 11;
+
+// 글자가 max(기본 10자)를 넘으면 뒷부분을 "…"로 줄여줍니다.
+function truncateText(text: string, max = 10) {
+  if (!text) return text;
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
 
 // 정규식에서 특별한 의미를 가지는 글자(. * + ? 등)를 그냥 글자 그대로 찾도록 앞에 \를 붙여줍니다.
 function escapeForSearch(str: string) {
@@ -603,11 +610,6 @@ export default function AdminLoansPage() {
           <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
           <TabsTrigger value="reservation">{t("loans.tabs.reservation")}</TabsTrigger>
           <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
-        </TabsList><TabsList className="gap-2">
-          <TabsTrigger value="checkout">{t("loans.tabs.checkout")}</TabsTrigger>
-          <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
-          <TabsTrigger value="reservation">{t("loans.tabs.reservation")}</TabsTrigger>
-          <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="checkout" className="mt-4">
@@ -1031,7 +1033,6 @@ export default function AdminLoansPage() {
                     <th className="px-4 py-2.5">{t("loans.loanHistory.col.returnedAt")}</th>
                     <th className="px-4 py-2.5">{t("loans.loanHistory.col.materialTitle")}</th>
                     <th className="px-4 py-2.5">{t("loans.loanHistory.col.creator")}</th>
-                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.publisher")}</th>
                     <th className="px-4 py-2.5">{t("materials.list.col.location")}</th>
                   </tr>
                 </thead>
@@ -1105,9 +1106,12 @@ export default function AdminLoansPage() {
                             "-"
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-2.5">{row.title}</td>
-                        <td className="whitespace-nowrap px-4 py-2.5">{row.creator || "-"}</td>
-                        <td className="whitespace-nowrap px-4 py-2.5">{row.publisher || "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2.5" title={row.title}>
+                          {truncateText(row.title)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5" title={row.creator || undefined}>
+                          {row.creator ? truncateText(row.creator) : "-"}
+                        </td>
                         <td className="whitespace-nowrap px-4 py-2.5">{row.location || "-"}</td>
                       </tr>
                     ))}
@@ -1116,28 +1120,17 @@ export default function AdminLoansPage() {
             </div>
 
             {historyHasSearched && historyTotal > 0 && (
-              <div className="flex items-center justify-center gap-3 text-sm">
-                <button
-                  type="button"
-                  disabled={historyPage <= 1}
-                  onClick={() => fetchHistory(historyPage - 1, historyPageSize, historyFilters)}
-                  className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t("materials.new.pagePrev")}
-                </button>
+              <div className="flex flex-col items-center justify-center gap-2 text-sm">
                 <span className="text-neutral-500">
                   {historyPage} / {historyTotalPages} {t("materials.pageWord")} ({t("materials.totalWord")}{" "}
                   {historyTotal}
                   {t("materials.countUnit")})
                 </span>
-                <button
-                  type="button"
-                  disabled={historyPage >= historyTotalPages}
-                  onClick={() => fetchHistory(historyPage + 1, historyPageSize, historyFilters)}
-                  className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t("materials.new.pageNext")}
-                </button>
+                <Pagination
+                  page={historyPage}
+                  totalPages={historyTotalPages}
+                  onPageChange={(p) => fetchHistory(p, historyPageSize, historyFilters)}
+                />
               </div>
             )}
           </div>
