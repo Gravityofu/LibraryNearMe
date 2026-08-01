@@ -59,10 +59,15 @@ export class LoanRestrictionsService {
   //  asOf 없이 그대로 호출하면 됩니다.)
   async findActiveRestriction(libraryId: number, userId: number, asOf?: Date) {
     const baseline = asOf ? this.dayStart(asOf) : this.todayStart();
-    return this.prisma.loanRestriction.findFirst({
+
+    // "제한 마지막 날이 아직 지나지 않은" 기록들을 먼저 가져온 뒤,
+    // 그중에서 "시작일이 이미 지났거나 오늘인" 것만 남깁니다.
+    // (시작일은 등록 시각까지 함께 저장되어 있어서, 날짜만 비교하도록 dayStart로 맞춰서 비교합니다.)
+    const candidates = await this.prisma.loanRestriction.findMany({
       where: { libraryId, userId, endDate: { gte: baseline } },
       orderBy: { endDate: 'desc' },
     });
+    return candidates.find((r) => this.dayStart(r.startDate) <= baseline) || null;
   }
 
   // 매일 자정에 자동으로 실행됩니다: 대출제한이 끝났는데도 '정지' 상태로 남아있는 회원을 찾아 '활성'으로 되돌립니다.
