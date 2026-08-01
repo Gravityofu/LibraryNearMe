@@ -118,6 +118,9 @@ export default function AdminLoansPage() {
   const [detailForm, setDetailForm] = useState(EMPTY_DETAIL_FORM);
 
   const [loanDateStr, setLoanDateStr] = useState(todayStr());
+  // '대출/반납일 변경'으로 관리자가 직접 대출일을 지정했는지 기억합니다.
+  // false면(직접 지정한 적 없으면) 대출 처리 시 이 값 대신 처리하는 그 순간의 실제 날짜·시간을 씁니다.
+  const [loanDateManuallySet, setLoanDateManuallySet] = useState(false);
 
   const [registrationNo, setRegistrationNo] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -168,6 +171,9 @@ export default function AdminLoansPage() {
 
   // 반납일 변경(대출 탭의 '대출일 변경'과 같은 방식)
   const [returnDateStr, setReturnDateStr] = useState(todayStr());
+  // '대출/반납일 변경'으로 관리자가 직접 반납일을 지정했는지 기억합니다.
+  // false면(직접 지정한 적 없으면) 반납 처리 시 이 값 대신 처리하는 그 순간의 실제 날짜·시간을 씁니다.
+  const [returnDateManuallySet, setReturnDateManuallySet] = useState(false);
   const lastValidReturnDateRef = useRef(todayStr());
   const returnHiddenDateInputRef = useRef<HTMLInputElement>(null);
 
@@ -229,7 +235,13 @@ export default function AdminLoansPage() {
       const res = await fetch(`${API_URL}/loans/return`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ registrationNo: regNo, returnDate: returnDateStr }),
+        body: JSON.stringify({
+          registrationNo: regNo,
+          // 관리자가 '대출/반납일 변경'으로 직접 날짜를 지정했을 때만 그 날짜를 보냅니다.
+          // 직접 지정하지 않았다면 날짜를 아예 보내지 않아서, 서버가 처리하는 바로 그 순간의
+          // 실제 날짜·시간을 그대로 쓰게 합니다.
+          returnDate: returnDateManuallySet ? returnDateStr : undefined,
+        }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
@@ -373,6 +385,7 @@ export default function AdminLoansPage() {
     setShowRestrictionModal(false);
     setLoanDateStr(todayStr());
     lastValidLoanDateRef.current = todayStr();
+    setLoanDateManuallySet(false);
     setLastLoanId(null);
     keywordInputRef.current?.focus();
   }
@@ -388,6 +401,7 @@ export default function AdminLoansPage() {
     setReturnErrorMessage(null);
     setReturnDateStr(todayStr());
     lastValidReturnDateRef.current = todayStr();
+    setReturnDateManuallySet(false);
     returnRegistrationInputRef.current?.focus();
   }
 
@@ -413,7 +427,14 @@ export default function AdminLoansPage() {
       const res = await fetch(`${API_URL}/loans`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ userId: selectedMember.id, registrationNo: regNo, loanDate: loanDateStr }),
+        body: JSON.stringify({
+          userId: selectedMember.id,
+          registrationNo: regNo,
+          // 관리자가 '대출/반납일 변경'으로 직접 날짜를 지정했을 때만 그 날짜를 보냅니다.
+          // 직접 지정하지 않았다면 날짜를 아예 보내지 않아서, 서버가 처리하는 바로 그 순간의
+          // 실제 날짜·시간을 그대로 쓰게 합니다.
+          loanDate: loanDateManuallySet ? loanDateStr : undefined,
+        }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
@@ -487,7 +508,10 @@ export default function AdminLoansPage() {
                 <input
                   type="text"
                   value={loanDateStr}
-                  onChange={(e) => setLoanDateStr(formatDateInput(e.target.value))}
+                  onChange={(e) => {
+                    setLoanDateStr(formatDateInput(e.target.value));
+                    setLoanDateManuallySet(true);
+                  }}
                   onFocus={(e) => e.target.select()}
                   onBlur={handleLoanDateBlur}
                   onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
@@ -503,6 +527,7 @@ export default function AdminLoansPage() {
                     const next = e.target.value || todayStr();
                     setLoanDateStr(next);
                     lastValidLoanDateRef.current = next;
+                    setLoanDateManuallySet(true);
                   }}
                   tabIndex={-1}
                   className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
@@ -673,7 +698,10 @@ export default function AdminLoansPage() {
                 <input
                   type="text"
                   value={returnDateStr}
-                  onChange={(e) => setReturnDateStr(formatDateInput(e.target.value))}
+                  onChange={(e) => {
+                    setReturnDateStr(formatDateInput(e.target.value));
+                    setReturnDateManuallySet(true);
+                  }}
                   onFocus={(e) => e.target.select()}
                   onBlur={handleReturnDateBlur}
                   onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
@@ -689,6 +717,7 @@ export default function AdminLoansPage() {
                     const next = e.target.value || todayStr();
                     setReturnDateStr(next);
                     lastValidReturnDateRef.current = next;
+                    setReturnDateManuallySet(true);
                   }}
                   tabIndex={-1}
                   className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
