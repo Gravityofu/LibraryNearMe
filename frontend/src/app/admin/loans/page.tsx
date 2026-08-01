@@ -291,7 +291,8 @@ export default function AdminLoansPage() {
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
-        notify("✅ " + t("loans.success"), "success");
+        // 대출 처리 성공 알림창은 더 이상 띄우지 않습니다. 목록 맨 위에 옅은 녹색으로 표시되는 것으로
+        // 대출 처리가 잘 됐다는 걸 알 수 있습니다.
         if (data?.id) {
           setLastLoanId(data.id);
         }
