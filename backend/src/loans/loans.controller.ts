@@ -36,6 +36,24 @@ export class LoansController {
     );
   }
 
+  // GET 요청: 대출이력 조회(회원번호/회원이름/등록번호/대출일/반납일로 검색, 페이지 단위) — 관리자만
+  @Get('history')
+  @UseGuards(AdminGuard)
+  listLoanHistory(@Req() req: any, @Query() query: any) {
+    return this.loansService.listLoanHistory(
+      req.user.libraryId,
+      parseInt(query.page, 10) || 1,
+      parseInt(query.pageSize, 10) || 10,
+      {
+        memberNo: query.memberNo,
+        memberName: query.memberName,
+        registrationNo: query.registrationNo,
+        loanDate: query.loanDate,
+        returnedDate: query.returnedDate,
+      },
+    );
+  }
+
   // GET 요청: 회원의 현재 대출 중인 자료 목록 — 관리자만
   @Get('members/:id/active')
   @UseGuards(AdminGuard)

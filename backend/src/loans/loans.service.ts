@@ -272,6 +272,76 @@ export class LoansService {
     };
   }
 
+  // '대출이력' 화면에서 씁니다. 조건(회원번호/회원이름/등록번호/대출일/반납일)에 맞는 대출 기록을
+  // 최신순으로 페이지 단위로 가져옵니다. (반납 여부와 상관없이 모든 대출 기록을 대상으로 합니다.)
+  async listLoanHistory(
+    libraryId: number,
+    page: number,
+    pageSize: number,
+    filters: {
+      memberNo?: string;
+      memberName?: string;
+      registrationNo?: string;
+      loanDate?: string;
+      returnedDate?: string;
+    },
+  ) {
+    const where: any = { libraryId };
+
+    if (filters.memberNo || filters.memberName) {
+      where.user = {};
+      if (filters.memberNo) where.user.memberNo = { contains: filters.memberNo, mode: 'insensitive' };
+      if (filters.memberName) where.user.name = { contains: filters.memberName, mode: 'insensitive' };
+    }
+    if (filters.registrationNo) {
+      where.copy = { registrationNo: { contains: filters.registrationNo, mode: 'insensitive' } };
+    }
+    // 대출일/반납일은 "그 날짜 하루" 전체(한국 시간 기준 자정부터 다음 날 자정 전까지)를 찾습니다.
+    if (filters.loanDate) {
+      const start = new Date(`${filters.loanDate}T00:00:00+09:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      where.loanDate = { gte: start, lt: end };
+    }
+    if (filters.returnedDate) {
+      const start = new Date(`${filters.returnedDate}T00:00:00+09:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      where.returnedAt = { gte: start, lt: end };
+    }
+
+    const [loans, total] = await this.prisma.$transaction([
+      this.prisma.loan.findMany({
+        where,
+        include: { user: true, copy: { include: { material: true } } },
+        orderBy: { loanDate: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.loan.count({ where }),
+    ]);
+
+    return {
+      items: loans.map((loan) => ({
+        id: loan.id,
+        status: loan.returnedAt ? 'RETURNED' : 'ON_LOAN',
+        memberNo: loan.user.memberNo,
+        memberName: loan.user.name,
+        registrationNo: loan.copy.registrationNo,
+        loanDate: loan.loanDate,
+        dueDate: loan.dueDate,
+        returnedAt: loan.returnedAt,
+        title: loan.copy.material.title,
+        creator: loan.copy.material.creator,
+        publisher: loan.copy.material.publisher,
+        location: loan.copy.location,
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   // 이름/회원번호 외에 휴대폰번호/아이디/이메일/주소로도 회원을 찾을 때 씁니다. (상세 검색용)
   async findMembersDetailed(
     libraryId: number,

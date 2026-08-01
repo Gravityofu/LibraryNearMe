@@ -46,6 +46,64 @@ type LoanRecord = {
 
 const EMPTY_DETAIL_FORM = { name: "", memberNo: "", phone: "", loginId: "", email: "", address: "" };
 
+// '대출이력' 탭에서 검색하는 조건의 모양입니다.
+type LoanHistoryFilters = {
+  memberNo?: string;
+  memberName?: string;
+  registrationNo?: string;
+  loanDate?: string;
+  returnedDate?: string;
+};
+
+// '대출이력' 탭 표에 나타나는 한 줄의 모양입니다.
+type LoanHistoryRow = {
+  id: number;
+  status: "ON_LOAN" | "RETURNED";
+  memberNo: string | null;
+  memberName: string;
+  registrationNo: string;
+  loanDate: string;
+  dueDate: string;
+  returnedAt: string | null;
+  title: string;
+  creator: string | null;
+  publisher: string | null;
+  location: string | null;
+};
+
+const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
+const HISTORY_COLUMN_COUNT = 12;
+
+// 정규식에서 특별한 의미를 가지는 글자(. * + ? 등)를 그냥 글자 그대로 찾도록 앞에 \를 붙여줍니다.
+function escapeForSearch(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// text 안에서 query와 일치하는 부분을 찾아 굵게 표시합니다. (대소문자 구분 안 함) — 개선89와 같은 방식입니다.
+function HistoryHighlight({ text, query }: { text: string; query?: string }) {
+  if (!query || !query.trim() || !text) return <>{text}</>;
+  const q = query.trim();
+  const parts = text.split(new RegExp(`(${escapeForSearch(q)})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <strong key={i} className="font-bold">
+            {part}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+// 한국 시간(KST) 기준 날짜(YYYY-MM-DD)로 바꿔줍니다. 대출일/반납일 검색 조건과 비교할 때 씁니다.
+function toKstDateStr(iso: string) {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+}
+
 // 한국 시간(KST, UTC+9) 기준으로 오늘 날짜를 "YYYY-MM-DD" 형식으로 돌려줍니다.
 // 이 화면을 보는 컴퓨터의 시간대 설정과 상관없이, 항상 한국 시간 기준으로 계산합니다.
 function todayStr() {
@@ -192,6 +250,66 @@ export default function AdminLoansPage() {
 
   // 반납 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
   const [returnErrorMessage, setReturnErrorMessage] = useState<string | null>(null);
+
+  // ── 여기부터는 '대출이력' 탭에서만 쓰는 상태와 함수들입니다. ──
+  const [historyRows, setHistoryRows] = useState<LoanHistoryRow[]>([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
+  const [historyFilters, setHistoryFilters] = useState<LoanHistoryFilters>({});
+  const [historyHasSearched, setHistoryHasSearched] = useState(false);
+  const [showHistoryDetail, setShowHistoryDetail] = useState(false);
+  const [historyDetailForm, setHistoryDetailForm] = useState<LoanHistoryFilters>({});
+
+  async function fetchHistory(p: number, size: number, f: LoanHistoryFilters) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const params = new URLSearchParams();
+    params.set("page", String(p));
+    params.set("pageSize", String(size));
+    if (f.memberNo) params.set("memberNo", f.memberNo);
+    if (f.memberName) params.set("memberName", f.memberName);
+    if (f.registrationNo) params.set("registrationNo", f.registrationNo);
+    if (f.loanDate) params.set("loanDate", f.loanDate);
+    if (f.returnedDate) params.set("returnedDate", f.returnedDate);
+
+    const res = await fetch(`${API_URL}/loans/history?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setHistoryRows(data.items);
+      setHistoryTotal(data.total);
+      setHistoryPage(data.page);
+      setHistoryPageSize(data.pageSize);
+      setHistoryHasSearched(true);
+    }
+  }
+
+  function applyHistoryDetailSearch() {
+    setHistoryFilters(historyDetailForm);
+    setShowHistoryDetail(false);
+    fetchHistory(1, historyPageSize, historyDetailForm);
+  }
+
+  function changeHistoryPageSize(size: number) {
+    setHistoryPageSize(size);
+    if (historyHasSearched) fetchHistory(1, size, historyFilters);
+  }
+
+  // 지금 적용된 검색 조건을 사람이 읽을 수 있는 문구로 만들어줍니다. (개선89와 같은 방식입니다.)
+  function buildHistorySearchSummary(f: LoanHistoryFilters): string {
+    const parts: string[] = [];
+    if (f.memberNo) parts.push(`${t("loans.loanHistory.field.memberNo")} '${f.memberNo}'`);
+    if (f.memberName) parts.push(`${t("loans.loanHistory.field.memberName")} '${f.memberName}'`);
+    if (f.registrationNo) parts.push(`${t("materials.copies.regNo")} '${f.registrationNo}'`);
+    if (f.loanDate) parts.push(`${t("loans.list.col.loanDate")} '${f.loanDate}'`);
+    if (f.returnedDate) parts.push(`${t("loans.loanHistory.col.returnedAt")} '${f.returnedDate}'`);
+    return parts.join(", ");
+  }
+
+  const historySearchSummary = historyHasSearched ? buildHistorySearchSummary(historyFilters) : "";
+  const historyTotalPages = Math.max(1, Math.ceil(historyTotal / historyPageSize));
 
   // 탭을 전환할 때마다(대출 ↔ 반납) 그 탭의 이전 작업 기록을 지우고, 등록번호 입력폼으로 커서를 옮깁니다.
   useEffect(() => {
@@ -483,6 +601,13 @@ export default function AdminLoansPage() {
         <TabsList className="gap-2">
           <TabsTrigger value="checkout">{t("loans.tabs.checkout")}</TabsTrigger>
           <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
+          <TabsTrigger value="reservation">{t("loans.tabs.reservation")}</TabsTrigger>
+          <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
+        </TabsList><TabsList className="gap-2">
+          <TabsTrigger value="checkout">{t("loans.tabs.checkout")}</TabsTrigger>
+          <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
+          <TabsTrigger value="reservation">{t("loans.tabs.reservation")}</TabsTrigger>
+          <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="checkout" className="mt-4">
@@ -849,6 +974,245 @@ export default function AdminLoansPage() {
               )}
             </div>
           </div>
+        </TabsContent>
+
+        {/* '예약' 탭: 아직 기능이 없어서 안내 문구만 보여줍니다. (반납 탭이 처음 만들어지기 전과 같은 방식입니다.) */}
+        <TabsContent value="reservation" className="mt-4">
+          <p className="rounded-lg border border-dashed border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-500">
+            {t("loans.reservation.comingSoon")}
+          </p>
+        </TabsContent>
+
+        {/* '대출이력' 탭: 회원 관리 화면과 비슷한 구조(상세 검색 → 표 → 페이지네이션)입니다. */}
+        <TabsContent value="history" className="mt-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHistoryDetail(true)}
+                className="cursor-pointer rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+              >
+                {t("loans.loanHistory.detailSearch")}
+              </button>
+
+              {historySearchSummary && (
+                <span className="ml-2 text-sm text-neutral-500">
+                  {t("loans.loanHistory.searchSummaryLabel")}: {historySearchSummary}
+                </span>
+              )}
+
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-sm text-neutral-500">{t("loans.loanHistory.pageSizeLabel")}</span>
+                <select
+                  value={historyPageSize}
+                  onChange={(e) => changeHistoryPageSize(Number(e.target.value))}
+                  className="cursor-pointer rounded-lg border px-2 py-1.5 text-sm"
+                >
+                  {HISTORY_PAGE_SIZE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="max-h-[65vh] overflow-auto rounded-lg border border-neutral-200 bg-white">
+              <table className="w-full min-w-[1200px] text-left text-sm">
+                <thead className="sticky top-0 bg-neutral-100 text-neutral-500">
+                  <tr>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.no")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.status")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.field.memberNo")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.field.memberName")}</th>
+                    <th className="px-4 py-2.5">{t("materials.copies.regNo")}</th>
+                    <th className="px-4 py-2.5">{t("loans.list.col.loanDate")}</th>
+                    <th className="px-4 py-2.5">{t("loans.dueDateLabel")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.returnedAt")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.materialTitle")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.creator")}</th>
+                    <th className="px-4 py-2.5">{t("loans.loanHistory.col.publisher")}</th>
+                    <th className="px-4 py-2.5">{t("materials.list.col.location")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {!historyHasSearched &&
+                    Array.from({ length: historyPageSize }).map((_, i) => (
+                      <tr key={`history-blank-${i}`}>
+                        {Array.from({ length: HISTORY_COLUMN_COUNT }).map((__, j) => (
+                          <td key={j} className="px-4 py-2.5">
+                            &nbsp;
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+
+                  {historyHasSearched && historyRows.length === 0 && (
+                    <tr>
+                      <td colSpan={HISTORY_COLUMN_COUNT} className="px-4 py-6 text-center text-neutral-400">
+                        {t("loans.loanHistory.noResults")}
+                      </td>
+                    </tr>
+                  )}
+
+                  {historyHasSearched &&
+                    historyRows.map((row, i) => (
+                      <tr key={row.id}>
+                        <td className="whitespace-nowrap px-4 py-2.5">
+                          {(historyPage - 1) * historyPageSize + i + 1}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5">
+                          {row.status === "ON_LOAN"
+                            ? t("loans.loanHistory.status.onLoan")
+                            : t("loans.loanHistory.status.returned")}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5">
+                          {row.memberNo ? (
+                            <HistoryHighlight text={row.memberNo} query={historyFilters.memberNo} />
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5">
+                          <HistoryHighlight text={row.memberName} query={historyFilters.memberName} />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5">
+                          <HistoryHighlight text={row.registrationNo} query={historyFilters.registrationNo} />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                          {historyFilters.loanDate && toKstDateStr(row.loanDate) === historyFilters.loanDate ? (
+                            <strong className="font-bold">
+                              {new Date(row.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
+                            </strong>
+                          ) : (
+                            new Date(row.loanDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                          {new Date(row.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                          {row.returnedAt ? (
+                            historyFilters.returnedDate &&
+                            toKstDateStr(row.returnedAt) === historyFilters.returnedDate ? (
+                              <strong className="font-bold">
+                                {new Date(row.returnedAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
+                              </strong>
+                            ) : (
+                              new Date(row.returnedAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
+                            )
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5">{row.title}</td>
+                        <td className="whitespace-nowrap px-4 py-2.5">{row.creator || "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2.5">{row.publisher || "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2.5">{row.location || "-"}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            {historyHasSearched && historyTotal > 0 && (
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <button
+                  type="button"
+                  disabled={historyPage <= 1}
+                  onClick={() => fetchHistory(historyPage - 1, historyPageSize, historyFilters)}
+                  className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t("materials.new.pagePrev")}
+                </button>
+                <span className="text-neutral-500">
+                  {historyPage} / {historyTotalPages} {t("materials.pageWord")} ({t("materials.totalWord")}{" "}
+                  {historyTotal}
+                  {t("materials.countUnit")})
+                </span>
+                <button
+                  type="button"
+                  disabled={historyPage >= historyTotalPages}
+                  onClick={() => fetchHistory(historyPage + 1, historyPageSize, historyFilters)}
+                  className="cursor-pointer rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t("materials.new.pageNext")}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 대출이력 상세 검색 모달 */}
+          {showHistoryDetail && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setShowHistoryDetail(false)}
+            >
+              <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <p className="mb-4 text-sm font-semibold">{t("loans.loanHistory.detailSearch")}</p>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">
+                      {t("loans.loanHistory.field.memberNo")}
+                    </span>
+                    <input
+                      value={historyDetailForm.memberNo || ""}
+                      onChange={(e) => setHistoryDetailForm({ ...historyDetailForm, memberNo: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">
+                      {t("loans.loanHistory.field.memberName")}
+                    </span>
+                    <input
+                      value={historyDetailForm.memberName || ""}
+                      onChange={(e) => setHistoryDetailForm({ ...historyDetailForm, memberName: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("materials.copies.regNo")}</span>
+                    <input
+                      value={historyDetailForm.registrationNo || ""}
+                      onChange={(e) =>
+                        setHistoryDetailForm({ ...historyDetailForm, registrationNo: e.target.value })
+                      }
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("loans.list.col.loanDate")}</span>
+                    <input
+                      type="date"
+                      value={historyDetailForm.loanDate || ""}
+                      onChange={(e) => setHistoryDetailForm({ ...historyDetailForm, loanDate: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">
+                      {t("loans.loanHistory.col.returnedAt")}
+                    </span>
+                    <input
+                      type="date"
+                      value={historyDetailForm.returnedDate || ""}
+                      onChange={(e) =>
+                        setHistoryDetailForm({ ...historyDetailForm, returnedDate: e.target.value })
+                      }
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </label>
+                </div>
+                <button
+                  onClick={applyHistoryDetailSearch}
+                  className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
+                >
+                  {t("materials.search")}
+                </button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
