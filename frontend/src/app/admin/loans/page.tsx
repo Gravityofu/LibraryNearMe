@@ -371,7 +371,6 @@ export default function AdminLoansPage() {
     setShowRestrictionModal(false);
     setLoanDateStr(todayStr());
     lastValidLoanDateRef.current = todayStr();
-    setShowDatePicker(false);
     setLastLoanId(null);
     keywordInputRef.current?.focus();
   }
