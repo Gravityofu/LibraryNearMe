@@ -121,6 +121,8 @@ export default function AdminLoansPage() {
   const [processing, setProcessing] = useState(false);
   const [loanedItems, setLoanedItems] = useState<LoanRecord[]>([]);
   const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
+  // 방금 대출 처리를 완료한 대출 기록의 id입니다. 목록 맨 위로 올리고 옅은 녹색으로 표시하는 데 씁니다.
+  const [lastLoanId, setLastLoanId] = useState<number | null>(null);
   const [showRestrictionModal, setShowRestrictionModal] = useState(false);
 
   // 등록번호가 아무리 빠르게 여러 번 들어와도, 이전 처리가 끝난 뒤 순서대로 하나씩 처리되도록
@@ -244,6 +246,7 @@ export default function AdminLoansPage() {
     setResults([]);
     setKeyword("");
     setShowSearchModal(false);
+    setLastLoanId(null);
   }
 
   function resetAll() {
@@ -258,6 +261,7 @@ export default function AdminLoansPage() {
     setLoanDateStr(todayStr());
     lastValidLoanDateRef.current = todayStr();
     setShowDatePicker(false);
+    setLastLoanId(null);
     keywordInputRef.current?.focus();
   }
 
@@ -288,6 +292,9 @@ export default function AdminLoansPage() {
       const data = await res.json().catch(() => null);
       if (res.ok) {
         notify("✅ " + t("loans.success"), "success");
+        if (data?.id) {
+          setLastLoanId(data.id);
+        }
         await loadLoanedItems(selectedMember.id);
       } else {
         setLoanErrorMessage(data?.message || regNo);
@@ -494,8 +501,12 @@ export default function AdminLoansPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100">
-                      {loanedItems.map((item, i) => (
-                        <tr key={item.id}>
+                      {/* 방금 대출 처리한 행(lastLoanId)을 맨 위로 올리고, 나머지는 원래 순서를 유지합니다. */}
+                      {[
+                        ...loanedItems.filter((item) => item.id === lastLoanId),
+                        ...loanedItems.filter((item) => item.id !== lastLoanId),
+                      ].map((item, i) => (
+                        <tr key={item.id} className={item.id === lastLoanId ? "bg-green-50" : undefined}>
                           <td className="whitespace-nowrap px-3 py-2">{i + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.registrationNo}</td>
                           <td className="whitespace-nowrap px-3 py-2">{item.copy.material.title}</td>
