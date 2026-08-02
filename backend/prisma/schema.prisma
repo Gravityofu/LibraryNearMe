@@ -157,7 +157,7 @@ model Copy {
   shelfNo        String?    // 서가번호
   location       String?    // 소장처 (예: 2층 문학)
   memo           String?    // 메모
-  status         String     @default("이용가능")
+  status         String     @default("대출가능")
 
   createdById    Int?       // 이 실물을 등록한 사서
   createdBy      User?      @relation(fields: [createdById], references: [id])

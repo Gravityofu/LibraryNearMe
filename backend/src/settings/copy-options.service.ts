@@ -15,6 +15,7 @@ const DEFAULT_OPTIONS: Record<string, string[]> = {
 // 예전에는 '상태'가 영문 코드(AVAILABLE 등)로 저장되어 있었어요.
 // 새로 한글 값으로 바뀌면서, 기존 실물 자료들의 상태값도 딱 한 번 자동으로 바꿔줍니다.
 const LEGACY_STATUS_MAP: Record<string, string> = {
+  이용가능: '대출가능',
   AVAILABLE: '대출가능',
   ON_LOAN: '대출중',
   RESERVED: '예약보관중',
