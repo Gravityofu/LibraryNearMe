@@ -251,7 +251,7 @@ export default function CopyOptionsSettingsForm() {
                     <tr
                       key={item.id}
                       onClick={() => openEditModal("STATUS", item)}
-                      className="cursor-pointer border-t border-neutral-100 hover:bg-neutral-50"
+                      className="cursor-pointer border-t border-neutral-100 bg-white hover:bg-neutral-50"
                     >
                       <td className="whitespace-nowrap px-4 py-2.5 font-medium">{item.value}</td>
                       <td className="whitespace-nowrap px-4 py-2.5">
