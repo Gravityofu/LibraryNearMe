@@ -184,6 +184,9 @@ model CopyOption {
   detail    String?  // 소장처(LOCATION)일 때만: 층을 뺀 나머지 세부 위치
   order     Int      @default(0)
 
+  canLoan    Boolean @default(false) // ← 추가: 상태(STATUS)일 때만 의미 있음 — 이 상태의 자료를 대출할 수 있는지
+  canReserve Boolean @default(false) // ← 추가: 상태(STATUS)일 때만 의미 있음 — 이 상태의 자료를 예약할 수 있는지
+
   createdAt DateTime @default(now())
 
   @@unique([libraryId, category, value])

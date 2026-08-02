@@ -12,6 +12,13 @@ const DEFAULT_OPTIONS: Record<string, string[]> = {
   LOCATION: ['2층 문학'],
 };
 
+// '상태' 기본값들이 처음 만들어질 때, '대출 가능 자료' / '예약 가능 자료'를 어떤 값으로 시작할지 정해둔 표입니다.
+// 여기 없는 상태값은 둘 다 '아니오(false)'로 시작합니다. 관리자는 '설정' 화면에서 언제든 바꿀 수 있습니다.
+const STATUS_DEFAULTS: Record<string, { canLoan: boolean; canReserve: boolean }> = {
+  대출가능: { canLoan: true, canReserve: false },
+  대출중: { canLoan: false, canReserve: true },
+};
+
 // 예전에는 '상태'가 영문 코드(AVAILABLE 등)로 저장되어 있었어요.
 // 새로 한글 값으로 바뀌면서, 기존 실물 자료들의 상태값도 딱 한 번 자동으로 바꿔줍니다.
 const LEGACY_STATUS_MAP: Record<string, string> = {
@@ -99,6 +106,9 @@ export class CopyOptionsService {
           category,
           value,
           order: i,
+          ...(category === 'STATUS'
+            ? STATUS_DEFAULTS[value] || { canLoan: false, canReserve: false }
+            : {}),
         }));
         await this.prisma.copyOption.createMany({ data });
 
@@ -157,10 +167,17 @@ export class CopyOptionsService {
       throw new BadRequestException('값을 입력하세요.');
     }
 
+    // '상태' 값을 추가할 때는 '대출 가능 자료' / '예약 가능 자료' 여부도 함께 저장합니다.
+    const extraData: { canLoan?: boolean; canReserve?: boolean } = {};
+    if (category === 'STATUS') {
+      extraData.canLoan = !!data.canLoan;
+      extraData.canReserve = !!data.canReserve;
+    }
+
     const count = await this.prisma.copyOption.count({ where: { libraryId, category } });
     try {
       return await this.prisma.copyOption.create({
-        data: { libraryId, category, value, floor, detail, order: count },
+        data: { libraryId, category, value, floor, detail, order: count, ...extraData },
       });
     } catch (e: any) {
       if (e.code === 'P2002') {
@@ -256,25 +273,38 @@ export class CopyOptionsService {
       }
     }
 
-    // 3) 그 외 (상태 / 별치기호 / 층 없는 예전 소장처): 기존 방식 그대로
+    // 3) 그 외 (상태 / 별치기호 / 층 없는 예전 소장처): 기존 방식 그대로,
+    //    다만 '상태'는 이름(값)이 그대로여도 '대출 가능 자료' / '예약 가능 자료'만 바뀌었으면 그것도 저장합니다.
     const newValue = String(data.value || '').trim();
     if (!newValue) {
       throw new BadRequestException('값을 입력하세요.');
     }
-    if (newValue === existing.value) {
+
+    const extraData: { canLoan?: boolean; canReserve?: boolean } = {};
+    if (existing.category === 'STATUS') {
+      if (data.canLoan !== undefined) extraData.canLoan = !!data.canLoan;
+      if (data.canReserve !== undefined) extraData.canReserve = !!data.canReserve;
+    }
+
+    if (newValue === existing.value && Object.keys(extraData).length === 0) {
       return existing;
     }
 
     const field = CATEGORY_FIELD[existing.category];
 
     try {
-      const [updatedOption] = await this.prisma.$transaction([
-        this.prisma.copyOption.update({ where: { id }, data: { value: newValue } }),
-        this.prisma.copy.updateMany({
-          where: { libraryId, [field]: existing.value },
-          data: { [field]: newValue },
-        }),
-      ]);
+      const ops: any[] = [
+        this.prisma.copyOption.update({ where: { id }, data: { value: newValue, ...extraData } }),
+      ];
+      if (newValue !== existing.value) {
+        ops.push(
+          this.prisma.copy.updateMany({
+            where: { libraryId, [field]: existing.value },
+            data: { [field]: newValue },
+          }),
+        );
+      }
+      const [updatedOption] = await this.prisma.$transaction(ops);
       return updatedOption;
     } catch (e: any) {
       if (e.code === 'P2002') {

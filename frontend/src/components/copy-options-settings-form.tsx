@@ -14,6 +14,8 @@ type OptionItem = {
   order: number;
   floor?: string | null;
   detail?: string | null;
+  canLoan?: boolean;
+  canReserve?: boolean;
 };
 type OptionsState = { STATUS: OptionItem[]; SPECIAL_CODE: OptionItem[]; LOCATION: OptionItem[]; FLOOR: OptionItem[] };
 
@@ -44,6 +46,10 @@ export default function CopyOptionsSettingsForm() {
   const [floorValue, setFloorValue] = useState("");
   const [detailValue, setDetailValue] = useState("");
 
+  // '상태' 값을 추가/수정할 때만 쓰는, 대출 가능 자료 / 예약 가능 자료 여부입니다.
+  const [canLoanValue, setCanLoanValue] = useState(false);
+  const [canReserveValue, setCanReserveValue] = useState(false);
+
   async function loadOptions() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -67,6 +73,8 @@ export default function CopyOptionsSettingsForm() {
     setEditingId(null);
     setValueText("");
     setEditingIsProtected(false);
+    setCanLoanValue(false);
+    setCanReserveValue(false);
     if (category === "LOCATION") {
       setLocationHasFloor(true);
       setFloorValue(options.FLOOR[0]?.value || "");
@@ -82,6 +90,8 @@ export default function CopyOptionsSettingsForm() {
     setEditingId(item.id);
     setValueText(item.value);
     setEditingIsProtected(category === "SPECIAL_CODE" && item.value === "(없음)");
+    setCanLoanValue(!!item.canLoan);
+    setCanReserveValue(!!item.canReserve);
     if (category === "LOCATION" && item.floor) {
       // 층 정보가 있는 소장처는 수정할 때도 층 선택 + 세부위치 입력 방식을 씁니다.
       setLocationHasFloor(true);
@@ -125,6 +135,12 @@ export default function CopyOptionsSettingsForm() {
       body = { category: modalCategory, value: finalValue };
     }
 
+    // '상태'는 대출 가능 자료 / 예약 가능 자료 여부도 함께 보냅니다.
+    if (modalCategory === "STATUS") {
+      body.canLoan = canLoanValue;
+      body.canReserve = canReserveValue;
+    }
+
     const url = editingId ? `${API_URL}/copy-options/${editingId}` : `${API_URL}/copy-options`;
     const res = await fetch(url, {
       method: editingId ? "PATCH" : "POST",
@@ -165,25 +181,64 @@ export default function CopyOptionsSettingsForm() {
       {CATEGORIES.map((cat) => (
         <div key={cat.key}>
           <p className="mb-2 text-sm font-semibold">{t(cat.labelKey)}</p>
-          <div className="flex flex-wrap gap-2">
-            {options[cat.key].map((item) => (
+
+          {cat.key === "STATUS" ? (
+            <div className="overflow-hidden rounded-lg border border-neutral-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-neutral-100 text-neutral-500">
+                  <tr>
+                    <th className="whitespace-nowrap px-4 py-2.5">{t("settings.copyOptions.table.value")}</th>
+                    <th className="whitespace-nowrap px-4 py-2.5">{t("settings.copyOptions.canLoan")}</th>
+                    <th className="whitespace-nowrap px-4 py-2.5">{t("settings.copyOptions.canReserve")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {options.STATUS.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => openEditModal("STATUS", item)}
+                      className="cursor-pointer border-t border-neutral-100 hover:bg-neutral-50"
+                    >
+                      <td className="whitespace-nowrap px-4 py-2.5 font-medium">{item.value}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5">
+                        {item.canLoan ? t("settings.copyOptions.yes") : t("settings.copyOptions.no")}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2.5">
+                        {item.canReserve ? t("settings.copyOptions.yes") : t("settings.copyOptions.no")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <button
-                key={item.id}
                 type="button"
-                onClick={() => openEditModal(cat.key, item)}
-                className="cursor-pointer rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                onClick={() => openAddModal("STATUS")}
+                className="w-full cursor-pointer border-t border-dashed border-neutral-300 bg-white px-4 py-2 text-xs font-medium text-neutral-500 hover:bg-neutral-50"
               >
-                {item.value}
+                {t("settings.copyOptions.addBtn")}
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => openAddModal(cat.key)}
-              className="cursor-pointer rounded-full border border-dashed border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-50"
-            >
-              {t("settings.copyOptions.addBtn")}
-            </button>
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {options[cat.key].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openEditModal(cat.key, item)}
+                  className="cursor-pointer rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                >
+                  {item.value}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => openAddModal(cat.key)}
+                className="cursor-pointer rounded-full border border-dashed border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-50"
+              >
+                {t("settings.copyOptions.addBtn")}
+              </button>
+            </div>
+          )}
         </div>
       ))}
 
@@ -241,6 +296,33 @@ export default function CopyOptionsSettingsForm() {
                     <p className="mt-1 text-xs text-neutral-400">{t("settings.copyOptions.protectedNote")}</p>
                   )}
                 </label>
+              )}
+
+              {modalCategory === "STATUS" && (
+                <div className="mt-3 flex flex-col gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.canLoan")}</span>
+                    <select
+                      value={canLoanValue ? "Y" : "N"}
+                      onChange={(e) => setCanLoanValue(e.target.value === "Y")}
+                      className="w-full cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    >
+                      <option value="Y">{t("settings.copyOptions.yes")}</option>
+                      <option value="N">{t("settings.copyOptions.no")}</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-neutral-500">{t("settings.copyOptions.canReserve")}</span>
+                    <select
+                      value={canReserveValue ? "Y" : "N"}
+                      onChange={(e) => setCanReserveValue(e.target.value === "Y")}
+                      className="w-full cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                    >
+                      <option value="Y">{t("settings.copyOptions.yes")}</option>
+                      <option value="N">{t("settings.copyOptions.no")}</option>
+                    </select>
+                  </label>
+                </div>
               )}
 
               <ThemedButton preset="버튼1" onClick={handleSave} className="mt-5 w-full">

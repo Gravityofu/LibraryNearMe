@@ -290,6 +290,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.copyOptions.noFloorOptions": "먼저 '층' 목록에 값을 하나 이상 추가해주세요.",
     "settings.copyOptions.detailRequired": "세부 위치를 입력해주세요.",
     "settings.copyOptions.protectedNote": "이 값은 시스템이 항상 사용하는 기본값이라 수정하거나 삭제할 수 없습니다.",
+    "settings.copyOptions.table.value": "상태값",
+    "settings.copyOptions.canLoan": "대출 가능 자료",
+    "settings.copyOptions.canReserve": "예약 가능 자료",
+    "settings.copyOptions.yes": "Y",
+    "settings.copyOptions.no": "N",
 
     "settings.memberTypes.title": "회원 구분",
     "settings.memberTypes.addBtn": "+ 값 추가",
@@ -877,6 +882,11 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.copyOptions.noFloorOptions": "Please add at least one 'Floor' value first.",
     "settings.copyOptions.detailRequired": "Please enter a detail location.",
     "settings.copyOptions.protectedNote": "This value is a required system default and cannot be edited or deleted.",
+    "settings.copyOptions.table.value": "Status",
+    "settings.copyOptions.canLoan": "Loanable",
+    "settings.copyOptions.canReserve": "Reservable",
+    "settings.copyOptions.yes": "Y",
+    "settings.copyOptions.no": "N",
 
     "settings.memberTypes.title": "Member Types",
     "settings.memberTypes.addBtn": "+ Add Value",
