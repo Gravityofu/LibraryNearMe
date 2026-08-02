@@ -501,7 +501,7 @@ export default function MembersPage() {
     <div className="flex flex-col gap-4 p-6">
       <Script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="afterInteractive" />
       {/* 상단 버튼 영역 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-4">
         <button
           type="button"
           onClick={() => setShowDetail(true)}

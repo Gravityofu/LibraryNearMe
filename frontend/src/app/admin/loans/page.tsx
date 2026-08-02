@@ -1057,7 +1057,7 @@ export default function AdminLoansPage() {
         {/* '대출이력' 탭: 회원 관리 화면과 비슷한 구조(상세 검색 → 표 → 페이지네이션)입니다. */}
         <TabsContent value="history" className="mt-4">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-4">
               <button
                 type="button"
                 onClick={() => setShowHistoryDetail(true)}
