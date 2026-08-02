@@ -1061,7 +1061,7 @@ export default function AdminLoansPage() {
               <button
                 type="button"
                 onClick={() => setShowHistoryDetail(true)}
-                className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                className="cursor-pointer rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
               >
                 {t("loans.loanHistory.detailSearch")}
               </button>
