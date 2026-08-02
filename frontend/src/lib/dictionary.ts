@@ -395,6 +395,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.loanHistory.field.memberNo": "회원번호",
     "loans.loanHistory.field.memberName": "회원이름",
     "loans.loanHistory.status.onLoan": "대출중",
+    "loans.loanHistory.status.overdue": "연체중",
     "loans.loanHistory.status.returned": "반납완료",
     "loans.loanHistory.noResults": "검색 결과가 없습니다.",
 
@@ -987,6 +988,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "loans.loanHistory.field.memberNo": "Member No.",
     "loans.loanHistory.field.memberName": "Member Name",
     "loans.loanHistory.status.onLoan": "On Loan",
+    "loans.loanHistory.status.overdue": "Overdue",
     "loans.loanHistory.status.returned": "Returned",
     "loans.loanHistory.noResults": "No results found.",
 

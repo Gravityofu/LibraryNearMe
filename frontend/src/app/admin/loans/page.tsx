@@ -1057,15 +1057,29 @@ export default function AdminLoansPage() {
                   )}
 
                   {historyHasSearched &&
-                    historyRows.map((row, i) => (
-                      <tr key={row.id}>
+                    historyRows.map((row, i) => {
+                      // 대출상태에 따라 행 배경색을 다르게 보여줍니다.
+                      // 반납완료: '반납' 메뉴의 '대출 자료 목록' 박스와 같은 연보라색
+                      // 연체중: 옅은 주황색 / 대출중: 흰색
+                      const rowBgClass =
+                        row.status === "RETURNED"
+                          ? "bg-purple-50"
+                          : row.status === "OVERDUE"
+                            ? "bg-orange-50"
+                            : "bg-white";
+                      const statusLabel =
+                        row.status === "ON_LOAN"
+                          ? t("loans.loanHistory.status.onLoan")
+                          : row.status === "OVERDUE"
+                            ? t("loans.loanHistory.status.overdue")
+                            : t("loans.loanHistory.status.returned");
+                      return (
+                    <tr key={row.id} className={rowBgClass}>
                         <td className="whitespace-nowrap px-4 py-2.5">
                           {(historyPage - 1) * historyPageSize + i + 1}
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5">
-                          {row.status === "ON_LOAN"
-                            ? t("loans.loanHistory.status.onLoan")
-                            : t("loans.loanHistory.status.returned")}
+                          {statusLabel}
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5">
                           {row.memberNo ? (
@@ -1114,7 +1128,8 @@ export default function AdminLoansPage() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5">{row.location || "-"}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
