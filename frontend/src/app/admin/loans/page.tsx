@@ -84,7 +84,7 @@ const RESERVATION_VIEWS: { key: string; labelKey: string }[] = [
   { key: "HOLD_EXPIRED", labelKey: "loans.reservation.filter.holdExpired" },
   { key: "HISTORY", labelKey: "loans.reservation.filter.history" },
 ];
-const RESERVATION_COLUMN_COUNT = 10;
+const RESERVATION_COLUMN_COUNT = 9;
 
 // 글자가 max(기본 10자)를 넘으면 뒷부분을 "…"로 줄여줍니다.
 function truncateText(text: string, max = 10) {
@@ -1021,14 +1021,13 @@ export default function AdminLoansPage() {
                   <tr>
                     <th className="px-4 py-2.5">{t("loans.reservation.col.no")}</th>
                     <th className="px-4 py-2.5">{t("loans.reservation.col.status")}</th>
-                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberNo")}</th>
-                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberName")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.reservedDate")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.holdDueDate")}</th>
                     <th className="px-4 py-2.5">{t("loans.reservation.col.registrationNo")}</th>
                     <th className="px-4 py-2.5">{t("loans.reservation.col.title")}</th>
                     <th className="px-4 py-2.5">{t("loans.reservation.col.creator")}</th>
-                    <th className="px-4 py-2.5">{t("loans.reservation.col.reservedDate")}</th>
-                    <th className="px-4 py-2.5">{t("loans.reservation.col.holdDueDate")}</th>
-                    <th className="px-4 py-2.5">{t("loans.reservation.col.location")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberNo")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberName")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
