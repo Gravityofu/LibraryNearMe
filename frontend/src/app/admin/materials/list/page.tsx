@@ -230,14 +230,14 @@ export default function MaterialsListPage() {
         <button
           type="button"
           onClick={() => setShowDetail(true)}
-          className="cursor-pointer rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+          className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
         >
           {t("materials.list.detailSearch")}
         </button>
         <button
           type="button"
           onClick={() => setShowRegNo(true)}
-          className="cursor-pointer rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+          className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
         >
           {t("materials.list.regNoSearch")}
         </button>

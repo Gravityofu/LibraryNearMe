@@ -1003,7 +1003,7 @@ export default function AdminLoansPage() {
                   key={view.key}
                   type="button"
                   onClick={() => setReservationView(view.key)}
-                  className={`cursor-pointer rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                     reservationView === view.key
                       ? "border-[#383838] bg-[#383838] text-[#F9F6F0]"
                       : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
@@ -1061,7 +1061,7 @@ export default function AdminLoansPage() {
               <button
                 type="button"
                 onClick={() => setShowHistoryDetail(true)}
-                className="cursor-pointer rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+                className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
               >
                 {t("loans.loanHistory.detailSearch")}
               </button>
