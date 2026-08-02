@@ -75,6 +75,17 @@ type LoanHistoryRow = {
 const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 const HISTORY_COLUMN_COUNT = 11;
 
+// '예약' 탭 상단의 5개 메뉴 버튼입니다. key는 지금 화면에서 어떤 버튼이 선택됐는지 구분하는 용도로만 쓰이고,
+// 아직 실제 예약 데이터와 연결되어 있지는 않습니다. (다음 단계에서 이 key별로 실제 데이터를 불러오게 됩니다.)
+const RESERVATION_VIEWS: { key: string; labelKey: string }[] = [
+  { key: "RESERVED", labelKey: "loans.reservation.filter.reserved" },
+  { key: "OVERDUE", labelKey: "loans.reservation.filter.overdue" },
+  { key: "HOLDING", labelKey: "loans.reservation.filter.holding" },
+  { key: "HOLD_EXPIRED", labelKey: "loans.reservation.filter.holdExpired" },
+  { key: "HISTORY", labelKey: "loans.reservation.filter.history" },
+];
+const RESERVATION_COLUMN_COUNT = 10;
+
 // 글자가 max(기본 10자)를 넘으면 뒷부분을 "…"로 줄여줍니다.
 function truncateText(text: string, max = 10) {
   if (!text) return text;
@@ -215,6 +226,9 @@ export default function AdminLoansPage() {
   // 지금 어느 탭('checkout' 대출 / 'return' 반납)이 열려 있는지 직접 관리합니다.
   // 반납 탭으로 넘어왔을 때 등록번호 입력폼으로 커서를 자동으로 옮기기 위해 필요합니다.
   const [activeTab, setActiveTab] = useState("checkout");
+
+  // '예약' 탭 상단 5개 메뉴 버튼 중 지금 선택된 것이 무엇인지 기억합니다. (기본값: '예약 중인 자료')
+  const [reservationView, setReservationView] = useState("RESERVED");
 
   // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다. (대출 탭용)
   const hiddenDateInputRef = useRef<HTMLInputElement>(null);
@@ -978,11 +992,66 @@ export default function AdminLoansPage() {
           </div>
         </TabsContent>
 
-        {/* '예약' 탭: 아직 기능이 없어서 안내 문구만 보여줍니다. (반납 탭이 처음 만들어지기 전과 같은 방식입니다.) */}
         <TabsContent value="reservation" className="mt-4">
-          <p className="rounded-lg border border-dashed border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-500">
-            {t("loans.reservation.comingSoon")}
-          </p>
+          <div className="flex flex-col gap-4">
+            {/* 상단 메뉴 박스: '대출' 탭 상단 박스와 같은 스타일입니다.
+                지금은 화면 디자인만 만든 단계라, 버튼을 누르면 선택된 모양만 바뀌고
+                표에 나오는 내용은 아직 바뀌지 않습니다. */}
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white p-4">
+              {RESERVATION_VIEWS.map((view) => (
+                <button
+                  key={view.key}
+                  type="button"
+                  onClick={() => setReservationView(view.key)}
+                  className={`cursor-pointer rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                    reservationView === view.key
+                      ? "border-[#383838] bg-[#383838] text-[#F9F6F0]"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                  }`}
+                >
+                  {t(view.labelKey)}
+                </button>
+              ))}
+            </div>
+
+            {/* 중간 표 영역: '목록' 화면과 같은 디자인입니다. 아직 예약 데이터를 연결하지 않아 항상 빈 상태입니다. */}
+            <div className="max-h-[65vh] overflow-auto rounded-lg border border-neutral-200 bg-white">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="sticky top-0 bg-neutral-100 text-neutral-500">
+                  <tr>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.no")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.status")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberNo")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.memberName")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.registrationNo")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.title")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.creator")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.reservedDate")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.holdDueDate")}</th>
+                    <th className="px-4 py-2.5">{t("loans.reservation.col.location")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  <tr>
+                    <td colSpan={RESERVATION_COLUMN_COUNT} className="px-4 py-6 text-center text-neutral-400">
+                      {t("loans.reservation.noResults")}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* 하단 버튼 영역: '목록' 화면의 '자료 등록' 버튼과 같은 위치·스타일입니다. */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => notify(t("loans.reservation.comingSoon"), "info")}
+                className="cursor-pointer rounded-lg bg-[#383838] px-5 py-2.5 text-sm font-semibold text-[#F9F6F0]"
+              >
+                {t("loans.reservation.addBtn")}
+              </button>
+            </div>
+          </div>
         </TabsContent>
 
         {/* '대출이력' 탭: 회원 관리 화면과 비슷한 구조(상세 검색 → 표 → 페이지네이션)입니다. */}
