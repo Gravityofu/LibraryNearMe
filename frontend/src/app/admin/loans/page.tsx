@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
 import Pagination from "@/components/pagination";
@@ -184,6 +185,7 @@ function InfoRow({
 export default function AdminLoansPage() {
   const { t } = useI18n();
   const { notify } = useNotify();
+  const router = useRouter();
 
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<Member[]>([]);
@@ -1044,7 +1046,7 @@ export default function AdminLoansPage() {
             <div className="flex justify-end pt-2">
               <button
                 type="button"
-                onClick={() => notify(t("loans.reservation.comingSoon"), "info")}
+                onClick={() => router.push("/admin/loans/reservation")}
                 className="cursor-pointer rounded-lg bg-[#383838] px-5 py-2.5 text-sm font-semibold text-[#F9F6F0]"
               >
                 {t("loans.reservation.addBtn")}
