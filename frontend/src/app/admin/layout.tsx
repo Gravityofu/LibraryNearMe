@@ -1,7 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -17,8 +18,44 @@ const BREADCRUMB_MAP: Record<string, string[]> = {
   "/admin/materials/new": ["admin.menu.materialsList", "admin.menu.materialsNew"],
   "/admin/materials/copies": ["admin.menu.materialsList", "admin.menu.materialsCopy"],
   "/admin/members": ["admin.menu.members"],
-  "/admin/loans": ["admin.menu.loans"],
+  "/admin/loans": ["admin.menu.loans"], // '대출/반납'은 탭에 따라 아래 BreadcrumbBar에서 다시 계산합니다.
+  "/admin/loans/reservation": ["admin.menu.loans", "loans.tabs.reservation", "loans.reservationNew.pageTitle"],
 };
+
+// '대출/반납' 화면의 ?tab= 값 → 브레드크럼 두 번째 칸에 보여줄 문구 매핑입니다.
+const LOANS_TAB_CRUMB_MAP: Record<string, string> = {
+  checkout: "loans.tabs.checkout",
+  return: "loans.tabs.return",
+  reservation: "loans.tabs.reservation",
+  history: "loans.tabs.history",
+};
+
+// 브레드크럼만 따로 떼어낸 부분입니다. 주소의 ?tab= 값을 읽어야 해서(useSearchParams)
+// <Suspense>로 감싸서 씁니다.
+function BreadcrumbBar() {
+  const { t } = useI18n();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  let crumbs = BREADCRUMB_MAP[pathname];
+  if (pathname === "/admin/loans") {
+    const tab = searchParams.get("tab") || "checkout";
+    crumbs = ["admin.menu.loans", LOANS_TAB_CRUMB_MAP[tab] || LOANS_TAB_CRUMB_MAP.checkout];
+  }
+
+  if (!crumbs) return null;
+
+  return (
+    <div className="px-6 pt-4 text-xs text-neutral-400">
+      {crumbs.map((key, i) => (
+        <span key={key}>
+          {i > 0 && <span className="mx-1.5">›</span>}
+          {t(key)}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminLayout({
   children,
@@ -31,7 +68,6 @@ export default function AdminLayout({
   const router = useRouter();
   useRequireAuth();
   const pathname = usePathname();
-  const crumbs = BREADCRUMB_MAP[pathname];
   const { sidebarBgColor, sidebarTextColor } = useTheme();
 
   function navClass(href: string, exact = false) {
@@ -103,16 +139,9 @@ export default function AdminLayout({
       </aside>
 
       <section className="flex-1">
-        {crumbs && (
-          <div className="px-6 pt-4 text-xs text-neutral-400">
-            {crumbs.map((key, i) => (
-              <span key={key}>
-                {i > 0 && <span className="mx-1.5">›</span>}
-                {t(key)}
-              </span>
-            ))}
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <BreadcrumbBar />
+        </Suspense>
         {children}
       </section>
     </div>

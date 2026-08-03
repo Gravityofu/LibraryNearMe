@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
 import AdminBackButton from "@/components/admin-back-button";
 import { useI18n } from "@/components/language-provider";
@@ -67,6 +69,7 @@ function statusColorClass(status: string | undefined) {
 export default function ReservationNewPage() {
   const { t } = useI18n();
   const { notify } = useNotify();
+  const router = useRouter();
 
   const [memberKeyword, setMemberKeyword] = useState("");
   const [memberResults, setMemberResults] = useState<SearchedMember[]>([]);
@@ -179,11 +182,28 @@ export default function ReservationNewPage() {
     }
   }
 
+  // 탭을 누르면 '대출/반납' 화면으로 돌아가면서 그 탭이 선택된 채로 열립니다.
+  function goToTab(tab: string) {
+    router.push(`/admin/loans?tab=${tab}`);
+  }
+
   return (
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">{t("loans.reservationNew.pageTitle")}</h1>
         <AdminBackButton href="/admin/loans" />
+      </div>
+
+      {/* 대출/반납/예약/대출이력 탭: 지금은 '예약'이 선택된 모양으로 고정되어 있습니다. */}
+      <div className="mb-4">
+        <Tabs value="reservation" onValueChange={goToTab}>
+          <TabsList className="gap-2">
+            <TabsTrigger value="checkout">{t("loans.tabs.checkout")}</TabsTrigger>
+            <TabsTrigger value="return">{t("loans.tabs.return")}</TabsTrigger>
+            <TabsTrigger value="reservation">{t("loans.tabs.reservation")}</TabsTrigger>
+            <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* 회원 검색 영역 */}

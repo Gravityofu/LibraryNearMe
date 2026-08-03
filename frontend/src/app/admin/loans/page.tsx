@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
 import Pagination from "@/components/pagination";
@@ -196,10 +196,11 @@ function InfoRow({
   );
 }
 
-export default function AdminLoansPage() {
+function AdminLoansPageInner() {
   const { t } = useI18n();
   const { notify } = useNotify();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<Member[]>([]);
@@ -239,9 +240,14 @@ export default function AdminLoansPage() {
   // 대출 처리에 실패했을 때, 그 이유를 모달로 보여주기 위해 사용합니다.
   const [loanErrorMessage, setLoanErrorMessage] = useState<string | null>(null);
 
-  // 지금 어느 탭('checkout' 대출 / 'return' 반납)이 열려 있는지 직접 관리합니다.
+  // 지금 어느 탭('checkout' 대출 / 'return' 반납 / 'reservation' 예약 / 'history' 대출이력)이 열려 있는지 직접 관리합니다.
   // 반납 탭으로 넘어왔을 때 등록번호 입력폼으로 커서를 자동으로 옮기기 위해 필요합니다.
-  const [activeTab, setActiveTab] = useState("checkout");
+  // 처음 화면을 열 때는 주소 뒤의 ?tab= 값을 그대로 씁니다. (다른 화면에서 특정 탭으로 바로 이동할 때 씁니다.)
+  const VALID_TABS = ["checkout", "return", "reservation", "history"];
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "checkout",
+  );
 
   // '예약' 탭 상단 5개 메뉴 버튼 중 지금 선택된 것이 무엇인지 기억합니다. (기본값: '예약 중인 자료')
   const [reservationView, setReservationView] = useState("RESERVED");
@@ -363,6 +369,12 @@ export default function AdminLoansPage() {
     } else if (activeTab === "return") {
       resetReturnAll();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // 지금 보고 있는 탭을 주소 뒤에 반영합니다. (브레드크럼이 탭에 맞게 나오도록 하기 위함입니다.)
+  useEffect(() => {
+    router.replace(`/admin/loans?tab=${activeTab}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -1755,5 +1767,13 @@ export default function AdminLoansPage() {
       )}
     </div>
 
+  );
+}
+
+export default function AdminLoansPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminLoansPageInner />
+    </Suspense>
   );
 }

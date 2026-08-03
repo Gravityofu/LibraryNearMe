@@ -32,6 +32,14 @@ export class ReservationsService {
     return groupCopies.some((c) => statusMap.get(c.status)?.canLoan === true);
   }
 
+  // 이 회원이 지금 이 복본을 이미 대출하고 있는지 확인합니다. 본인이 대출 중인 자료는 본인이 예약할 수 없습니다.
+  private async hasSelfActiveLoan(libraryId: number, userId: number, copyId: number): Promise<boolean> {
+    const loan = await this.prisma.loan.findFirst({
+      where: { libraryId, copyId, userId, returnedAt: null },
+    });
+    return !!loan;
+  }
+
   // 복본 한 권이 지금 예약 가능한지 확인합니다. (회원 조건과는 별개로, 복본/그룹 조건만 확인합니다.)
   private evaluateCopyEligibility(
     copy: { status: string },
@@ -178,6 +186,11 @@ export class ReservationsService {
           reservable = false;
           reason = typeEval.reason;
         }
+        // 본인이 지금 대출 중인 바로 그 복본은 예약할 수 없습니다.
+        if (reservable && (await this.hasSelfActiveLoan(libraryId, userId, copy.id))) {
+          reservable = false;
+          reason = '본인이 대출 중인 자료는 예약할 수 없습니다.';
+        }
 
         rows.push({
           copyId: copy.id,
@@ -209,6 +222,11 @@ export class ReservationsService {
     const copy = await this.prisma.copy.findFirst({ where: { id: copyId, libraryId }, include: { material: true } });
     if (!copy) {
       throw new NotFoundException('복본을 찾을 수 없습니다.');
+    }
+
+    // 본인이 지금 대출 중인 바로 그 복본은 예약할 수 없습니다.
+    if (await this.hasSelfActiveLoan(libraryId, userId, copy.id)) {
+      throw new BadRequestException('본인이 대출 중인 자료는 예약할 수 없습니다.');
     }
 
     const typeEval = await this.evaluateTypeEligibility(libraryId, userId, copy.material.type);
@@ -351,6 +369,35 @@ export class ReservationsService {
     };
   }
 
+  // 예약 한 건이 지금 어떤 상태로 보여야 하는지 계산합니다.
+  // (RESERVED/CANCELED/FULFILLED는 실제 저장된 값이고, OVERDUE/HOLDING/HOLD_EXPIRED는 그때그때 계산해서 보여주는 상태입니다.)
+  private async classifyReservation(libraryId: number, r: any, today: Date): Promise<string> {
+    if (r.status === 'CANCELED') return 'CANCELED';
+    if (r.status === 'FULFILLED') return 'FULFILLED';
+
+    // 여기부터는 r.status === 'RESERVED'인 경우입니다.
+    if (r.holdDueDate) {
+      const d = new Date(r.holdDueDate);
+      d.setHours(0, 0, 0, 0);
+      return d < today ? 'HOLD_EXPIRED' : 'HOLDING';
+    }
+
+    // 아직 복본을 보관받지 못하고 대기 중입니다. 그룹의 복본 중에 지금 대출 중이면서 연체된 것이 있으면 '연체중'입니다.
+    const siblingLoans = await this.prisma.loan.findMany({
+      where: {
+        libraryId,
+        returnedAt: null,
+        copy: { materialId: r.copy.materialId, volume: r.copy.volume },
+      },
+    });
+    const isOverdue = siblingLoans.some((l) => {
+      const d = new Date(l.dueDate);
+      d.setHours(0, 0, 0, 0);
+      return d < today;
+    });
+    return isOverdue ? 'OVERDUE' : 'RESERVED';
+  }
+
   // '예약' 탭 상단 5개 보기(예약중/연체중/보관중/보관일지남/이력)에 맞는 예약 목록을 페이지 단위로 가져옵니다.
   async listByView(libraryId: number, view: string, page: number, pageSize: number) {
     const today = new Date();
@@ -376,9 +423,10 @@ export class ReservationsService {
       return { items: items.map((r) => this.toRow(r, view)), total, page, pageSize };
     }
 
-    // '예약 이력'은 더 이상 진행 중이지 않은(취소되었거나 대출완료된) 예약들입니다.
+    // '예약 이력'은 이 도서관의 모든 예약 기록입니다. 지금 진행 중인 것(예약중/연체중/보관중/보관일지남)과
+    // 이미 끝난 것(취소됨/대출완료)을 전부 포함하고, 각 건이 지금 어떤 상태인지 함께 계산해서 보여줍니다.
     if (view === 'HISTORY') {
-      const where: any = { libraryId, status: { in: ['CANCELED', 'FULFILLED'] } };
+      const where: any = { libraryId };
       const [items, total] = await this.prisma.$transaction([
         this.prisma.reservation.findMany({
           where,
@@ -389,7 +437,11 @@ export class ReservationsService {
         }),
         this.prisma.reservation.count({ where }),
       ]);
-      return { items: items.map((r) => this.toRow(r, r.status)), total, page, pageSize };
+      const rows: any[] = [];
+      for (const r of items) {
+        rows.push(this.toRow(r, await this.classifyReservation(libraryId, r, today)));
+      }
+      return { items: rows, total, page, pageSize };
     }
 
     // '예약 중'과 '연체 중'은 둘 다 아직 대기 중인(holdDueDate가 없는) 예약이지만,
@@ -402,19 +454,8 @@ export class ReservationsService {
 
     const classified: { reservation: (typeof waiting)[number]; view: string }[] = [];
     for (const r of waiting) {
-      const siblingLoans = await this.prisma.loan.findMany({
-        where: {
-          libraryId,
-          returnedAt: null,
-          copy: { materialId: r.copy.materialId, volume: r.copy.volume },
-        },
-      });
-      const isOverdue = siblingLoans.some((l) => {
-        const d = new Date(l.dueDate);
-        d.setHours(0, 0, 0, 0);
-        return d < today;
-      });
-      classified.push({ reservation: r, view: isOverdue ? 'OVERDUE' : 'RESERVED' });
+      const statusCode = await this.classifyReservation(libraryId, r, today);
+      classified.push({ reservation: r, view: statusCode });
     }
 
     const filtered = classified.filter((c) => c.view === view);
