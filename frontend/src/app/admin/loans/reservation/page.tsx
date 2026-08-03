@@ -189,11 +189,6 @@ export default function ReservationNewPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold">{t("loans.reservationNew.pageTitle")}</h1>
-        <AdminBackButton href="/admin/loans" />
-      </div>
-
       {/* 대출/반납/예약/대출이력 탭: 지금은 '예약'이 선택된 모양으로 고정되어 있습니다. */}
       <div className="mb-4">
         <Tabs value="reservation" onValueChange={goToTab}>
@@ -204,6 +199,11 @@ export default function ReservationNewPage() {
             <TabsTrigger value="history">{t("loans.tabs.history")}</TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-bold">{t("loans.reservationNew.pageTitle")}</h1>
+        <AdminBackButton href="/admin/loans?tab=reservation" />
       </div>
 
       {/* 회원 검색 영역 */}

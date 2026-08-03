@@ -30,6 +30,16 @@ const LOANS_TAB_CRUMB_MAP: Record<string, string> = {
   history: "loans.tabs.history",
 };
 
+// '설정' 화면의 ?tab= 값 → 브레드크럼 두 번째 칸에 보여줄 문구 매핑입니다.
+const SETTINGS_TAB_CRUMB_MAP: Record<string, string> = {
+  library: "settings.tabs.library",
+  design: "settings.tabs.design",
+  materialTypes: "settings.tabs.materialTypes",
+  copyOptions: "settings.tabs.copyOptions",
+  kormarcTags: "settings.tabs.kormarcTags",
+  loan: "settings.tabs.loan",
+};
+
 // 브레드크럼만 따로 떼어낸 부분입니다. 주소의 ?tab= 값을 읽어야 해서(useSearchParams)
 // <Suspense>로 감싸서 씁니다.
 function BreadcrumbBar() {
@@ -41,6 +51,10 @@ function BreadcrumbBar() {
   if (pathname === "/admin/loans") {
     const tab = searchParams.get("tab") || "checkout";
     crumbs = ["admin.menu.loans", LOANS_TAB_CRUMB_MAP[tab] || LOANS_TAB_CRUMB_MAP.checkout];
+  }
+  if (pathname === "/admin/settings") {
+    const tab = searchParams.get("tab") || "library";
+    crumbs = ["admin.menu.systemSettings", SETTINGS_TAB_CRUMB_MAP[tab] || SETTINGS_TAB_CRUMB_MAP.library];
   }
 
   if (!crumbs) return null;
