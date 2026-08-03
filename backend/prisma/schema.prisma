@@ -31,6 +31,7 @@ model Library {
   footerCopyright String   @default("ⓒ 2026 Gravityofu")    // 오늘 추가: Footer에 보일 저작권 문구
   maxSubjectKeywords Int   @default(10)                      // ← 추가: 자료 등록 시 주제어 최대 입력 개수
   scanMode     String   @default("SINGLE")                   // ← 추가: 스캔 방식 "SINGLE"(단일 태그) | "SDK"(다중 태그, 추후 지원)
+  maxReservationQueueSize Int?                                // ← 추가: 그룹(자료+권/호)당 동시 예약 허용 인원. 비어있으면 무제한
   createdAt    DateTime @default(now())
 
   users        User[]             // 이 도서관에 속한 사용자들 (연결고리)
@@ -43,6 +44,7 @@ model Library {
   loanSettings  LoanSetting[]  // ← 추가 (회원구분별 기본 대출 설정)
   loans         Loan[]         // ← 추가 (대출 기록)
   loanRestrictions LoanRestriction[] // ← 추가 (대출제한 내역)
+  reservations  Reservation[]  // ← 추가 (예약 기록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -83,6 +85,7 @@ model User {
 
   loans         Loan[]     // ← 추가 (이 회원의 대출 기록)
   loanRestrictions LoanRestriction[] // ← 추가 (이 회원의 대출제한 내역)
+  reservations  Reservation[]        // ← 추가 (이 회원의 예약 기록)
 
   @@unique([libraryId, loginId])              // 같은 도서관 안에서 아이디 중복 금지
   @@unique([libraryId, memberNo])             // 같은 도서관 안에서 회원증번호 중복 금지
@@ -166,6 +169,7 @@ model Copy {
   updatedAt      DateTime   @updatedAt
 
   loans          Loan[]     // ← 추가 (이 실물의 대출 기록)
+  reservations   Reservation[] // ← 추가 (이 실물에 걸린 예약 기록)
 
   @@unique([libraryId, registrationNo])
   @@index([materialId])
@@ -331,4 +335,30 @@ model LoanRestriction {
 
   @@index([libraryId])
   @@index([userId])
+}
+
+// 예약 기록 (누가, 어떤 실물을 예약했는지. 같은 자료+같은 권/호를 가진 실물들이 하나의 그룹으로
+// 예약 대기열을 함께 씁니다. status는 RESERVED(예약중) → CANCELED(취소) 또는 FULFILLED(대출완료)로 바뀝니다.)
+model Reservation {
+  id          Int       @id @default(autoincrement())
+
+  libraryId   Int
+  library     Library   @relation(fields: [libraryId], references: [id])
+
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+
+  copyId      Int
+  copy        Copy      @relation(fields: [copyId], references: [id])
+
+  status      String    @default("RESERVED")   // RESERVED(예약중) | CANCELED(취소) | FULFILLED(대출완료)
+
+  reservedAt  DateTime  @default(now())         // 예약을 건 날짜/시각 (대기 순서 계산 기준)
+  holdDueDate DateTime?                          // 보관마감일. 복본을 실제로 보관 중일 때만 값이 있음
+
+  createdAt   DateTime  @default(now())
+
+  @@index([libraryId])
+  @@index([userId])
+  @@index([copyId])
 }
