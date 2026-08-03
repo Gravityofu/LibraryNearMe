@@ -13,6 +13,14 @@ import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import Placeholder from "@tiptap/extension-placeholder";
+import CharacterCount from "@tiptap/extension-character-count";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
 
@@ -61,6 +69,14 @@ export default function RichTextEditor({ value, onChange }: Props) {
       TableRow,
       TableHeader,
       TableCell,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Highlight,
+      Subscript,
+      Superscript,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({ placeholder: t("editor.placeholder") }),
+      CharacterCount,
     ],
     content: value,
     immediatelyRender: false, // Next.js에서 서버와 브라우저의 첫 화면이 다르게 그려지는 문제를 막아줍니다.
@@ -74,9 +90,17 @@ export default function RichTextEditor({ value, onChange }: Props) {
           "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 " +
           "[&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_strong]:font-bold [&_u]:underline " +
           "[&_a]:text-blue-600 [&_a]:underline " +
+          "[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 " +
+          "[&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 " +
+          "[&_blockquote]:border-l-4 [&_blockquote]:border-neutral-300 [&_blockquote]:pl-3 [&_blockquote]:text-neutral-500 " +
+          "[&_pre]:rounded-lg [&_pre]:bg-neutral-900 [&_pre]:text-neutral-100 [&_pre]:p-3 [&_pre]:my-2 [&_pre]:overflow-x-auto " +
+          "[&_code]:rounded [&_code]:bg-neutral-100 [&_code]:px-1 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 " +
+          "[&_hr]:my-4 [&_hr]:border-neutral-200 " +
+          "[&_ul[data-type='taskList']]:list-none [&_ul[data-type='taskList']]:pl-0 " +
           "[&_table]:my-2 [&_table]:w-full [&_table]:border-collapse " +
-          "[&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_align-top]:align-top " +
-          "[&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2 [&_th]:text-left",
+          "[&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 " +
+          "[&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2 [&_th]:text-left " +
+          "[&_p.is-editor-empty:first-child::before]:text-neutral-400 [&_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child::before]:float-left [&_p.is-editor-empty:first-child::before]:pointer-events-none [&_p.is-editor-empty:first-child::before]:h-0",
       },
     },
   });
@@ -122,6 +146,16 @@ export default function RichTextEditor({ value, onChange }: Props) {
     setShowEmojiPicker(false);
   }
 
+  function handleHeadingChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (!editor) return;
+    const val = e.target.value;
+    if (val === "paragraph") {
+      editor.chain().focus().setParagraph().run();
+    } else {
+      editor.chain().focus().toggleHeading({ level: Number(val) as 1 | 2 | 3 }).run();
+    }
+  }
+
   if (!editor) return null;
 
   function ToolbarButton({
@@ -150,10 +184,45 @@ export default function RichTextEditor({ value, onChange }: Props) {
   }
 
   const isInTable = editor.isActive("table");
+  const currentHeadingValue = editor.isActive("heading", { level: 1 })
+    ? "1"
+    : editor.isActive("heading", { level: 2 })
+      ? "2"
+      : editor.isActive("heading", { level: 3 })
+        ? "3"
+        : "paragraph";
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-1 rounded-t-lg border border-neutral-200 bg-neutral-50 px-2 py-1.5">
+        {/* 되돌리기 / 다시 실행 */}
+        <ToolbarButton
+          disabled={!editor.can().undo()}
+          onClick={() => editor.chain().focus().undo().run()}
+          label={t("editor.undo")}
+        />
+        <ToolbarButton
+          disabled={!editor.can().redo()}
+          onClick={() => editor.chain().focus().redo().run()}
+          label={t("editor.redo")}
+        />
+
+        <span className="mx-1 h-5 w-px bg-neutral-200" />
+
+        {/* 제목 */}
+        <select
+          value={currentHeadingValue}
+          onChange={handleHeadingChange}
+          className="cursor-pointer rounded border border-neutral-200 bg-white px-2 py-1.5 text-xs"
+        >
+          <option value="paragraph">{t("editor.heading.paragraph")}</option>
+          <option value="1">{t("editor.heading.h1")}</option>
+          <option value="2">{t("editor.heading.h2")}</option>
+          <option value="3">{t("editor.heading.h3")}</option>
+        </select>
+
+        <span className="mx-1 h-5 w-px bg-neutral-200" />
+
         {/* 글자 서식 */}
         <ToolbarButton
           active={editor.isActive("bold")}
@@ -161,10 +230,39 @@ export default function RichTextEditor({ value, onChange }: Props) {
           label={t("editor.bold")}
         />
         <ToolbarButton
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          label={t("editor.italic")}
+        />
+        <ToolbarButton
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           label={t("editor.underline")}
         />
+        <ToolbarButton
+          active={editor.isActive("strike")}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          label={t("editor.strike")}
+        />
+        <ToolbarButton
+          active={editor.isActive("subscript")}
+          onClick={() => editor.chain().focus().toggleSubscript().run()}
+          label={t("editor.subscript")}
+        />
+        <ToolbarButton
+          active={editor.isActive("superscript")}
+          onClick={() => editor.chain().focus().toggleSuperscript().run()}
+          label={t("editor.superscript")}
+        />
+        <ToolbarButton
+          active={editor.isActive("highlight")}
+          onClick={() => editor.chain().focus().toggleHighlight().run()}
+          label={t("editor.highlight")}
+        />
+
+        <span className="mx-1 h-5 w-px bg-neutral-200" />
+
+        {/* 목록 / 인용구 / 코드블록 / 구분선 */}
         <ToolbarButton
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -174,6 +272,49 @@ export default function RichTextEditor({ value, onChange }: Props) {
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           label={t("editor.orderedList")}
+        />
+        <ToolbarButton
+          active={editor.isActive("taskList")}
+          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          label={t("editor.taskList")}
+        />
+        <ToolbarButton
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          label={t("editor.blockquote")}
+        />
+        <ToolbarButton
+          active={editor.isActive("codeBlock")}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          label={t("editor.codeBlock")}
+        />
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          label={t("editor.horizontalRule")}
+        />
+
+        <span className="mx-1 h-5 w-px bg-neutral-200" />
+
+        {/* 정렬 */}
+        <ToolbarButton
+          active={editor.isActive({ textAlign: "left" })}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          label={t("editor.alignLeft")}
+        />
+        <ToolbarButton
+          active={editor.isActive({ textAlign: "center" })}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          label={t("editor.alignCenter")}
+        />
+        <ToolbarButton
+          active={editor.isActive({ textAlign: "right" })}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          label={t("editor.alignRight")}
+        />
+        <ToolbarButton
+          active={editor.isActive({ textAlign: "justify" })}
+          onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+          label={t("editor.alignJustify")}
         />
 
         <span className="mx-1 h-5 w-px bg-neutral-200" />
@@ -318,6 +459,9 @@ export default function RichTextEditor({ value, onChange }: Props) {
         )}
       </div>
       <EditorContent editor={editor} />
+      <div className="mt-1 text-right text-xs text-neutral-400">
+        {editor.storage.characterCount.characters()}{t("editor.charCountSuffix")}
+      </div>
     </div>
   );
 }
