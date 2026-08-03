@@ -38,6 +38,7 @@ const SETTINGS_TAB_CRUMB_MAP: Record<string, string> = {
   copyOptions: "settings.tabs.copyOptions",
   kormarcTags: "settings.tabs.kormarcTags",
   loan: "settings.tabs.loan",
+  boards: "settings.tabs.boards",
 };
 
 // 브레드크럼만 따로 떼어낸 부분입니다. 주소의 ?tab= 값을 읽어야 해서(useSearchParams)
