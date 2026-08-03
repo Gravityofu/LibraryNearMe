@@ -20,6 +20,8 @@ const BREADCRUMB_MAP: Record<string, string[]> = {
   "/admin/members": ["admin.menu.members"],
   "/admin/loans": ["admin.menu.loans"], // '대출/반납'은 탭에 따라 아래 BreadcrumbBar에서 다시 계산합니다.
   "/admin/loans/reservation": ["admin.menu.loans", "loans.tabs.reservation", "loans.reservationNew.pageTitle"],
+  "/admin/boards": ["admin.menu.boards"], // '게시판'도 탭에 따라 아래 BreadcrumbBar에서 다시 계산합니다.
+  "/admin/boards/write": ["admin.menu.boards", "boards.write.pageTitleNew"],
 };
 
 // '대출/반납' 화면의 ?tab= 값 → 브레드크럼 두 번째 칸에 보여줄 문구 매핑입니다.
@@ -41,6 +43,20 @@ const SETTINGS_TAB_CRUMB_MAP: Record<string, string> = {
   boards: "settings.tabs.boards",
 };
 
+// '게시판' 화면의 ?board= 값 → 브레드크럼 두 번째 칸에 보여줄 문구 매핑입니다.
+const BOARDS_TAB_CRUMB_MAP: Record<string, string> = {
+  newArrivals: "boards.tabs.newArrivals",
+  collection: "boards.tabs.collection",
+  refService: "boards.tabs.refService",
+  scrap: "boards.tabs.scrap",
+  dailyQuote: "boards.tabs.dailyQuote",
+  notice: "boards.tabs.notice",
+  news: "boards.tabs.news",
+  openBoard: "boards.tabs.openBoard",
+  faq: "boards.tabs.faq",
+  materialRequest: "boards.tabs.materialRequest",
+};
+
 // 브레드크럼만 따로 떼어낸 부분입니다. 주소의 ?tab= 값을 읽어야 해서(useSearchParams)
 // <Suspense>로 감싸서 씁니다.
 function BreadcrumbBar() {
@@ -56,6 +72,19 @@ function BreadcrumbBar() {
   if (pathname === "/admin/settings") {
     const tab = searchParams.get("tab") || "library";
     crumbs = ["admin.menu.systemSettings", SETTINGS_TAB_CRUMB_MAP[tab] || SETTINGS_TAB_CRUMB_MAP.library];
+  }
+  if (pathname === "/admin/boards") {
+    const tab = searchParams.get("board") || "newArrivals";
+    crumbs = ["admin.menu.boards", BOARDS_TAB_CRUMB_MAP[tab] || BOARDS_TAB_CRUMB_MAP.newArrivals];
+  }
+  if (pathname === "/admin/boards/write") {
+    const tab = searchParams.get("board") || "newArrivals";
+    const isEdit = !!searchParams.get("postId");
+    crumbs = [
+      "admin.menu.boards",
+      BOARDS_TAB_CRUMB_MAP[tab] || BOARDS_TAB_CRUMB_MAP.newArrivals,
+      isEdit ? "boards.write.pageTitleEdit" : "boards.write.pageTitleNew",
+    ];
   }
 
   if (!crumbs) return null;
@@ -124,6 +153,9 @@ export default function AdminLayout({
           </Link>
           <Link href="/admin/loans" className={navClass("/admin/loans")}>
             {t("admin.menu.loans")}
+          </Link>
+          <Link href="/admin/boards" className={navClass("/admin/boards")}>
+            {t("admin.menu.boards")}
           </Link>
           <Link href="/admin/settings" className={navClass("/admin/settings")}>
             {t("admin.menu.systemSettings")}
