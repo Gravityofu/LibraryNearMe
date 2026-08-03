@@ -32,6 +32,7 @@ import { ReservationsService } from './reservations/reservations.service';
 import { BoardsController } from './settings/boards.controller';
 import { BoardsService } from './settings/boards.service';
 import { UploadsController } from './uploads/uploads.controller';
+import { UploadsService } from './uploads/uploads.service';
 import { PostsController } from './posts/posts.controller';
 import { PostsService } from './posts/posts.service';
 
@@ -79,6 +80,7 @@ import { PostsService } from './posts/posts.service';
     LoanRestrictionsService,
     ReservationsService,
     BoardsService,
+    UploadsService,
     PostsService,
   ],
 })
