@@ -86,6 +86,20 @@ const RESERVATION_VIEWS: { key: string; labelKey: string }[] = [
   { key: "HISTORY", labelKey: "loans.reservation.filter.history" },
 ];
 const RESERVATION_COLUMN_COUNT = 9;
+const RESERVATION_PAGE_SIZE = 10;
+
+// '예약' 탭 표에 나타나는 한 줄의 모양입니다.
+type ReservationRow = {
+  id: number;
+  status: string; // RESERVED | OVERDUE | HOLDING | HOLD_EXPIRED | CANCELED | FULFILLED
+  reservedAt: string;
+  holdDueDate: string | null;
+  registrationNo: string;
+  materialTitle: string;
+  creator: string | null;
+  memberNo: string | null;
+  memberName: string;
+};
 
 // 글자가 max(기본 10자)를 넘으면 뒷부분을 "…"로 줄여줍니다.
 function truncateText(text: string, max = 10) {
@@ -232,6 +246,14 @@ export default function AdminLoansPage() {
   // '예약' 탭 상단 5개 메뉴 버튼 중 지금 선택된 것이 무엇인지 기억합니다. (기본값: '예약 중인 자료')
   const [reservationView, setReservationView] = useState("RESERVED");
 
+  // ── 여기부터는 '예약' 탭에서만 쓰는 상태들입니다. ──
+  const [reservationRows, setReservationRows] = useState<ReservationRow[]>([]);
+  const [reservationTotal, setReservationTotal] = useState(0);
+  const [reservationPage, setReservationPage] = useState(1);
+  const [reservationLoading, setReservationLoading] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<ReservationRow | null>(null);
+  const [showReservationDetail, setShowReservationDetail] = useState(false);
+
   // 화면에는 보이지 않지만, '대출/반납일 변경' 버튼을 누르면 이 입력 칸의 달력 팝업을 열어줍니다. (대출 탭용)
   const hiddenDateInputRef = useRef<HTMLInputElement>(null);
 
@@ -343,6 +365,60 @@ export default function AdminLoansPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // '예약' 탭의 선택된 보기(예약중/연체중/보관중/보관일지남/이력)에 맞는 목록을 가져옵니다.
+  async function fetchReservations(p: number, view: string) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setReservationLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("view", view);
+      params.set("page", String(p));
+      params.set("pageSize", String(RESERVATION_PAGE_SIZE));
+      const res = await fetch(`${API_URL}/reservations?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReservationRows(data.items);
+        setReservationTotal(data.total);
+        setReservationPage(data.page);
+      }
+    } finally {
+      setReservationLoading(false);
+    }
+  }
+
+  // '예약' 탭이 열려있을 때, 탭에 처음 들어오거나 상단 보기 버튼을 바꾸면 목록을 새로 가져옵니다.
+  useEffect(() => {
+    if (activeTab === "reservation") {
+      fetchReservations(1, reservationView);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, reservationView]);
+
+  // 예약 상세 모달에서 '예약 취소' 버튼을 눌렀을 때 호출됩니다.
+  async function handleCancelReservation() {
+    if (!selectedReservation) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/reservations/${selectedReservation.id}/cancel`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("loans.reservation.detail.cancelSuccess"), "success");
+      setShowReservationDetail(false);
+      setSelectedReservation(null);
+      await fetchReservations(reservationPage, reservationView);
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("loans.reservation.detail.cancelFail")), "error");
+    }
+  }
+
+  const reservationTotalPages = Math.max(1, Math.ceil(reservationTotal / RESERVATION_PAGE_SIZE));
 
   // 반납일 입력 칸에서 포커스가 빠져나갈 때 호출됩니다. (대출 탭의 handleLoanDateBlur와 같은 방식)
   function handleReturnDateBlur() {
@@ -1033,16 +1109,62 @@ export default function AdminLoansPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  <tr>
-                    <td colSpan={RESERVATION_COLUMN_COUNT} className="px-4 py-6 text-center text-neutral-400">
-                      {t("loans.reservation.noResults")}
-                    </td>
-                  </tr>
+                  {reservationLoading ? (
+                    <tr>
+                      <td colSpan={RESERVATION_COLUMN_COUNT} className="px-4 py-6 text-center text-neutral-400">
+                        {t("loans.processing")}
+                      </td>
+                    </tr>
+                  ) : reservationRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={RESERVATION_COLUMN_COUNT} className="px-4 py-6 text-center text-neutral-400">
+                        {t("loans.reservation.noResults")}
+                      </td>
+                    </tr>
+                  ) : (
+                    reservationRows.map((row, i) => (
+                      <tr
+                        key={row.id}
+                        onClick={() => {
+                          setSelectedReservation(row);
+                          setShowReservationDetail(true);
+                        }}
+                        className="cursor-pointer hover:bg-neutral-50"
+                      >
+                        <td className="whitespace-nowrap px-4 py-2">
+                          {(reservationPage - 1) * RESERVATION_PAGE_SIZE + i + 1}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2">{t(`loans.reservation.status.${row.status}`)}</td>
+                        <td className="whitespace-nowrap px-4 py-2">{row.reservedAt.slice(0, 10)}</td>
+                        <td className="whitespace-nowrap px-4 py-2">{row.holdDueDate ? row.holdDueDate.slice(0, 10) : "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2">{row.registrationNo}</td>
+                        <td className="px-4 py-2">{row.materialTitle}</td>
+                        <td className="px-4 py-2">{row.creator || "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2">{row.memberNo || "-"}</td>
+                        <td className="whitespace-nowrap px-4 py-2">{row.memberName}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
+            {reservationTotal > 0 && (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-neutral-400">
+                  {reservationPage} / {reservationTotalPages} {t("materials.pageWord")} ({t("materials.totalWord")}{" "}
+                  {reservationTotal})
+                </p>
+                <Pagination
+                  page={reservationPage}
+                  totalPages={reservationTotalPages}
+                  onPageChange={(p) => fetchReservations(p, reservationView)}
+                />
+              </div>
+            )}
+
             {/* 하단 버튼 영역: '목록' 화면의 '자료 등록' 버튼과 같은 위치·스타일입니다. */}
+
             <div className="flex justify-end pt-2">
               <button
                 type="button"
@@ -1573,6 +1695,58 @@ export default function AdminLoansPage() {
               type="button"
               onClick={() => setShowReturnRestrictionModal(false)}
               className="mt-4 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
+            >
+              {t("loans.member.closeBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 예약 상세 모달: '예약' 탭 표에서 행을 클릭하면 열립니다. '예약 취소' 버튼으로 예약을 취소할 수 있습니다. */}
+      {showReservationDetail && selectedReservation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowReservationDetail(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-sm font-semibold">{t("loans.reservation.detail.title")}</p>
+
+            <div className="space-y-1.5 text-sm">
+              <InfoRow
+                label={t("loans.reservation.col.status")}
+                value={t(`loans.reservation.status.${selectedReservation.status}`)}
+              />
+              <InfoRow label={t("loans.reservation.col.title")} value={selectedReservation.materialTitle} />
+              <InfoRow label={t("loans.reservation.col.registrationNo")} value={selectedReservation.registrationNo} />
+              <InfoRow label={t("loans.reservation.col.reservedDate")} value={selectedReservation.reservedAt.slice(0, 10)} />
+              <InfoRow
+                label={t("loans.reservation.col.holdDueDate")}
+                value={selectedReservation.holdDueDate ? selectedReservation.holdDueDate.slice(0, 10) : "-"}
+              />
+              <InfoRow label={t("loans.reservation.col.memberNo")} value={selectedReservation.memberNo || "-"} />
+              <InfoRow label={t("loans.reservation.col.memberName")} value={selectedReservation.memberName} />
+            </div>
+
+            {(selectedReservation.status === "RESERVED" ||
+              selectedReservation.status === "OVERDUE" ||
+              selectedReservation.status === "HOLDING" ||
+              selectedReservation.status === "HOLD_EXPIRED") && (
+              <button
+                type="button"
+                onClick={handleCancelReservation}
+                className="mt-4 w-full cursor-pointer rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {t("loans.reservation.detail.cancelBtn")}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowReservationDetail(false)}
+              className="mt-2 w-full cursor-pointer rounded-lg border border-neutral-200 py-2 text-sm text-neutral-500"
             >
               {t("loans.member.closeBtn")}
             </button>

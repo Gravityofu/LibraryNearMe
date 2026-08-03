@@ -335,4 +335,92 @@ export class ReservationsService {
       orderBy: { reservedAt: 'asc' },
     });
   }
+
+  // 예약 정보를 화면 표에 바로 그릴 수 있는 모양으로 바꿔줍니다.
+  private toRow(r: any, statusCode: string) {
+    return {
+      id: r.id,
+      status: statusCode,
+      reservedAt: r.reservedAt,
+      holdDueDate: r.holdDueDate,
+      registrationNo: r.copy.registrationNo,
+      materialTitle: r.copy.material.title,
+      creator: r.copy.material.creator,
+      memberNo: r.user.memberNo,
+      memberName: r.user.name,
+    };
+  }
+
+  // '예약' 탭 상단 5개 보기(예약중/연체중/보관중/보관일지남/이력)에 맞는 예약 목록을 페이지 단위로 가져옵니다.
+  async listByView(libraryId: number, view: string, page: number, pageSize: number) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // '보관 중'과 '보관일이 지난'은 holdDueDate 값과 오늘 날짜를 비교해서 바로 나눌 수 있습니다.
+    if (view === 'HOLDING' || view === 'HOLD_EXPIRED') {
+      const where: any = {
+        libraryId,
+        status: 'RESERVED',
+        holdDueDate: view === 'HOLDING' ? { gte: today } : { lt: today },
+      };
+      const [items, total] = await this.prisma.$transaction([
+        this.prisma.reservation.findMany({
+          where,
+          include: { user: true, copy: { include: { material: true } } },
+          orderBy: { holdDueDate: 'asc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        this.prisma.reservation.count({ where }),
+      ]);
+      return { items: items.map((r) => this.toRow(r, view)), total, page, pageSize };
+    }
+
+    // '예약 이력'은 더 이상 진행 중이지 않은(취소되었거나 대출완료된) 예약들입니다.
+    if (view === 'HISTORY') {
+      const where: any = { libraryId, status: { in: ['CANCELED', 'FULFILLED'] } };
+      const [items, total] = await this.prisma.$transaction([
+        this.prisma.reservation.findMany({
+          where,
+          include: { user: true, copy: { include: { material: true } } },
+          orderBy: { reservedAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        this.prisma.reservation.count({ where }),
+      ]);
+      return { items: items.map((r) => this.toRow(r, r.status)), total, page, pageSize };
+    }
+
+    // '예약 중'과 '연체 중'은 둘 다 아직 대기 중인(holdDueDate가 없는) 예약이지만,
+    // 그 그룹의 복본 중에 지금 대출 중이면서 연체된 것이 있는지에 따라 나눕니다.
+    const waiting = await this.prisma.reservation.findMany({
+      where: { libraryId, status: 'RESERVED', holdDueDate: null },
+      include: { user: true, copy: { include: { material: true } } },
+      orderBy: { reservedAt: 'asc' },
+    });
+
+    const classified: { reservation: (typeof waiting)[number]; view: string }[] = [];
+    for (const r of waiting) {
+      const siblingLoans = await this.prisma.loan.findMany({
+        where: {
+          libraryId,
+          returnedAt: null,
+          copy: { materialId: r.copy.materialId, volume: r.copy.volume },
+        },
+      });
+      const isOverdue = siblingLoans.some((l) => {
+        const d = new Date(l.dueDate);
+        d.setHours(0, 0, 0, 0);
+        return d < today;
+      });
+      classified.push({ reservation: r, view: isOverdue ? 'OVERDUE' : 'RESERVED' });
+    }
+
+    const filtered = classified.filter((c) => c.view === view);
+    const total = filtered.length;
+    const pageItems = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+
+    return { items: pageItems.map((c) => this.toRow(c.reservation, c.view)), total, page, pageSize };
+  }
 }

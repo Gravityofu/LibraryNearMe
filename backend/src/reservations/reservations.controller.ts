@@ -20,6 +20,18 @@ export class ReservationsController {
     return this.reservationsService.listByMember(req.user.libraryId, parseInt(userId, 10));
   }
 
+  // GET 요청: '예약' 탭 5개 보기에 맞는 예약 목록 (페이지 단위) — 관리자만
+  @Get()
+  @UseGuards(AdminGuard)
+  listByView(@Req() req: any, @Query() query: any) {
+    return this.reservationsService.listByView(
+      req.user.libraryId,
+      query.view || 'RESERVED',
+      parseInt(query.page, 10) || 1,
+      parseInt(query.pageSize, 10) || 10,
+    );
+  }
+
   // POST 요청: 예약 생성 — 관리자만
   @Post()
   @UseGuards(AdminGuard)
