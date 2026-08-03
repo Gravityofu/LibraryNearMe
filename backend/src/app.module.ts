@@ -27,6 +27,8 @@ import { LoansController } from './loans/loans.controller';
 import { LoansService } from './loans/loans.service';
 import { LoanRestrictionsController } from './loan-restrictions/loan-restrictions.controller';
 import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.service';
+import { ReservationsController } from './reservations/reservations.controller';
+import { ReservationsService } from './reservations/reservations.service';
 
 @Module({
   imports: [
@@ -51,6 +53,7 @@ import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.s
     LoanSettingsController,
     LoansController,
     LoanRestrictionsController,
+    ReservationsController,
   ],
   providers: [
     AppService,
@@ -66,6 +69,7 @@ import { LoanRestrictionsService } from './loan-restrictions/loan-restrictions.s
     LoanSettingsService,
     LoansService,
     LoanRestrictionsService,
+    ReservationsService,
   ],
 })
 export class AppModule {}

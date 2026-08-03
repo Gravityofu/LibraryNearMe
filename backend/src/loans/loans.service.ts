@@ -1,9 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LoanRestrictionsService } from '../loan-restrictions/loan-restrictions.service';
+import { ReservationsService } from '../reservations/reservations.service';
 
 const AVAILABLE = '대출가능';
 const ON_LOAN = '대출중';
+const HOLDING = '예약보관중';
 
 // 날짜(연/월/일)는 date에서, 시각(시/분/초)은 지금 이 순간에서 가져와 합칩니다.
 // '대출/반납일 변경'으로 다른 날짜를 지정해도, 실제로 처리한 시각은 정확하게 기록하기 위해 씁니다.
@@ -29,6 +31,7 @@ export class LoansService {
   constructor(
     private prisma: PrismaService,
     private loanRestrictionsService: LoanRestrictionsService,
+    private reservationsService: ReservationsService,
   ) {}
 
   // 대출 화면에서 회원을 찾을 때 씁니다. 이름 또는 회원번호로 찾을 수 있어요.
@@ -124,8 +127,15 @@ export class LoansService {
     }
 
     // 2. 자료(실물) 확인
+    // 자료 상태가 '예약보관중'이면, 그 예약을 건 회원만 대출할 수 있습니다.
     const copy = await this.findCopyByRegistrationNo(libraryId, registrationNo);
-    if (copy.status !== AVAILABLE) {
+    let heldReservation: any = null;
+    if (copy.status === HOLDING) {
+      heldReservation = await this.reservationsService.findHeldReservation(libraryId, copy.id);
+      if (!heldReservation || heldReservation.userId !== userId) {
+        throw new BadRequestException('이 자료는 다른 회원을 위해 예약보관 중입니다.');
+      }
+    } else if (copy.status !== AVAILABLE) {
       throw new BadRequestException(
         `현재 대출 가능한 상태가 아닙니다. (현재 상태: ${copy.status})`,
       );
@@ -204,6 +214,11 @@ export class LoansService {
       }),
     ]);
 
+    // 예약했던 회원이 그 예약 건으로 실제 대출을 완료한 경우, 예약을 '대출완료'로 바꿔줍니다.
+    if (heldReservation) {
+      await this.reservationsService.fulfillReservation(heldReservation.id);
+    }
+
     return {
       id: loan.id,
       memberName: member.name,
@@ -244,11 +259,12 @@ export class LoansService {
         where: { id: loan.id },
         data: { returnedAt },
       }),
-      this.prisma.copy.update({
-        where: { id: copy.id },
-        data: { status: AVAILABLE },
-      }),
     ]);
+
+    // 반납된 복본을 대기 중인 예약자에게 넘길지, 그냥 '대출가능' 상태로 되돌릴지는 예약 서비스가 판단해서
+    // 자료 상태(Copy.status)까지 직접 갱신합니다. (대기자가 있으면 '예약보관중', 없으면 '대출가능')
+    await this.reservationsService.handleCopyReturned(libraryId, copy.id);
+    const refreshedCopy = await this.prisma.copy.findFirst({ where: { id: copy.id } });
 
     // 화면에서 "방금 반납한 자료" 행과 "이 회원의 정보"를 바로 그릴 수 있도록,
     // 대출 목록과 같은 모양(copy, material 포함)으로 함께 돌려줍니다.
@@ -262,7 +278,7 @@ export class LoansService {
         callNumber: copy.callNumber,
         volume: copy.volume,
         copyNumber: copy.copyNumber,
-        status: AVAILABLE,
+        status: refreshedCopy?.status ?? AVAILABLE,
         material: { title: copy.material.title },
       },
       member: {
