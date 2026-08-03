@@ -19,6 +19,12 @@ type MaterialType = {
   maxReservationCount: number | null;
 };
 
+type MaterialRequestType = {
+  id: number;
+  value: string;
+  order: number;
+};
+
 const EMPTY_FORM = {
   category: "PHYSICAL" as "PHYSICAL" | "DIGITAL",
   code: "",
@@ -38,6 +44,12 @@ export default function MaterialTypesSettingsForm() {
 
   // 자료 등록 화면에서 주제어를 몇 개까지 입력할 수 있는지 정하는, 도서관 전체 공통 값이에요.
   const [maxSubjectKeywords, setMaxSubjectKeywords] = useState("10");
+
+  // '자료를 신청합니다' 게시판 글쓰기 화면의 '자료 종류' 드롭다운 항목들입니다.
+  const [requestTypes, setRequestTypes] = useState<MaterialRequestType[]>([]);
+  const [showMrtModal, setShowMrtModal] = useState(false);
+  const [editingMrtId, setEditingMrtId] = useState<number | null>(null);
+  const [mrtValue, setMrtValue] = useState("");
 
   async function loadTypes() {
     const token = localStorage.getItem("token");
@@ -82,9 +94,23 @@ export default function MaterialTypesSettingsForm() {
     }
   }
 
+  async function loadRequestTypes() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/material-request-types`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setRequestTypes(await res.json());
+    } else {
+      notify("❌ " + t("settings.materialTypes.requestTypes.loadFail"), "error");
+    }
+  }
+
   useEffect(() => {
     loadTypes();
     loadMaxSubjectKeywords();
+    loadRequestTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,6 +185,60 @@ export default function MaterialTypesSettingsForm() {
     }
   }
 
+  function openAddMrtModal() {
+    setEditingMrtId(null);
+    setMrtValue("");
+    setShowMrtModal(true);
+  }
+
+  function openEditMrtModal(item: MaterialRequestType) {
+    setEditingMrtId(item.id);
+    setMrtValue(item.value);
+    setShowMrtModal(true);
+  }
+
+  async function handleSaveMrt() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    if (!mrtValue.trim()) {
+      notify("❌ " + t("settings.materialTypes.requestTypes.valueRequired"), "error");
+      return;
+    }
+    const url = editingMrtId
+      ? `${API_URL}/material-request-types/${editingMrtId}`
+      : `${API_URL}/material-request-types`;
+    const res = await fetch(url, {
+      method: editingMrtId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ value: mrtValue.trim() }),
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.materialTypes.requestTypes.saveSuccess"), "success");
+      setShowMrtModal(false);
+      await loadRequestTypes();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.materialTypes.requestTypes.saveFail")), "error");
+    }
+  }
+
+  async function handleDeleteMrt(id: number) {
+    if (!window.confirm(t("settings.materialTypes.requestTypes.deleteConfirm"))) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/material-request-types/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.materialTypes.requestTypes.deleteSuccess"), "success");
+      await loadRequestTypes();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.materialTypes.requestTypes.deleteFail")), "error");
+    }
+  }
+
   function renderTable(category: "PHYSICAL" | "DIGITAL") {
     const rows = types.filter((mt) => mt.category === category);
     return (
@@ -224,6 +304,44 @@ export default function MaterialTypesSettingsForm() {
         <ThemedButton preset="버튼1" onClick={openAddModal}>
           {t("settings.materialTypes.addBtn")}
         </ThemedButton>
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="mb-1 text-sm font-semibold">{t("settings.materialTypes.requestTypes.title")}</p>
+        <p className="mb-3 text-xs text-neutral-400">{t("settings.materialTypes.requestTypes.desc")}</p>
+
+        <div className="flex flex-wrap gap-2">
+          {requestTypes.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm"
+            >
+              <span>{item.value}</span>
+              <button
+                type="button"
+                onClick={() => openEditMrtModal(item)}
+                className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-800"
+              >
+                {t("settings.materialTypes.requestTypes.editBtn")}
+              </button>
+              {requestTypes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMrt(item.id)}
+                  className="cursor-pointer text-xs text-red-500 hover:text-red-700"
+                >
+                  {t("settings.materialTypes.requestTypes.deleteBtn")}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <ThemedButton preset="버튼1" onClick={openAddMrtModal}>
+            {t("settings.materialTypes.requestTypes.addBtn")}
+          </ThemedButton>
+        </div>
       </div>
 
       {showModal && (
@@ -315,6 +433,34 @@ export default function MaterialTypesSettingsForm() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showMrtModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowMrtModal(false)}
+        >
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <p className="mb-4 text-sm font-semibold">
+              {editingMrtId
+                ? t("settings.materialTypes.requestTypes.modal.editTitle")
+                : t("settings.materialTypes.requestTypes.modal.addTitle")}
+            </p>
+            <label className="block">
+              <span className="mb-1 block text-sm text-neutral-500">
+                {t("settings.materialTypes.requestTypes.field.value")} *
+              </span>
+              <input
+                value={mrtValue}
+                onChange={(e) => setMrtValue(e.target.value)}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <ThemedButton preset="버튼1" onClick={handleSaveMrt} className="mt-5 w-full">
+              {t("settings.materialTypes.requestTypes.save")}
+            </ThemedButton>
           </div>
         </div>
       )}

@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
-// '자료를 신청합니다' 게시판에서 고를 수 있는 자료 종류 목록입니다. (지금은 코드에 고정되어 있습니다.)
-export const MATERIAL_REQUEST_TYPES = ['도서', 'DVD', '잡지', '공구', '기타'];
+import { MaterialRequestTypesService } from '../settings/material-request-types.service';
 
 // 자료신청 처리 상태 목록입니다.
 export const MATERIAL_REQUEST_STATUSES = ['REQUESTED', 'PURCHASING', 'PURCHASED', 'NOT_PURCHASED'];
@@ -11,12 +9,21 @@ const PAGE_SIZE = 15;
 
 @Injectable()
 export class PostsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private materialRequestTypesService: MaterialRequestTypesService,
+  ) {}
 
   // 본문(HTML) 안에서 가장 처음 나오는 <img> 태그의 src 값을 찾아냅니다. 썸네일형 게시판의 목록 대표 이미지로 씁니다.
   private extractFirstImage(content: string): string | null {
     const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     return match ? match[1] : null;
+  }
+
+  // '자료를 신청합니다' 게시판 글쓰기 화면의 드롭다운에 쓸 목록을 내려줍니다. (자료 종류는 설정 > 자료 메뉴에서 관리합니다.)
+  async getMaterialRequestOptions(libraryId: number) {
+    const types = await this.materialRequestTypesService.list(libraryId);
+    return { types: types.map((t) => t.value), statuses: MATERIAL_REQUEST_STATUSES };
   }
 
   // 글 목록 조회 (페이지 단위). 최신 글이 위로 오도록 정렬합니다.
@@ -86,7 +93,8 @@ export class PostsService {
     let materialRequestData: any = null;
     if (board.isMaterialRequest) {
       const requestType = String(data.requestType || '').trim();
-      if (!MATERIAL_REQUEST_TYPES.includes(requestType)) {
+      const validTypes = (await this.materialRequestTypesService.list(libraryId)).map((t) => t.value);
+      if (!validTypes.includes(requestType)) {
         throw new BadRequestException('신청 자료 종류를 올바르게 선택하세요.');
       }
       materialRequestData = {
@@ -136,7 +144,8 @@ export class PostsService {
     if (existing.board.isMaterialRequest) {
       const requestType =
         data.requestType !== undefined ? String(data.requestType).trim() : existing.materialRequest?.requestType;
-      if (!MATERIAL_REQUEST_TYPES.includes(String(requestType))) {
+      const validTypes = (await this.materialRequestTypesService.list(libraryId)).map((t) => t.value);
+      if (!validTypes.includes(String(requestType))) {
         throw new BadRequestException('신청 자료 종류를 올바르게 선택하세요.');
       }
       const requestAuthor =

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { PostsService, MATERIAL_REQUEST_TYPES, MATERIAL_REQUEST_STATUSES } from './posts.service';
+import { PostsService } from './posts.service';
 import { AdminGuard } from '../auth/admin.guard';
 
 @Controller('posts')
@@ -9,8 +9,8 @@ export class PostsController {
   // '자료를 신청합니다' 게시판 글쓰기 화면에서 드롭다운에 쓸 목록을 내려줍니다.
   @Get('material-request-options')
   @UseGuards(AdminGuard)
-  materialRequestOptions() {
-    return { types: MATERIAL_REQUEST_TYPES, statuses: MATERIAL_REQUEST_STATUSES };
+  materialRequestOptions(@Req() req: any) {
+    return this.postsService.getMaterialRequestOptions(req.user.libraryId);
   }
 
   @Get()

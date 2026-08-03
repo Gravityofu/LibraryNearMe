@@ -35,6 +35,8 @@ import { UploadsController } from './uploads/uploads.controller';
 import { UploadsService } from './uploads/uploads.service';
 import { PostsController } from './posts/posts.controller';
 import { PostsService } from './posts/posts.service';
+import { MaterialRequestTypesController } from './settings/material-request-types.controller';
+import { MaterialRequestTypesService } from './settings/material-request-types.service';
 
 @Module({
   imports: [
@@ -63,6 +65,7 @@ import { PostsService } from './posts/posts.service';
     BoardsController,
     UploadsController,
     PostsController,
+    MaterialRequestTypesController,
   ],
   providers: [
     AppService,
@@ -82,6 +85,7 @@ import { PostsService } from './posts/posts.service';
     BoardsService,
     UploadsService,
     PostsService,
+    MaterialRequestTypesService,
   ],
 })
 export class AppModule {}
