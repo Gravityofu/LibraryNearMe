@@ -6,11 +6,17 @@ import 'dotenv/config';
 process.env.TZ = 'Asia/Seoul';
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors(); // 브라우저(3000)가 주방(3001)을 부를 수 있게 허용
+
+  // backend/uploads 폴더 안의 파일을 "http://서버주소/uploads/..." 로 브라우저에서 바로 볼 수 있게 합니다.
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
+
   await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();
