@@ -384,9 +384,10 @@ model Board {
   listStyle         String   @default("LIST")   // "LIST"(제목 목록형) | "THUMBNAIL"(썸네일형)
   order             Int      @default(0)
 
-  allowMemberWrite  Boolean  @default(false)  // 회원이 글을 쓸 수 있는 게시판인지 (열린 게시판, 자료를 신청합니다만 true)
-  allowGuestWrite   Boolean  @default(false)  // allowMemberWrite가 true일 때만 의미 있음: 비회원(비로그인)도 글을 쓸 수 있는지
-  allowGuestComment Boolean  @default(false)  // 이 게시판의 댓글을 비회원(비로그인)도 쓸 수 있는지
+  allowMemberWrite   Boolean  @default(false)  // 회원이 글을 쓸 수 있는 게시판인지 (열린 게시판, 자료를 신청합니다만 true)
+  allowGuestWrite    Boolean  @default(false)  // allowMemberWrite가 true일 때만 의미 있음: 비회원(비로그인)도 글을 쓸 수 있는지
+  allowMemberComment Boolean  @default(true)   // 로그인한 회원이 이 게시판에 댓글을 쓸 수 있는지
+  allowGuestComment  Boolean  @default(false)  // 이 게시판의 댓글을 비회원(비로그인)도 쓸 수 있는지
 
   isMaterialRequest Boolean  @default(false)  // "자료를 신청합니다" 게시판인지 (추가 입력 필드 + 처리 상태 기능이 붙습니다)
 

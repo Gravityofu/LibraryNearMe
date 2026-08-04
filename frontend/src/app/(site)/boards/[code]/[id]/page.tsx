@@ -22,6 +22,7 @@ type Post = {
   createdAt: string;
   authorName: string;
   board: {
+    allowMemberComment: boolean;
     allowGuestComment: boolean;
   };
   materialRequest: {
@@ -98,7 +99,12 @@ export default function PublicPostDetailPage() {
     if (!commentContent.trim()) {
       return;
     }
-    if (!isLoggedIn) {
+    if (isLoggedIn) {
+      if (!post?.board.allowMemberComment) {
+        notify("❌ " + t("boards.public.comments.memberBlocked"), "error");
+        return;
+      }
+    } else {
       if (!post?.board.allowGuestComment) {
         notify("❌ " + t("boards.public.comments.loginRequired"), "error");
         return;
@@ -244,8 +250,13 @@ export default function PublicPostDetailPage() {
           </ul>
         )}
 
-        {!isLoggedIn && !post.board.allowGuestComment ? (
-          <p className="text-sm text-neutral-400">{t("boards.public.comments.loginRequired")}</p>
+        {(() => {
+          const canComment = isLoggedIn ? post.board.allowMemberComment : post.board.allowGuestComment;
+          return !canComment;
+        })() ? (
+          <p className="text-sm text-neutral-400">
+            {isLoggedIn ? t("boards.public.comments.memberBlocked") : t("boards.public.comments.loginRequired")}
+          </p>
         ) : (
           <div className="flex flex-col gap-2">
             <textarea

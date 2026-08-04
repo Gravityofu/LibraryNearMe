@@ -66,6 +66,11 @@ export class PublicCommentsController {
 
     const authorUserId = await this.getOptionalUserId(req);
 
+    // 로그인한 회원이면 그 게시판이 '회원 댓글'을 허용하는지, 비회원이면 '비회원 댓글'을 허용하는지 확인합니다.
+    if (authorUserId && !post.board.allowMemberComment) {
+      throw new ForbiddenException('이 게시판은 회원 댓글을 허용하지 않습니다.');
+    }
+
     let guestName: string | null = null;
     let guestPasswordHash: string | null = null;
     if (!authorUserId) {

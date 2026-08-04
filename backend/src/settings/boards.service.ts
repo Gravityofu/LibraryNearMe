@@ -34,7 +34,7 @@ export class BoardsService {
     });
   }
 
-  // 게시판 설정 수정. 지금 단계에서는 '비로그인 글쓰기 허용'과 '비로그인 댓글 허용' 두 가지만 바꿀 수 있습니다.
+  // 게시판 설정 수정. 지금 단계에서는 '비로그인 글쓰기', '회원 댓글', '비로그인 댓글' 허용 여부만 바꿀 수 있습니다.
   // (게시판 이름/목록 스타일 수정, 게시판 추가·삭제는 나중에 만들 '게시판 관리' 기능에서 다룹니다.)
   async update(libraryId: number, id: number, data: any) {
     const existing = await this.prisma.board.findFirst({ where: { id, libraryId } });
@@ -48,6 +48,10 @@ export class BoardsService {
       // 회원만 글을 쓸 수 있는 게시판(=allowMemberWrite가 false인 게시판)은
       // 비로그인 글쓰기 설정 자체가 의미가 없으므로 항상 false로 저장합니다.
       updateData.allowGuestWrite = existing.allowMemberWrite ? !!data.allowGuestWrite : false;
+    }
+
+    if (data.allowMemberComment !== undefined) {
+      updateData.allowMemberComment = !!data.allowMemberComment;
     }
 
     if (data.allowGuestComment !== undefined) {

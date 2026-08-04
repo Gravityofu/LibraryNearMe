@@ -13,6 +13,7 @@ type Board = {
   listStyle: "LIST" | "THUMBNAIL";
   allowMemberWrite: boolean;
   allowGuestWrite: boolean;
+  allowMemberComment: boolean;
   allowGuestComment: boolean;
   isMaterialRequest: boolean;
 };
@@ -94,6 +95,7 @@ export default function BoardsSettingsForm() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [allowGuestWriteValue, setAllowGuestWriteValue] = useState(false);
+  const [allowMemberCommentValue, setAllowMemberCommentValue] = useState(true);
   const [allowGuestCommentValue, setAllowGuestCommentValue] = useState(false);
 
   // 게시판 글꼴 목록입니다.
@@ -137,6 +139,7 @@ export default function BoardsSettingsForm() {
   function openEditModal(board: Board) {
     setEditingBoard(board);
     setAllowGuestWriteValue(board.allowGuestWrite);
+    setAllowMemberCommentValue(board.allowMemberComment);
     setAllowGuestCommentValue(board.allowGuestComment);
   }
 
@@ -150,6 +153,7 @@ export default function BoardsSettingsForm() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         allowGuestWrite: allowGuestWriteValue,
+        allowMemberComment: allowMemberCommentValue,
         allowGuestComment: allowGuestCommentValue,
       }),
     });
@@ -230,6 +234,7 @@ export default function BoardsSettingsForm() {
               <th className="px-4 py-2.5">{t("settings.boards.col.listStyle")}</th>
               <th className="px-4 py-2.5">{t("settings.boards.col.allowMemberWrite")}</th>
               <th className="px-4 py-2.5">{t("settings.boards.col.allowGuestWrite")}</th>
+              <th className="px-4 py-2.5">{t("settings.boards.col.allowMemberComment")}</th>
               <th className="px-4 py-2.5">{t("settings.boards.col.allowGuestComment")}</th>
             </tr>
           </thead>
@@ -255,6 +260,9 @@ export default function BoardsSettingsForm() {
                       ? t("settings.boards.yes")
                       : t("settings.boards.no")
                     : "-"}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                  {board.allowMemberComment ? t("settings.boards.yes") : t("settings.boards.no")}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                   {board.allowGuestComment ? t("settings.boards.yes") : t("settings.boards.no")}
@@ -343,6 +351,19 @@ export default function BoardsSettingsForm() {
                     {t("settings.boards.field.allowGuestWriteHint")}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <span className="mb-1 block text-sm text-neutral-500">
+                  {t("settings.boards.field.allowMemberComment")}
+                </span>
+                <ChoiceCardGroup
+                  name="allowMemberComment"
+                  value={allowMemberCommentValue}
+                  onChange={setAllowMemberCommentValue}
+                  yesLabel={t("settings.boards.yes")}
+                  noLabel={t("settings.boards.no")}
+                />
               </div>
 
               <div>
