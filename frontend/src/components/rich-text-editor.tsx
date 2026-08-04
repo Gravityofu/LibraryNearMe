@@ -155,6 +155,16 @@ export default function RichTextEditor({ value, onChange }: Props) {
     },
   });
 
+  // '수정' 화면처럼, 에디터가 이미 만들어진 뒤에 서버에서 글 내용이 도착하는 경우를 위한 코드입니다.
+  // 바깥(글쓰기 화면)에서 전달된 value가 에디터가 지금 가지고 있는 내용과 다르면, 에디터 내용을 새로 채워 넣습니다.
+  useEffect(() => {
+    if (!editor) return;
+    if (value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, editor]);
+
   async function handleImageSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
