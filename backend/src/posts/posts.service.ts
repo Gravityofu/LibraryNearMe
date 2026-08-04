@@ -26,7 +26,7 @@ export class PostsService {
     return { types: types.map((t) => t.value), statuses: MATERIAL_REQUEST_STATUSES };
   }
 
-  // 글 목록 조회 (페이지 단위). 최신 글이 위로 오도록 정렬합니다.
+  // 글 목록 조회 (페이지 단위). 최신 글이 위로 오도록 정렬합니다. (관리자용)
   async list(libraryId: number, boardId: number, page: number) {
     const board = await this.prisma.board.findFirst({ where: { id: boardId, libraryId } });
     if (!board) {
@@ -62,7 +62,42 @@ export class PostsService {
     };
   }
 
-  // 글 하나 상세 조회.
+  // 글 목록 조회 - 누구나 볼 수 있는 홈페이지용입니다. 게시판 코드(예: "notice")로 찾습니다.
+  async listPublic(libraryId: number, boardCode: string, page: number) {
+    const board = await this.prisma.board.findFirst({ where: { code: boardCode, libraryId } });
+    if (!board) {
+      throw new NotFoundException('게시판을 찾을 수 없습니다.');
+    }
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where: { libraryId, boardId: board.id },
+        include: { authorUser: { select: { name: true } }, materialRequest: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+      this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
+    ]);
+
+    return {
+      board,
+      items: items.map((p) => ({
+        id: p.id,
+        title: p.title,
+        thumbnailUrl: p.thumbnailUrl,
+        authorName: p.authorUser?.name || p.guestName || '',
+        viewCount: p.viewCount,
+        createdAt: p.createdAt,
+        materialRequestStatus: p.materialRequest?.status || null,
+      })),
+      total,
+      page,
+      pageSize: PAGE_SIZE,
+    };
+  }
+
+  // 글 하나 상세 조회. (관리자용 - 조회수가 올라가지 않습니다)
   async findOne(libraryId: number, id: number) {
     const post = await this.prisma.post.findFirst({
       where: { id, libraryId },
@@ -72,6 +107,19 @@ export class PostsService {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
     return post;
+  }
+
+  // 글 하나 상세 조회 - 누구나 볼 수 있는 홈페이지용입니다. 볼 때마다 조회수가 1 올라갑니다.
+  async findOnePublic(libraryId: number, id: number) {
+    const post = await this.prisma.post.findFirst({
+      where: { id, libraryId },
+      include: { board: true, authorUser: { select: { name: true } }, materialRequest: true },
+    });
+    if (!post) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
+    return { ...post, viewCount: post.viewCount + 1 };
   }
 
   // 글 작성. 지금은 관리자만 쓸 수 있으므로, 작성자는 항상 로그인한 관리자(authorUserId)로 저장됩니다.

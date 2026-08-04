@@ -604,6 +604,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.write.comments.deleteConfirm": "이 댓글을 삭제하시겠습니까?",
     "boards.write.comments.deleteSuccess": "댓글을 삭제했습니다.",
     "boards.write.comments.deleteFail": "댓글 삭제에 실패했습니다.",
+    "boards.detail.back": "목록으로",
 
     "editor.bold": "굵게",
     "editor.underline": "밑줄",
@@ -1424,6 +1425,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.write.comments.deleteConfirm": "Delete this comment?",
     "boards.write.comments.deleteSuccess": "Comment deleted.",
     "boards.write.comments.deleteFail": "Failed to delete comment.",
+    "boards.detail.back": "Back to list",
 
     "editor.bold": "Bold",
     "editor.underline": "Underline",

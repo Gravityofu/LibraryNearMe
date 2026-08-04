@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import LanguageToggle from "@/components/language-toggle";
 
-const MENU = [
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+const STATIC_MENU = [
   { key: "nav.search", items: [
     { key: "nav.search.all", href: "/" },
     { key: "nav.search.new", href: "#" },
@@ -17,12 +19,6 @@ const MENU = [
     { key: "nav.use.guide", href: "#" },
     { key: "nav.use.location", href: "#" },
     { key: "nav.use.hours", href: "#" },
-  ]},
-  { key: "nav.community", items: [
-    { key: "nav.community.notice", href: "#" },
-    { key: "nav.community.free", href: "#" },
-    { key: "nav.community.club", href: "#" },
-    { key: "nav.community.request", href: "#" },
   ]},
   { key: "nav.myshelf", items: [
     { key: "nav.myshelf.loans", href: "#" },
@@ -35,6 +31,8 @@ const MENU = [
   ]},
 ];
 
+type Board = { code: string };
+
 export default function SiteSidebar({
   name,
   primaryColor,
@@ -46,6 +44,15 @@ export default function SiteSidebar({
   const { isLoggedIn, userName, role, logout } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState<number[]>([0]);
+  const [boards, setBoards] = useState<Board[]>([]);
+
+  // 게시판 목록을 불러와서 '커뮤니티' 메뉴 안에 실제 게시판 링크로 보여줍니다.
+  useEffect(() => {
+    fetch(`${API_URL}/public/boards`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setBoards(data))
+      .catch(() => setBoards([]));
+  }, []);
 
   function toggle(i: number) {
     setOpen((prev) =>
@@ -54,6 +61,13 @@ export default function SiteSidebar({
   }
 
   const isStaff = role === "ADMIN" || role === "SUPER";
+
+  // '커뮤니티' 그룹을 맨 앞에, 나머지 고정 메뉴들을 그 뒤에 둡니다.
+  const communityGroup = {
+    key: "nav.community",
+    items: boards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
+  };
+  const MENU = [communityGroup, ...STATIC_MENU];
 
   return (
     <aside className="rounded-xl border border-neutral-200 bg-white p-3.5">

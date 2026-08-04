@@ -41,6 +41,8 @@ import { BoardFontsController } from './settings/board-fonts.controller';
 import { BoardFontsService } from './settings/board-fonts.service';
 import { CommentsController } from './comments/comments.controller';
 import { CommentsService } from './comments/comments.service';
+import { PublicBoardsController } from './public-boards/public-boards.controller';
+import { PublicPostsController } from './public-boards/public-posts.controller';
 
 @Module({
   imports: [
@@ -72,6 +74,8 @@ import { CommentsService } from './comments/comments.service';
     MaterialRequestTypesController,
     BoardFontsController,
     CommentsController,
+    PublicBoardsController,
+    PublicPostsController,
   ],
   providers: [
     AppService,
