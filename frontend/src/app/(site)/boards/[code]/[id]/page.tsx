@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import SitePageHeader from "@/components/site-page-header";
 import { useI18n } from "@/components/language-provider";
 import { getBoardGroupKey } from "@/lib/site-nav";
+import { formatKstDateTime } from "@/lib/date";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -16,8 +17,7 @@ type Post = {
   keywords: string[];
   viewCount: number;
   createdAt: string;
-  authorUser: { name: string } | null;
-  guestName: string | null;
+  authorName: string;
   materialRequest: {
     title: string;
     requestType: string;
@@ -34,6 +34,7 @@ export default function PublicPostDetailPage() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string | null>(null);
 
   async function loadPost() {
     setLoading(true);
@@ -46,10 +47,33 @@ export default function PublicPostDetailPage() {
     setLoading(false);
   }
 
+  // 키워드 글자 색상으로 쓸, 설정 > 도서관 메뉴에서 지정한 도서관 대표 색상을 가져옵니다.
+  async function loadPrimaryColor() {
+    const res = await fetch(`${API_URL}/library`);
+    if (res.ok) {
+      const data = await res.json();
+      setPrimaryColor(data?.primaryColor || null);
+    }
+  }
+
   useEffect(() => {
     loadPost();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    loadPrimaryColor();
+  }, []);
+
+  // 제목과 같은 줄, 오른쪽 끝에 보여줄 "목록으로" 버튼입니다.
+  const backButton = (
+    <Link
+      href={`/boards/${code}`}
+      className="shrink-0 rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+    >
+      ← {t("boards.detail.back")}
+    </Link>
+  );
 
   if (loading) {
     return <main className="py-10 text-center text-sm text-neutral-400">...</main>;
@@ -58,7 +82,11 @@ export default function PublicPostDetailPage() {
   if (notFound || !post) {
     return (
       <main>
-        <SitePageHeader crumbs={[t("nav.home"), t(getBoardGroupKey(code))]} title={t(`boards.tabs.${code}`)} />
+        <SitePageHeader
+          crumbs={[t("nav.home"), t(getBoardGroupKey(code))]}
+          title={t(`boards.tabs.${code}`)}
+          action={backButton}
+        />
         <p className="py-10 text-center text-sm text-neutral-400">{t("boards.write.loadFail")}</p>
       </main>
     );
@@ -69,11 +97,8 @@ export default function PublicPostDetailPage() {
       <SitePageHeader
         crumbs={[t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)]}
         title={post.title}
+        action={backButton}
       />
-
-      <Link href={`/boards/${code}`} className="mb-4 inline-block text-sm text-neutral-500 hover:underline">
-        ← {t("boards.detail.back")}
-      </Link>
 
       {post.materialRequest && (
         <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600">
@@ -98,22 +123,31 @@ export default function PublicPostDetailPage() {
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-3 border-b border-neutral-200 pb-3 text-xs text-neutral-400">
-        <span>{post.authorUser?.name || post.guestName || t("boards.write.comments.guest")}</span>
-        <span>{new Date(post.createdAt).toLocaleString()}</span>
-        <span>
-          {t("boards.list.col.viewCount")} {post.viewCount}
-        </span>
+      {/* 회색 정보 상자(글쓴이·작성일·조회수 → 가로줄 → 키워드)와 흰색 본문 상자가 하나의 라운드 사각형으로 이어집니다. */}
+      <div className="overflow-hidden rounded-lg border border-neutral-200">
+        <div className="bg-neutral-100 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+            <span>{post.authorName}</span>
+            <span>{formatKstDateTime(post.createdAt)}</span>
+            <span>
+              {t("boards.list.col.viewCount")} {post.viewCount}
+            </span>
+          </div>
+
+          <hr className="my-2 border-neutral-300" />
+
+          {post.keywords && post.keywords.length > 0 && (
+            <p className="text-xs" style={{ color: primaryColor || "#3b82f6" }}>
+              {post.keywords.map((k) => `#${k}`).join(" ")}
+            </p>
+          )}
+        </div>
+
+        <div
+          className="min-h-[120px] bg-white p-4 text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
       </div>
-
-      {post.keywords && post.keywords.length > 0 && (
-        <p className="mb-4 text-sm text-blue-500">{post.keywords.map((k) => `#${k}`).join(" ")}</p>
-      )}
-
-      <div
-        className="min-h-[120px] text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"
-        dangerouslySetInnerHTML={{ __html: post.content }}
-      />
     </main>
   );
 }

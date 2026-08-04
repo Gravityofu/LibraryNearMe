@@ -8,6 +8,10 @@ export const MATERIAL_REQUEST_STATUSES = ['REQUESTED', 'PURCHASING', 'PURCHASED'
 const PAGE_SIZE = 15; // 목록형 게시판 한 페이지당 글 개수
 const THUMBNAIL_PAGE_SIZE = 9; // 썸네일형 게시판 한 페이지당 글 개수 (3개씩 3줄)
 
+// 글쓴이의 "실제 이름"을 그대로 보여줘도 되는 게시판 코드입니다. (회원/비회원이 직접 쓰는 게시판)
+// 그 외의 게시판은 전부 관리자가 작성하므로, 글쓴이 자리에 관리자 이름 대신 도서관 이름을 보여줍니다.
+const AUTHOR_REAL_NAME_BOARD_CODES = ['openBoard', 'materialRequest'];
+
 @Injectable()
 export class PostsService {
   constructor(
@@ -31,6 +35,16 @@ export class PostsService {
   private parseKeywords(keywords: string | null): string[] {
     if (!keywords) return [];
     return keywords.split(',').map((k) => k.trim()).filter(Boolean);
+  }
+
+  // 글쓴이 자리에 보여줄 이름을 정합니다.
+  // openBoard/materialRequest는 실제 작성자 이름을, 그 외의 게시판은 도서관 이름을 돌려줍니다.
+  private async getDisplayAuthorName(libraryId: number, boardCode: string, realName: string): Promise<string> {
+    if (AUTHOR_REAL_NAME_BOARD_CODES.includes(boardCode)) {
+      return realName;
+    }
+    const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
+    return library?.name || realName;
   }
 
   // '자료를 신청합니다' 게시판 글쓰기 화면의 드롭다운에 쓸 목록을 내려줍니다. (자료 종류는 설정 > 자료 메뉴에서 관리합니다.)
@@ -96,6 +110,11 @@ export class PostsService {
       this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
     ]);
 
+    // openBoard/materialRequest가 아니면 목록의 모든 글이 같은 "도서관 이름"을 보여주므로,
+    // 도서관 정보를 한 번만 조회해서 재사용합니다.
+    const isRealNameBoard = AUTHOR_REAL_NAME_BOARD_CODES.includes(board.code);
+    const library = isRealNameBoard ? null : await this.prisma.library.findUnique({ where: { id: libraryId } });
+
     return {
       board,
       items: items.map((p) => ({
@@ -104,7 +123,7 @@ export class PostsService {
         thumbnailUrl: p.thumbnailUrl,
         contentExcerpt: this.stripHtmlExcerpt(p.content),
         keywords: this.parseKeywords(p.keywords),
-        authorName: p.authorUser?.name || p.guestName || '',
+        authorName: isRealNameBoard ? p.authorUser?.name || p.guestName || '' : library?.name || '',
         viewCount: p.viewCount,
         createdAt: p.createdAt,
         materialRequestStatus: p.materialRequest?.status || null,
@@ -137,7 +156,16 @@ export class PostsService {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
     await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
-    return { ...post, viewCount: post.viewCount + 1, keywords: this.parseKeywords(post.keywords) };
+
+    const realName = post.authorUser?.name || post.guestName || '';
+    const authorName = await this.getDisplayAuthorName(libraryId, post.board.code, realName);
+
+    return {
+      ...post,
+      viewCount: post.viewCount + 1,
+      keywords: this.parseKeywords(post.keywords),
+      authorName,
+    };
   }
 
   // 글 작성. 지금은 관리자만 쓸 수 있으므로, 작성자는 항상 로그인한 관리자(authorUserId)로 저장됩니다.

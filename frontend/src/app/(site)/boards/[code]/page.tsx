@@ -7,6 +7,7 @@ import Pagination from "@/components/pagination";
 import SitePageHeader from "@/components/site-page-header";
 import { useI18n } from "@/components/language-provider";
 import { getBoardGroupKey } from "@/lib/site-nav";
+import { formatKstDate } from "@/lib/date";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -42,6 +43,7 @@ export default function PublicBoardListPage() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(15);
   const [loading, setLoading] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string | null>(null);
 
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -70,8 +72,18 @@ export default function PublicBoardListPage() {
     setLoading(false);
   }
 
+  // 키워드 글자 색상으로 쓸, 설정 > 도서관 메뉴에서 지정한 도서관 대표 색상을 가져옵니다.
+  async function loadPrimaryColor() {
+    const res = await fetch(`${API_URL}/library`);
+    if (res.ok) {
+      const data = await res.json();
+      setPrimaryColor(data?.primaryColor || null);
+    }
+  }
+
   useEffect(() => {
     loadBoards();
+    loadPrimaryColor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,7 +136,7 @@ export default function PublicBoardListPage() {
                     <p className="text-right text-xs text-neutral-400">{row.authorName}</p>
                   )}
                   {row.keywords && row.keywords.length > 0 && (
-                    <p className="line-clamp-3 text-xs text-blue-500">
+                    <p className="line-clamp-3 text-xs" style={{ color: primaryColor || "#3b82f6" }}>
                       {row.keywords.map((k) => `#${k}`).join(" ")}
                     </p>
                   )}
@@ -175,7 +187,7 @@ export default function PublicBoardListPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.authorName}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
-                      {new Date(row.createdAt).toLocaleDateString()}
+                      {formatKstDate(row.createdAt)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.viewCount}</td>
                     {currentBoard?.isMaterialRequest && (
