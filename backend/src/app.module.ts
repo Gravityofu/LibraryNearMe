@@ -39,6 +39,8 @@ import { MaterialRequestTypesController } from './settings/material-request-type
 import { MaterialRequestTypesService } from './settings/material-request-types.service';
 import { BoardFontsController } from './settings/board-fonts.controller';
 import { BoardFontsService } from './settings/board-fonts.service';
+import { CommentsController } from './comments/comments.controller';
+import { CommentsService } from './comments/comments.service';
 
 @Module({
   imports: [
@@ -69,6 +71,7 @@ import { BoardFontsService } from './settings/board-fonts.service';
     PostsController,
     MaterialRequestTypesController,
     BoardFontsController,
+    CommentsController,
   ],
   providers: [
     AppService,
@@ -90,6 +93,7 @@ import { BoardFontsService } from './settings/board-fonts.service';
     PostsService,
     MaterialRequestTypesService,
     BoardFontsService,
+    CommentsService,
   ],
 })
 export class AppModule {}
