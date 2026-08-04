@@ -53,6 +53,7 @@ export class PostsService {
         authorName: p.authorUser?.name || p.guestName || '',
         viewCount: p.viewCount,
         createdAt: p.createdAt,
+        materialRequestTitle: p.materialRequest?.title || null,
         materialRequestStatus: p.materialRequest?.status || null,
       })),
       total,
@@ -92,12 +93,17 @@ export class PostsService {
 
     let materialRequestData: any = null;
     if (board.isMaterialRequest) {
+      const materialTitle = String(data.materialTitle || '').trim();
+      if (!materialTitle) {
+        throw new BadRequestException('타이틀을 입력하세요.');
+      }
       const requestType = String(data.requestType || '').trim();
       const validTypes = (await this.materialRequestTypesService.list(libraryId)).map((t) => t.value);
       if (!validTypes.includes(requestType)) {
         throw new BadRequestException('신청 자료 종류를 올바르게 선택하세요.');
       }
       materialRequestData = {
+        title: materialTitle,
         requestType,
         author: data.requestAuthor ? String(data.requestAuthor).trim() : null,
       };
@@ -121,7 +127,7 @@ export class PostsService {
     });
   }
 
-  // 글 수정. 제목/내용과 (자료신청 게시판이면) 신청 자료 종류·저자·처리 상태를 바꿀 수 있습니다.
+  // 글 수정. 제목/내용과 (자료신청 게시판이면) 타이틀·신청 자료 종류·저자·처리 상태를 바꿀 수 있습니다.
   async update(libraryId: number, id: number, data: any) {
     const existing = await this.prisma.post.findFirst({
       where: { id, libraryId },
@@ -142,6 +148,11 @@ export class PostsService {
     const thumbnailUrl = this.extractFirstImage(content);
 
     if (existing.board.isMaterialRequest) {
+      const materialTitle =
+        data.materialTitle !== undefined ? String(data.materialTitle).trim() : existing.materialRequest?.title;
+      if (!materialTitle) {
+        throw new BadRequestException('타이틀을 입력하세요.');
+      }
       const requestType =
         data.requestType !== undefined ? String(data.requestType).trim() : existing.materialRequest?.requestType;
       const validTypes = (await this.materialRequestTypesService.list(libraryId)).map((t) => t.value);
@@ -158,8 +169,19 @@ export class PostsService {
 
       await this.prisma.materialRequest.upsert({
         where: { postId: id },
-        create: { postId: id, requestType: String(requestType), author: requestAuthor || null, status: String(status) },
-        update: { requestType: String(requestType), author: requestAuthor || null, status: String(status) },
+        create: {
+          postId: id,
+          title: String(materialTitle),
+          requestType: String(requestType),
+          author: requestAuthor || null,
+          status: String(status),
+        },
+        update: {
+          title: String(materialTitle),
+          requestType: String(requestType),
+          author: requestAuthor || null,
+          status: String(status),
+        },
       });
     }
 

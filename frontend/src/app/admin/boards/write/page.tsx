@@ -50,6 +50,7 @@ function AdminBoardWritePageInner() {
   // '자료를 신청합니다' 게시판일 때만 쓰는 값들입니다.
   const [requestTypeOptions, setRequestTypeOptions] = useState<string[]>([]);
   const [statusOptions, setStatusOptions] = useState<string[]>([]);
+  const [materialTitle, setMaterialTitle] = useState(""); // 자료 자체의 타이틀 (예: 책 이름)
   const [requestType, setRequestType] = useState("");
   const [requestAuthor, setRequestAuthor] = useState("");
   const [status, setStatus] = useState("REQUESTED");
@@ -96,6 +97,7 @@ function AdminBoardWritePageInner() {
       setTitle(data.title);
       setContent(data.content);
       if (data.materialRequest) {
+        setMaterialTitle(data.materialRequest.title || "");
         setRequestType(data.materialRequest.requestType);
         setRequestAuthor(data.materialRequest.author || "");
         setStatus(data.materialRequest.status);
@@ -123,6 +125,10 @@ function AdminBoardWritePageInner() {
       notify("❌ " + t("boards.write.titleRequired"), "error");
       return;
     }
+    if (board?.isMaterialRequest && !materialTitle.trim()) {
+      notify("❌ " + t("boards.write.materialTitleRequired"), "error");
+      return;
+    }
     if (!content.trim()) {
       notify("❌ " + t("boards.write.contentRequired"), "error");
       return;
@@ -133,6 +139,7 @@ function AdminBoardWritePageInner() {
 
     const body: any = { title, content };
     if (board.isMaterialRequest) {
+      body.materialTitle = materialTitle;
       body.requestType = requestType;
       body.requestAuthor = requestAuthor;
       body.status = status;
@@ -186,46 +193,57 @@ function AdminBoardWritePageInner() {
         </label>
 
         {board?.isMaterialRequest && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <>
             <label className="block">
-              <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.requestType")}</span>
-              <select
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-              >
-                {requestTypeOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.requestAuthor")}</span>
+              <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.materialTitle")} *</span>
               <input
-                value={requestAuthor}
-                onChange={(e) => setRequestAuthor(e.target.value)}
+                value={materialTitle}
+                onChange={(e) => setMaterialTitle(e.target.value)}
                 className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
               />
             </label>
 
-            <label className="block sm:col-span-2">
-              <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.status")}</span>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full max-w-xs cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-              >
-                {statusOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {t(`boards.status.${opt}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.requestType")}</span>
+                <select
+                  value={requestType}
+                  onChange={(e) => setRequestType(e.target.value)}
+                  className="w-full cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                >
+                  {requestTypeOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.requestAuthor")}</span>
+                <input
+                  value={requestAuthor}
+                  onChange={(e) => setRequestAuthor(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                />
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.status")}</span>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full max-w-xs cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                >
+                  {statusOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {t(`boards.status.${opt}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </>
         )}
 
         <div>

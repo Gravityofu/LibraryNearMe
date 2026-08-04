@@ -451,13 +451,14 @@ model Comment {
   @@index([postId])
 }
 
-// "자료를 신청합니다" 게시글에 붙는 추가 정보 (신청 자료 종류, 저자, 처리 상태)
+// "자료를 신청합니다" 게시글에 붙는 추가 정보 (신청 자료 종류, 저자, 처리 상태, 타이틀)
 model MaterialRequest {
   id          Int      @id @default(autoincrement())
 
   postId      Int      @unique
   post        Post     @relation(fields: [postId], references: [id])
 
+  title       String   @default("") // 자료의 타이틀 (예: 책 이름). 게시글 자체의 '제목'과는 다른, 신청하는 자료의 타이틀입니다.
   requestType String   // 신청 자료 종류 (예: "도서", "DVD", "공구")
   author      String?  // 저자
 

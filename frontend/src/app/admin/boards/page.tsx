@@ -40,6 +40,7 @@ type PostRow = {
   authorName: string;
   viewCount: number;
   createdAt: string;
+  materialRequestTitle: string | null;
   materialRequestStatus: string | null;
 };
 
@@ -156,7 +157,9 @@ function AdminBoardsPageInner() {
               {currentBoard?.listStyle === "THUMBNAIL" && (
                 <th className="px-4 py-2.5">{t("boards.list.col.thumbnail")}</th>
               )}
-              <th className="px-4 py-2.5">{t("boards.list.col.title")}</th>
+              <th className="px-4 py-2.5">
+                {currentBoard?.isMaterialRequest ? t("boards.list.col.materialTitle") : t("boards.list.col.title")}
+              </th>
               <th className="px-4 py-2.5">{t("boards.list.col.author")}</th>
               <th className="px-4 py-2.5">{t("boards.list.col.createdAt")}</th>
               <th className="px-4 py-2.5">{t("boards.list.col.viewCount")}</th>
@@ -196,7 +199,9 @@ function AdminBoardsPageInner() {
                       )}
                     </td>
                   )}
-                  <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">{row.title}</td>
+                  <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">
+                    {currentBoard?.isMaterialRequest ? row.materialRequestTitle || "-" : row.title}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.authorName}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                     {new Date(row.createdAt).toLocaleDateString()}
