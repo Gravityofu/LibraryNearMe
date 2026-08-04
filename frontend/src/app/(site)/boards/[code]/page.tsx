@@ -176,15 +176,15 @@ export default function PublicBoardListPage() {
                 </tr>
               ) : (
                 rows.map((row, idx) => (
-                  <tr key={row.id} className="hover:bg-neutral-50">
+                  <tr
+                    key={row.id}
+                    onClick={() => router.push(`/boards/${code}/${row.id}`)}
+                    className="cursor-pointer hover:bg-neutral-50"
+                  >
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                       {total - ((page - 1) * pageSize + idx)}
                     </td>
-                    <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">
-                      <Link href={`/boards/${code}/${row.id}`} className="hover:underline">
-                        {row.title}
-                      </Link>
-                    </td>
+                    <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">{row.title}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.authorName}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                       {formatKstDate(row.createdAt)}

@@ -191,6 +191,15 @@ function AdminBoardWritePageInner() {
     }
   }
 
+  // 키워드 칸의 'x' 버튼을 눌러서 그 칸을 지웁니다. 마지막 하나 남은 칸이면
+  // (키워드를 하나도 입력하지 않은 상태로 만들기 위해) 완전히 없애지 않고 빈 칸으로 되돌립니다.
+  function removeKeywordWord(index: number) {
+    setKeywordWords((prev) => {
+      if (prev.length === 1) return [""];
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
   async function handleSave() {
     if (!title.trim()) {
       notify("❌ " + t("boards.write.titleRequired"), "error");
@@ -287,16 +296,28 @@ function AdminBoardWritePageInner() {
           </span>
           <div className="flex flex-wrap gap-2">
             {keywordWords.map((word, i) => (
-              <input
+              <div
                 key={i}
-                ref={(el) => {
-                  keywordInputRefs.current[i] = el;
-                }}
-                value={word}
-                onChange={(e) => updateKeywordWord(i, e.target.value)}
-                onKeyDown={(e) => handleKeywordKeyDown(e, i)}
-                className="w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-              />
+                className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white pr-1"
+              >
+                <input
+                  ref={(el) => {
+                    keywordInputRefs.current[i] = el;
+                  }}
+                  value={word}
+                  onChange={(e) => updateKeywordWord(i, e.target.value)}
+                  onKeyDown={(e) => handleKeywordKeyDown(e, i)}
+                  className="w-24 rounded-lg border-0 px-3 py-2 text-sm focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeKeywordWord(i)}
+                  className="cursor-pointer rounded px-1 text-sm leading-none text-neutral-400 hover:text-red-500"
+                  title={t("boards.write.keywordRemove")}
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
           <p className="mt-1 text-xs text-neutral-400">{t("boards.write.keywordsHint")}</p>
