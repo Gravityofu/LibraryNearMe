@@ -13,6 +13,7 @@ type Post = {
   id: number;
   title: string;
   content: string;
+  keywords: string[];
   viewCount: number;
   createdAt: string;
   authorUser: { name: string } | null;
@@ -104,6 +105,10 @@ export default function PublicPostDetailPage() {
           {t("boards.list.col.viewCount")} {post.viewCount}
         </span>
       </div>
+
+      {post.keywords && post.keywords.length > 0 && (
+        <p className="mb-4 text-sm text-blue-500">{post.keywords.map((k) => `#${k}`).join(" ")}</p>
+      )}
 
       <div
         className="min-h-[120px] text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"

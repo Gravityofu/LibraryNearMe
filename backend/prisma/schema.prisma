@@ -409,6 +409,7 @@ model Post {
 
   title             String
   content           String    // 리치 텍스트 에디터로 작성한 본문 (HTML 형태로 저장)
+  keywords          String?   // 키워드 (MARC 653과 같은 역할). 쉼표로 여러 개를 구분해서 저장합니다.
   thumbnailUrl      String?   // 썸네일형 게시판에서 목록에 보여줄 대표 이미지
 
   authorUserId      Int?                             // 회원(또는 관리자)이 쓴 글이면 채워짐

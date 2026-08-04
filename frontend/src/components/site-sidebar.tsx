@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import LanguageToggle from "@/components/language-toggle";
-import { INFO_BOARD_CODES, ABOUT_BOARD_CODES } from "@/lib/site-nav";
+import { INFO_BOARD_CODES, ABOUT_BOARD_CODES, MYSHELF_BOARD_CODES } from "@/lib/site-nav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -35,8 +35,12 @@ export default function SiteSidebar({
 
   const infoBoards = boards.filter((b) => INFO_BOARD_CODES.includes(b.code));
   const aboutBoards = boards.filter((b) => ABOUT_BOARD_CODES.includes(b.code));
+  const myshelfBoards = boards.filter((b) => MYSHELF_BOARD_CODES.includes(b.code));
   const communityBoards = boards.filter(
-    (b) => !INFO_BOARD_CODES.includes(b.code) && !ABOUT_BOARD_CODES.includes(b.code),
+    (b) =>
+      !INFO_BOARD_CODES.includes(b.code) &&
+      !ABOUT_BOARD_CODES.includes(b.code) &&
+      !MYSHELF_BOARD_CODES.includes(b.code),
   );
 
   // 큰 메뉴 4개와, 그 밑에 보여줄 하위 메뉴들입니다. (순서: 정보와 자료 → 커뮤니티 → 도서관 소개 → 내 도서관)
@@ -45,8 +49,6 @@ export default function SiteSidebar({
       key: "nav.search",
       items: [
         { key: "nav.search.all", href: "/" },
-        { key: "nav.search.new", href: "#" },
-        { key: "nav.search.popular", href: "#" },
         ...infoBoards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
       ],
     },
@@ -71,25 +73,26 @@ export default function SiteSidebar({
         { key: "nav.myshelf.loans", href: "#" },
         { key: "nav.myshelf.reservations", href: "#" },
         { key: "nav.myshelf.card", href: "#" },
+        ...myshelfBoards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
       ],
     },
   ];
 
-  // 지금 보고 있는 페이지가 어느 메뉴 그룹에 속하는지 찾아서, 그 그룹을 자동으로 펼칩니다.
+  // 지금 보고 있는 페이지가 어느 메뉴 그룹에 속하는지 찾아서, 그 그룹 하나만 펼칩니다.
+  // (다른 메뉴로 이동하면, 이전에 펼쳐져 있던 그룹은 자동으로 닫힙니다.)
   useEffect(() => {
     const activeIndex = MENU.findIndex((group) =>
       group.items.some((item) => item.href !== "#" && (pathname === item.href || pathname.startsWith(item.href + "/"))),
     );
     if (activeIndex >= 0) {
-      setOpen((prev) => (prev.includes(activeIndex) ? prev : [...prev, activeIndex]));
+      setOpen([activeIndex]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, boards]);
 
+  // 메뉴를 직접 눌렀을 때: 그 메뉴 하나만 펼치고, 이미 그 메뉴만 펼쳐져 있었다면 접습니다.
   function toggle(i: number) {
-    setOpen((prev) =>
-      prev.includes(i) ? prev.filter((n) => n !== i) : [...prev, i]
-    );
+    setOpen((prev) => (prev.length === 1 && prev[0] === i ? [] : [i]));
   }
 
   function isActiveItem(href: string) {

@@ -5,7 +5,8 @@ import { MaterialRequestTypesService } from '../settings/material-request-types.
 // 자료신청 처리 상태 목록입니다.
 export const MATERIAL_REQUEST_STATUSES = ['REQUESTED', 'PURCHASING', 'PURCHASED', 'NOT_PURCHASED'];
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 15; // 목록형 게시판 한 페이지당 글 개수
+const THUMBNAIL_PAGE_SIZE = 9; // 썸네일형 게시판 한 페이지당 글 개수 (3개씩 3줄)
 
 @Injectable()
 export class PostsService {
@@ -18,6 +19,18 @@ export class PostsService {
   private extractFirstImage(content: string): string | null {
     const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     return match ? match[1] : null;
+  }
+
+  // 본문(HTML)에서 태그를 지우고 일정 길이로 잘라서, 목록에 보여줄 짧은 미리보기 글을 만듭니다.
+  private stripHtmlExcerpt(content: string, max = 80): string {
+    const text = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return text.length > max ? text.slice(0, max) + '...' : text;
+  }
+
+  // 키워드 문자열("도서관,여름,독서")을 배열로 바꿉니다.
+  private parseKeywords(keywords: string | null): string[] {
+    if (!keywords) return [];
+    return keywords.split(',').map((k) => k.trim()).filter(Boolean);
   }
 
   // '자료를 신청합니다' 게시판 글쓰기 화면의 드롭다운에 쓸 목록을 내려줍니다. (자료 종류는 설정 > 자료 메뉴에서 관리합니다.)
@@ -63,19 +76,22 @@ export class PostsService {
   }
 
   // 글 목록 조회 - 누구나 볼 수 있는 홈페이지용입니다. 게시판 코드(예: "notice")로 찾습니다.
+  // 썸네일형 게시판은 한 페이지에 9개, 목록형 게시판은 15개씩 보여줍니다.
   async listPublic(libraryId: number, boardCode: string, page: number) {
     const board = await this.prisma.board.findFirst({ where: { code: boardCode, libraryId } });
     if (!board) {
       throw new NotFoundException('게시판을 찾을 수 없습니다.');
     }
 
+    const pageSize = board.listStyle === 'THUMBNAIL' ? THUMBNAIL_PAGE_SIZE : PAGE_SIZE;
+
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where: { libraryId, boardId: board.id },
         include: { authorUser: { select: { name: true } }, materialRequest: true },
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
       this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
     ]);
@@ -86,6 +102,8 @@ export class PostsService {
         id: p.id,
         title: p.title,
         thumbnailUrl: p.thumbnailUrl,
+        contentExcerpt: this.stripHtmlExcerpt(p.content),
+        keywords: this.parseKeywords(p.keywords),
         authorName: p.authorUser?.name || p.guestName || '',
         viewCount: p.viewCount,
         createdAt: p.createdAt,
@@ -93,7 +111,7 @@ export class PostsService {
       })),
       total,
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
     };
   }
 
@@ -119,7 +137,7 @@ export class PostsService {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
     await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
-    return { ...post, viewCount: post.viewCount + 1 };
+    return { ...post, viewCount: post.viewCount + 1, keywords: this.parseKeywords(post.keywords) };
   }
 
   // 글 작성. 지금은 관리자만 쓸 수 있으므로, 작성자는 항상 로그인한 관리자(authorUserId)로 저장됩니다.
@@ -138,6 +156,7 @@ export class PostsService {
     if (!content) {
       throw new BadRequestException('내용을 입력하세요.');
     }
+    const keywords = data.keywords !== undefined ? String(data.keywords).trim() : '';
 
     let materialRequestData: any = null;
     if (board.isMaterialRequest) {
@@ -165,6 +184,7 @@ export class PostsService {
         boardId,
         title,
         content,
+        keywords: keywords || null,
         thumbnailUrl,
         authorUserId,
         ...(materialRequestData
@@ -175,7 +195,7 @@ export class PostsService {
     });
   }
 
-  // 글 수정. 제목/내용과 (자료신청 게시판이면) 타이틀·신청 자료 종류·저자·처리 상태를 바꿀 수 있습니다.
+  // 글 수정. 제목/내용/키워드와 (자료신청 게시판이면) 타이틀·신청 자료 종류·저자·처리 상태를 바꿀 수 있습니다.
   async update(libraryId: number, id: number, data: any) {
     const existing = await this.prisma.post.findFirst({
       where: { id, libraryId },
@@ -193,6 +213,7 @@ export class PostsService {
     if (!content) {
       throw new BadRequestException('내용을 입력하세요.');
     }
+    const keywords = data.keywords !== undefined ? String(data.keywords).trim() : existing.keywords;
     const thumbnailUrl = this.extractFirstImage(content);
 
     if (existing.board.isMaterialRequest) {
@@ -235,7 +256,7 @@ export class PostsService {
 
     return this.prisma.post.update({
       where: { id },
-      data: { title, content, thumbnailUrl },
+      data: { title, content, keywords: keywords || null, thumbnailUrl },
       include: { materialRequest: true },
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState, KeyboardEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ThemedButton from "@/components/themed-button";
@@ -55,6 +55,11 @@ function AdminBoardWritePageInner() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
+  // 키워드 (자료 등록의 '주제어'와 같은 방식: 단어 + 스페이스바로 칸 추가)
+  const [keywordWords, setKeywordWords] = useState<string[]>([""]);
+  const [maxKeywords, setMaxKeywords] = useState(10);
+  const keywordInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   // '자료를 신청합니다' 게시판일 때만 쓰는 값들입니다.
   const [requestTypeOptions, setRequestTypeOptions] = useState<string[]>([]);
   const [statusOptions, setStatusOptions] = useState<string[]>([]);
@@ -79,6 +84,17 @@ function AdminBoardWritePageInner() {
     if (res.ok) {
       const list: Board[] = await res.json();
       setBoard(list.find((b) => b.code === boardCode) || null);
+    }
+  }
+
+  // 키워드 최대 개수는 로그인 없이도 볼 수 있는 도서관 공개 정보(GET /library)에서 가져옵니다. (자료 등록의 '주제어'와 같은 설정을 함께 씁니다)
+  async function loadMaxKeywords() {
+    const res = await fetch(`${API_URL}/library`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.maxSubjectKeywords) {
+        setMaxKeywords(data.maxSubjectKeywords);
+      }
     }
   }
 
@@ -107,6 +123,10 @@ function AdminBoardWritePageInner() {
       const data = await res.json();
       setTitle(data.title);
       setContent(data.content);
+      const existingKeywords = data.keywords
+        ? String(data.keywords).split(",").map((w: string) => w.trim()).filter(Boolean)
+        : [];
+      setKeywordWords(existingKeywords.length > 0 ? existingKeywords : [""]);
       if (data.materialRequest) {
         setMaterialTitle(data.materialRequest.title || "");
         setRequestType(data.materialRequest.requestType);
@@ -134,6 +154,7 @@ function AdminBoardWritePageInner() {
     loadBoard();
     loadExistingPost();
     loadComments();
+    loadMaxKeywords();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardCode, postId]);
 
@@ -143,6 +164,32 @@ function AdminBoardWritePageInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board?.isMaterialRequest]);
+
+  // 키워드 칸 하나의 내용이 바뀔 때
+  function updateKeywordWord(index: number, value: string) {
+    setKeywordWords((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  // 키워드 칸에서 스페이스바를 누르면 다음 칸을 만들고, 빈 칸에서 백스페이스를 누르면 그 칸을 지웁니다.
+  function handleKeywordKeyDown(e: KeyboardEvent<HTMLInputElement>, index: number) {
+    if (e.key === " ") {
+      e.preventDefault();
+      const isLast = index === keywordWords.length - 1;
+      const hasText = keywordWords[index].trim().length > 0;
+      if (isLast && hasText && keywordWords.length < maxKeywords) {
+        setKeywordWords((prev) => [...prev, ""]);
+        setTimeout(() => keywordInputRefs.current[index + 1]?.focus(), 0);
+      }
+    } else if (e.key === "Backspace" && keywordWords[index] === "" && index > 0) {
+      e.preventDefault();
+      setKeywordWords((prev) => prev.filter((_, i) => i !== index));
+      setTimeout(() => keywordInputRefs.current[index - 1]?.focus(), 0);
+    }
+  }
 
   async function handleSave() {
     if (!title.trim()) {
@@ -161,7 +208,9 @@ function AdminBoardWritePageInner() {
     const token = localStorage.getItem("token");
     if (!token || !board) return;
 
-    const body: any = { title, content };
+    const keywordsValue = keywordWords.map((w) => w.trim()).filter(Boolean).join(",");
+
+    const body: any = { title, content, keywords: keywordsValue };
     if (board.isMaterialRequest) {
       body.materialTitle = materialTitle;
       body.requestType = requestType;
@@ -230,6 +279,27 @@ function AdminBoardWritePageInner() {
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
           />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm text-neutral-500">
+            {t("boards.write.field.keywords")} ({keywordWords.filter((w) => w.trim()).length}/{maxKeywords})
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {keywordWords.map((word, i) => (
+              <input
+                key={i}
+                ref={(el) => {
+                  keywordInputRefs.current[i] = el;
+                }}
+                value={word}
+                onChange={(e) => updateKeywordWord(i, e.target.value)}
+                onKeyDown={(e) => handleKeywordKeyDown(e, i)}
+                className="w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+              />
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-neutral-400">{t("boards.write.keywordsHint")}</p>
         </label>
 
         {board?.isMaterialRequest && (
