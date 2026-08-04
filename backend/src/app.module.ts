@@ -43,6 +43,7 @@ import { CommentsController } from './comments/comments.controller';
 import { CommentsService } from './comments/comments.service';
 import { PublicBoardsController } from './public-boards/public-boards.controller';
 import { PublicPostsController } from './public-boards/public-posts.controller';
+import { PublicCommentsController } from './public-boards/public-comments.controller';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { PublicPostsController } from './public-boards/public-posts.controller';
     CommentsController,
     PublicBoardsController,
     PublicPostsController,
+    PublicCommentsController,
   ],
   providers: [
     AppService,

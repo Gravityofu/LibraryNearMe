@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 import { MaterialRequestTypesService } from '../settings/material-request-types.service';
 
@@ -110,8 +111,6 @@ export class PostsService {
       this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
     ]);
 
-    // openBoard/materialRequest가 아니면 목록의 모든 글이 같은 "도서관 이름"을 보여주므로,
-    // 도서관 정보를 한 번만 조회해서 재사용합니다.
     const isRealNameBoard = AUTHOR_REAL_NAME_BOARD_CODES.includes(board.code);
     const library = isRealNameBoard ? null : await this.prisma.library.findUnique({ where: { id: libraryId } });
 
@@ -168,8 +167,10 @@ export class PostsService {
     };
   }
 
-  // 글 작성. 지금은 관리자만 쓸 수 있으므로, 작성자는 항상 로그인한 관리자(authorUserId)로 저장됩니다.
-  async create(libraryId: number, authorUserId: number, data: any) {
+  // 글 작성. 관리자는 항상 로그인한 관리자(authorUserId)로 저장됩니다.
+  // 홈페이지에서는 로그인한 회원이면 그 회원으로, 비회원(비로그인)이면 authorUserId가 null로 넘어오고
+  // 이름·비밀번호(guestName/guestPassword)를 받아서 비밀번호는 암호화해 저장합니다.
+  async create(libraryId: number, authorUserId: number | null, data: any) {
     const boardId = Number(data.boardId);
     const board = await this.prisma.board.findFirst({ where: { id: boardId, libraryId } });
     if (!board) {
@@ -185,6 +186,22 @@ export class PostsService {
       throw new BadRequestException('내용을 입력하세요.');
     }
     const keywords = data.keywords !== undefined ? String(data.keywords).trim() : '';
+
+    // 비회원(비로그인) 글쓰기라면 이름과 비밀번호(4자 이상)를 받습니다. 비밀번호는 로그인 비밀번호와
+    // 같은 방식(bcrypt)으로 암호화해서 저장합니다.
+    let guestName: string | null = null;
+    let guestPasswordHash: string | null = null;
+    if (!authorUserId) {
+      guestName = String(data.guestName || '').trim();
+      if (!guestName) {
+        throw new BadRequestException('작성자 이름을 입력하세요.');
+      }
+      const guestPassword = String(data.guestPassword || '');
+      if (guestPassword.length < 4) {
+        throw new BadRequestException('비밀번호는 4자 이상 입력하세요.');
+      }
+      guestPasswordHash = await bcrypt.hash(guestPassword, 10);
+    }
 
     let materialRequestData: any = null;
     if (board.isMaterialRequest) {
@@ -214,7 +231,9 @@ export class PostsService {
         content,
         keywords: keywords || null,
         thumbnailUrl,
-        authorUserId,
+        authorUserId: authorUserId || undefined,
+        guestName,
+        guestPasswordHash,
         ...(materialRequestData
           ? { materialRequest: { create: materialRequestData } }
           : {}),

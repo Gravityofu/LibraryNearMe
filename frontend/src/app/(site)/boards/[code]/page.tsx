@@ -17,6 +17,7 @@ type Board = {
   name: string;
   listStyle: "LIST" | "THUMBNAIL";
   isMaterialRequest: boolean;
+  allowMemberWrite: boolean;
 };
 
 type PostRow = {
@@ -101,6 +102,16 @@ export default function PublicBoardListPage() {
       <SitePageHeader
         crumbs={[t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)]}
         title={t(`boards.tabs.${code}`)}
+        action={
+          currentBoard?.allowMemberWrite ? (
+            <Link
+              href={`/boards/${code}/write`}
+              className="shrink-0 rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+            >
+              {t("boards.write.pageTitleNew")}
+            </Link>
+          ) : undefined
+        }
       />
 
       {isThumbnail ? (

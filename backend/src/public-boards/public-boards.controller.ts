@@ -1,18 +1,17 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, NotFoundException, Param, Post, Body, Req } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
-import { BoardsService } from '../settings/boards.service';
 import { PostsService } from '../posts/posts.service';
 
-// 로그인 없이 누구나 볼 수 있는 게시판 목록/글목록 API입니다. (홈페이지에서 씁니다)
-@Controller('public/boards')
-export class PublicBoardsController {
+// 로그인 없이 누구나 볼 수 있는 글 상세 API + 회원/비회원 글쓰기 API입니다.
+@Controller('public/posts')
+export class PublicPostsController {
   constructor(
     private prisma: PrismaService,
-    private boardsService: BoardsService,
     private postsService: PostsService,
+    private jwt: JwtService,
   ) {}
 
-  // 지금은 도서관이 하나뿐인 시스템이라, 로그인 정보 없이도 첫 번째 도서관을 그대로 씁니다.
   private async getLibraryId() {
     const library = await this.prisma.library.findFirst();
     if (!library) {
@@ -21,17 +20,44 @@ export class PublicBoardsController {
     return library.id;
   }
 
-  // 게시판 10개 목록
-  @Get()
-  async list() {
-    const libraryId = await this.getLibraryId();
-    return this.boardsService.list(libraryId);
+  // 로그인한 회원이면 그 회원의 id를, 로그인하지 않았거나 토큰이 잘못됐으면 null을 돌려줍니다.
+  // (관리자 전용 AdminGuard와 달리, 이 API는 로그인 안 해도 일단 통과시키고 회원인지만 구분합니다.)
+  private async getOptionalUserId(req: any): Promise<number | null> {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) return null;
+    try {
+      const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET });
+      return payload.sub;
+    } catch {
+      return null;
+    }
   }
 
-  // 특정 게시판의 글 목록 (예: /public/boards/notice/posts?page=1)
-  @Get(':code/posts')
-  async listPosts(@Param('code') code: string, @Query('page') page = '1') {
+  @Get(':id')
+  async getPost(@Param('id') id: string) {
     const libraryId = await this.getLibraryId();
-    return this.postsService.listPublic(libraryId, code, parseInt(page, 10) || 1);
+    return this.postsService.findOnePublic(libraryId, parseInt(id, 10));
+  }
+
+  // 홈페이지에서 글쓰기. 게시판이 회원 글쓰기를 허용해야 하고, 비회원이라면 그 게시판이
+  // 비회원 글쓰기까지 허용해야만 저장됩니다.
+  @Post()
+  async createPost(@Req() req: any, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const board = await this.prisma.board.findFirst({ where: { id: Number(body.boardId), libraryId } });
+    if (!board) {
+      throw new NotFoundException('게시판을 찾을 수 없습니다.');
+    }
+    if (!board.allowMemberWrite) {
+      throw new ForbiddenException('이 게시판은 글쓰기를 지원하지 않습니다.');
+    }
+
+    const authorUserId = await this.getOptionalUserId(req);
+    if (!authorUserId && !board.allowGuestWrite) {
+      throw new ForbiddenException('로그인이 필요합니다.');
+    }
+
+    return this.postsService.create(libraryId, authorUserId, body);
   }
 }
