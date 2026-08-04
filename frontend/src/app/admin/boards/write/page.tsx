@@ -222,7 +222,7 @@ function AdminBoardWritePageInner() {
         <AdminBackButton href={`/admin/boards?board=${boardCode}`} />
       </div>
 
-      <div className="flex max-w-3xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <label className="block">
           <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.title")} *</span>
           <input
