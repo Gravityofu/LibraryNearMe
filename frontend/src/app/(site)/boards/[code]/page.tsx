@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Pagination from "@/components/pagination";
+import SitePageHeader from "@/components/site-page-header";
 import { useI18n } from "@/components/language-provider";
+import { getBoardGroupKey } from "@/lib/site-nav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -44,7 +46,7 @@ export default function PublicBoardListPage() {
   const currentBoard = boards.find((b) => b.code === code) || null;
 
   const columnCount =
-    6 + (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) + (currentBoard?.isMaterialRequest ? 1 : 0) - 1; // 관리 칼럼이 없어서 -1
+    5 + (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) + (currentBoard?.isMaterialRequest ? 1 : 0);
 
   async function loadBoards() {
     const res = await fetch(`${API_URL}/public/boards`);
@@ -81,24 +83,10 @@ export default function PublicBoardListPage() {
 
   return (
     <main>
-      {/* 게시판 탭 */}
-      <div className="mb-4 flex flex-wrap gap-2 border-b border-neutral-200 pb-3">
-        {boards.map((b) => (
-          <Link
-            key={b.code}
-            href={`/boards/${b.code}`}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              b.code === code
-                ? "bg-[#383838] text-[#F9F6F0]"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-            }`}
-          >
-            {t(`boards.tabs.${b.code}`)}
-          </Link>
-        ))}
-      </div>
-
-      <h1 className="mb-3 text-lg font-bold">{t(`boards.tabs.${code}`)}</h1>
+      <SitePageHeader
+        crumbs={[t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)]}
+        title={t(`boards.tabs.${code}`)}
+      />
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full min-w-[560px] text-left text-sm">

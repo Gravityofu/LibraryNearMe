@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import SitePageHeader from "@/components/site-page-header";
 import { useI18n } from "@/components/language-provider";
+import { getBoardGroupKey } from "@/lib/site-nav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -54,19 +56,23 @@ export default function PublicPostDetailPage() {
 
   if (notFound || !post) {
     return (
-      <main className="py-10 text-center text-sm text-neutral-400">
-        {t("boards.write.loadFail")}
+      <main>
+        <SitePageHeader crumbs={[t("nav.home"), t(getBoardGroupKey(code))]} title={t(`boards.tabs.${code}`)} />
+        <p className="py-10 text-center text-sm text-neutral-400">{t("boards.write.loadFail")}</p>
       </main>
     );
   }
 
   return (
     <main>
+      <SitePageHeader
+        crumbs={[t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)]}
+        title={post.title}
+      />
+
       <Link href={`/boards/${code}`} className="mb-4 inline-block text-sm text-neutral-500 hover:underline">
         ← {t("boards.detail.back")}
       </Link>
-
-      <h1 className="mb-2 text-xl font-bold">{post.title}</h1>
 
       {post.materialRequest && (
         <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600">

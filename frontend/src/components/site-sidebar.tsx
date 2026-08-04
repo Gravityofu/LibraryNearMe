@@ -6,30 +6,9 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import LanguageToggle from "@/components/language-toggle";
+import { INFO_BOARD_CODES, ABOUT_BOARD_CODES } from "@/lib/site-nav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-const STATIC_MENU = [
-  { key: "nav.search", items: [
-    { key: "nav.search.all", href: "/" },
-    { key: "nav.search.new", href: "#" },
-    { key: "nav.search.popular", href: "#" },
-  ]},
-  { key: "nav.use", items: [
-    { key: "nav.use.guide", href: "#" },
-    { key: "nav.use.location", href: "#" },
-    { key: "nav.use.hours", href: "#" },
-  ]},
-  { key: "nav.myshelf", items: [
-    { key: "nav.myshelf.loans", href: "#" },
-    { key: "nav.myshelf.reservations", href: "#" },
-    { key: "nav.myshelf.card", href: "#" },
-  ]},
-  { key: "nav.about", items: [
-    { key: "nav.about.greeting", href: "#" },
-    { key: "nav.about.facilities", href: "#" },
-  ]},
-];
 
 type Board = { code: string };
 
@@ -43,10 +22,10 @@ export default function SiteSidebar({
   const { t } = useI18n();
   const { isLoggedIn, userName, role, logout } = useAuth();
   const pathname = usePathname();
-  const [open, setOpen] = useState<number[]>([0]);
+  const [open, setOpen] = useState<number[]>([]); // 처음엔 전부 접힌 상태로 시작합니다.
   const [boards, setBoards] = useState<Board[]>([]);
 
-  // 게시판 목록을 불러와서 '커뮤니티' 메뉴 안에 실제 게시판 링크로 보여줍니다.
+  // 게시판 목록을 불러옵니다. (메뉴에 실제 게시판 링크를 채우기 위함)
   useEffect(() => {
     fetch(`${API_URL}/public/boards`)
       .then((res) => (res.ok ? res.json() : []))
@@ -54,20 +33,71 @@ export default function SiteSidebar({
       .catch(() => setBoards([]));
   }, []);
 
+  const infoBoards = boards.filter((b) => INFO_BOARD_CODES.includes(b.code));
+  const aboutBoards = boards.filter((b) => ABOUT_BOARD_CODES.includes(b.code));
+  const communityBoards = boards.filter(
+    (b) => !INFO_BOARD_CODES.includes(b.code) && !ABOUT_BOARD_CODES.includes(b.code),
+  );
+
+  // 큰 메뉴 4개와, 그 밑에 보여줄 하위 메뉴들입니다. (순서: 정보와 자료 → 커뮤니티 → 도서관 소개 → 내 도서관)
+  const MENU = [
+    {
+      key: "nav.search",
+      items: [
+        { key: "nav.search.all", href: "/" },
+        { key: "nav.search.new", href: "#" },
+        { key: "nav.search.popular", href: "#" },
+        ...infoBoards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
+      ],
+    },
+    {
+      key: "nav.community",
+      items: communityBoards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
+    },
+    {
+      key: "nav.about",
+      items: [
+        { key: "nav.about.greeting", href: "#" },
+        { key: "nav.about.facilities", href: "#" },
+        { key: "nav.use.guide", href: "#" },
+        { key: "nav.use.location", href: "#" },
+        { key: "nav.use.hours", href: "#" },
+        ...aboutBoards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
+      ],
+    },
+    {
+      key: "nav.myshelf",
+      items: [
+        { key: "nav.myshelf.loans", href: "#" },
+        { key: "nav.myshelf.reservations", href: "#" },
+        { key: "nav.myshelf.card", href: "#" },
+      ],
+    },
+  ];
+
+  // 지금 보고 있는 페이지가 어느 메뉴 그룹에 속하는지 찾아서, 그 그룹을 자동으로 펼칩니다.
+  useEffect(() => {
+    const activeIndex = MENU.findIndex((group) =>
+      group.items.some((item) => item.href !== "#" && (pathname === item.href || pathname.startsWith(item.href + "/"))),
+    );
+    if (activeIndex >= 0) {
+      setOpen((prev) => (prev.includes(activeIndex) ? prev : [...prev, activeIndex]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, boards]);
+
   function toggle(i: number) {
     setOpen((prev) =>
       prev.includes(i) ? prev.filter((n) => n !== i) : [...prev, i]
     );
   }
 
-  const isStaff = role === "ADMIN" || role === "SUPER";
+  function isActiveItem(href: string) {
+    if (href === "#") return false;
+    return pathname === href || pathname.startsWith(href + "/");
+  }
 
-  // '커뮤니티' 그룹을 맨 앞에, 나머지 고정 메뉴들을 그 뒤에 둡니다.
-  const communityGroup = {
-    key: "nav.community",
-    items: boards.map((b) => ({ key: `boards.tabs.${b.code}`, href: `/boards/${b.code}` })),
-  };
-  const MENU = [communityGroup, ...STATIC_MENU];
+  const isStaff = role === "ADMIN" || role === "SUPER";
 
   return (
     <aside className="rounded-xl border border-neutral-200 bg-white p-3.5">
@@ -134,7 +164,11 @@ export default function SiteSidebar({
                   <Link
                     key={item.key}
                     href={item.href}
-                    className="block rounded-md px-4 py-1.5 text-[0.8125rem] text-neutral-600 hover:bg-neutral-50"
+                    className={`block rounded-md px-4 py-1.5 text-[0.8125rem] ${
+                      isActiveItem(item.href)
+                        ? "bg-neutral-100 font-bold text-neutral-900"
+                        : "text-neutral-600 hover:bg-neutral-50"
+                    }`}
                   >
                     {t(item.key)}
                   </Link>
