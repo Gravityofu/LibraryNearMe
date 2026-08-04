@@ -37,6 +37,8 @@ import { PostsController } from './posts/posts.controller';
 import { PostsService } from './posts/posts.service';
 import { MaterialRequestTypesController } from './settings/material-request-types.controller';
 import { MaterialRequestTypesService } from './settings/material-request-types.service';
+import { BoardFontsController } from './settings/board-fonts.controller';
+import { BoardFontsService } from './settings/board-fonts.service';
 
 @Module({
   imports: [
@@ -66,6 +68,7 @@ import { MaterialRequestTypesService } from './settings/material-request-types.s
     UploadsController,
     PostsController,
     MaterialRequestTypesController,
+    BoardFontsController,
   ],
   providers: [
     AppService,
@@ -86,6 +89,7 @@ import { MaterialRequestTypesService } from './settings/material-request-types.s
     UploadsService,
     PostsService,
     MaterialRequestTypesService,
+    BoardFontsService,
   ],
 })
 export class AppModule {}

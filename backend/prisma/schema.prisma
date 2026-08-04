@@ -49,6 +49,7 @@ model Library {
   posts         Post[]         // ← 추가 (게시글)
   comments      Comment[]      // ← 추가 (댓글)
   materialRequestTypes MaterialRequestType[] // ← 추가 (자료신청 자료 종류 목록)
+  boardFonts    BoardFont[]    // ← 추가 (게시판 글꼴 목록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -480,4 +481,23 @@ model MaterialRequestType {
   createdAt DateTime @default(now())
 
   @@unique([libraryId, value])
+}
+
+// 게시판 글쓰기 화면의 글꼴 드롭다운에 나오는 항목들입니다. 설정 > 게시판 메뉴에서 관리합니다.
+// isDeletable이 false인 항목(Pretendard)은 삭제할 수 없는 기본 글꼴입니다.
+model BoardFont {
+  id             Int      @id @default(autoincrement())
+
+  libraryId      Int
+  library        Library  @relation(fields: [libraryId], references: [id])
+
+  name           String   // 설정 화면에 보이는 이름 (예: "나눔고딕")
+  fontFamilyName String   // 실제 CSS font-family로 쓰이는 값 (예: "Nanum Gothic")
+  googleFontUrl  String?  // 이 폰트를 불러올 구글 폰트 주소. Pretendard처럼 이미 사이트에 있으면 비워둡니다.
+  isDeletable    Boolean  @default(true)
+  order          Int      @default(0)
+
+  createdAt      DateTime @default(now())
+
+  @@unique([libraryId, fontFamilyName])
 }

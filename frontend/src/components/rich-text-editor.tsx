@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -23,24 +23,30 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import { useI18n } from "@/components/language-provider";
 import { useNotify } from "@/components/notify-provider";
+import { FONT_OPTIONS as SITE_FONT_OPTIONS } from "@/lib/fonts";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+// 사이트 전체 기본 글꼴(Pretendard)과 정확히 같은 값을 씁니다. (frontend/src/lib/fonts.ts 참고)
+const PRETENDARD_STACK = SITE_FONT_OPTIONS[0].stack;
 
 type Props = {
   value: string;
   onChange: (html: string) => void;
 };
 
+type BoardFont = {
+  id: number;
+  name: string;
+  fontFamilyName: string;
+  googleFontUrl: string | null;
+  isDeletable: boolean;
+};
+
+type FontDropdownOption = { value: string; label: string };
+
 // 글자 색상 버튼에 보여줄 색상들입니다.
 const COLOR_SWATCHES = ["#111111", "#DC2626", "#EA580C", "#CA8A04", "#16A34A", "#2563EB", "#7C3AED"];
-
-// 폰트 선택 드롭다운에 보여줄 항목입니다. (새 폰트 파일을 추가로 불러오지 않고, 컴퓨터에 이미 있는 글꼴만 씁니다.)
-const FONT_OPTIONS = [
-  { value: "", labelKey: "editor.fontFamily.default" },
-  { value: "ui-sans-serif, system-ui, sans-serif", labelKey: "editor.fontFamily.sans" },
-  { value: "ui-serif, Georgia, serif", labelKey: "editor.fontFamily.serif" },
-  { value: "ui-monospace, monospace", labelKey: "editor.fontFamily.mono" },
-];
 
 // 자주 쓰는 이모티콘 목록입니다.
 const EMOJI_LIST = [
@@ -55,6 +61,44 @@ export default function RichTextEditor({ value, onChange }: Props) {
   const { notify } = useNotify();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [fontOptions, setFontOptions] = useState<FontDropdownOption[]>([
+    { value: PRETENDARD_STACK, label: "Pretendard (기본)" },
+  ]);
+
+  // '설정 > 게시판'에서 관리하는 글꼴 목록을 불러와서, 드롭다운에 채우고 필요한 폰트 파일도 불러옵니다.
+  // 삭제된 폰트는 이 목록에 더 이상 나오지 않으므로, 그 폰트를 불러오는 <link>도 더 이상 추가되지 않습니다.
+  // (예전에 그 폰트로 쓴 글은, 폰트가 로드되지 않으므로 저장된 글꼴 값의 다음 순서인 Pretendard로 자동으로 보이게 됩니다.)
+  useEffect(() => {
+    async function loadFonts() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await fetch(`${API_URL}/board-fonts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data: BoardFont[] = await res.json();
+
+      const options = data.map((f) => ({
+        value: f.isDeletable ? `'${f.fontFamilyName}', ${PRETENDARD_STACK}` : PRETENDARD_STACK,
+        label: f.name,
+      }));
+      setFontOptions(options.length > 0 ? options : [{ value: PRETENDARD_STACK, label: "Pretendard (기본)" }]);
+
+      data.forEach((font, i) => {
+        if (!font.googleFontUrl) return;
+        const linkId = `board-font-link-${i}`;
+        let linkEl = document.getElementById(linkId) as HTMLLinkElement | null;
+        if (!linkEl) {
+          linkEl = document.createElement("link");
+          linkEl.id = linkId;
+          linkEl.rel = "stylesheet";
+          document.head.appendChild(linkEl);
+        }
+        linkEl.href = font.googleFontUrl;
+      });
+    }
+    loadFonts();
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -80,6 +124,12 @@ export default function RichTextEditor({ value, onChange }: Props) {
     ],
     content: value,
     immediatelyRender: false, // Next.js에서 서버와 브라우저의 첫 화면이 다르게 그려지는 문제를 막아줍니다.
+    onCreate: ({ editor }) => {
+      // 새 글(내용이 비어있는 상태)을 쓰기 시작할 때는, 앞으로 입력할 글자에 Pretendard가 기본으로 적용되게 합니다.
+      if (!value) {
+        editor.chain().setFontFamily(PRETENDARD_STACK).run();
+      }
+    },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -191,6 +241,7 @@ export default function RichTextEditor({ value, onChange }: Props) {
       : editor.isActive("heading", { level: 3 })
         ? "3"
         : "paragraph";
+  const currentFontValue = editor.getAttributes("textStyle").fontFamily || PRETENDARD_STACK;
 
   return (
     <div>
@@ -319,21 +370,15 @@ export default function RichTextEditor({ value, onChange }: Props) {
 
         <span className="mx-1 h-5 w-px bg-neutral-200" />
 
-        {/* 글꼴 */}
+        {/* 글꼴 - '설정 > 게시판'에서 관리하는 목록입니다. */}
         <select
-          onChange={(e) => {
-            if (e.target.value) {
-              editor.chain().focus().setFontFamily(e.target.value).run();
-            } else {
-              editor.chain().focus().unsetFontFamily().run();
-            }
-          }}
-          defaultValue=""
+          value={currentFontValue}
+          onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
           className="cursor-pointer rounded border border-neutral-200 bg-white px-2 py-1.5 text-xs"
         >
-          {FONT_OPTIONS.map((opt) => (
-            <option key={opt.labelKey} value={opt.value}>
-              {t(opt.labelKey)}
+          {fontOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>

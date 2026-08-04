@@ -17,6 +17,16 @@ type Board = {
   isMaterialRequest: boolean;
 };
 
+type BoardFont = {
+  id: number;
+  name: string;
+  fontFamilyName: string;
+  googleFontUrl: string | null;
+  isDeletable: boolean;
+};
+
+const EMPTY_FONT_FORM = { name: "", fontFamilyName: "", googleFontUrl: "" };
+
 // '예/아니오' 두 가지 중 하나를 고르는 카드형 선택지입니다. (다른 설정 화면들과 같은 방식입니다.)
 function ChoiceCardGroup({
   name,
@@ -86,6 +96,12 @@ export default function BoardsSettingsForm() {
   const [allowGuestWriteValue, setAllowGuestWriteValue] = useState(false);
   const [allowGuestCommentValue, setAllowGuestCommentValue] = useState(false);
 
+  // 게시판 글꼴 목록입니다.
+  const [fonts, setFonts] = useState<BoardFont[]>([]);
+  const [showFontModal, setShowFontModal] = useState(false);
+  const [editingFontId, setEditingFontId] = useState<number | null>(null);
+  const [fontForm, setFontForm] = useState(EMPTY_FONT_FORM);
+
   async function loadBoards() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -99,8 +115,22 @@ export default function BoardsSettingsForm() {
     }
   }
 
+  async function loadFonts() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/board-fonts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setFonts(await res.json());
+    } else {
+      notify("❌ " + t("settings.boards.fonts.loadFail"), "error");
+    }
+  }
+
   useEffect(() => {
     loadBoards();
+    loadFonts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,6 +160,63 @@ export default function BoardsSettingsForm() {
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("settings.boards.saveFail")), "error");
+    }
+  }
+
+  function openAddFontModal() {
+    setEditingFontId(null);
+    setFontForm(EMPTY_FONT_FORM);
+    setShowFontModal(true);
+  }
+
+  function openEditFontModal(font: BoardFont) {
+    if (!font.isDeletable) return; // 기본 글꼴(Pretendard)은 수정 화면을 열지 않습니다.
+    setEditingFontId(font.id);
+    setFontForm({ name: font.name, fontFamilyName: font.fontFamilyName, googleFontUrl: font.googleFontUrl || "" });
+    setShowFontModal(true);
+  }
+
+  async function handleSaveFont() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    if (!fontForm.name.trim() || !fontForm.fontFamilyName.trim()) {
+      notify("❌ " + t("settings.boards.fonts.nameRequired"), "error");
+      return;
+    }
+    const url = editingFontId ? `${API_URL}/board-fonts/${editingFontId}` : `${API_URL}/board-fonts`;
+    const res = await fetch(url, {
+      method: editingFontId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name: fontForm.name.trim(),
+        fontFamilyName: fontForm.fontFamilyName.trim(),
+        googleFontUrl: fontForm.googleFontUrl.trim() || null,
+      }),
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.boards.fonts.saveSuccess"), "success");
+      setShowFontModal(false);
+      await loadFonts();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.boards.fonts.saveFail")), "error");
+    }
+  }
+
+  async function handleDeleteFont(id: number) {
+    if (!window.confirm(t("settings.boards.fonts.deleteConfirm"))) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${API_URL}/board-fonts/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      notify("✅ " + t("settings.boards.fonts.deleteSuccess"), "success");
+      await loadFonts();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("settings.boards.fonts.deleteFail")), "error");
     }
   }
 
@@ -176,6 +263,55 @@ export default function BoardsSettingsForm() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="mb-1 text-sm font-semibold">{t("settings.boards.fonts.title")}</p>
+        <p className="mb-3 text-xs text-neutral-400">{t("settings.boards.fonts.desc")}</p>
+
+        <div className="flex flex-wrap gap-2">
+          {fonts.map((font) => (
+            <div
+              key={font.id}
+              className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm"
+            >
+              <span>{font.name}</span>
+              {!font.isDeletable && (
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
+                  {t("settings.boards.fonts.defaultBadge")}
+                </span>
+              )}
+              {font.isDeletable && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openEditFontModal(font)}
+                    className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-800"
+                  >
+                    {t("settings.boards.fonts.editBtn")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFont(font.id)}
+                    className="cursor-pointer text-xs text-red-500 hover:text-red-700"
+                  >
+                    {t("settings.boards.fonts.deleteBtn")}
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={openAddFontModal}
+            className="cursor-pointer rounded-lg bg-[#383838] px-4 py-2 text-sm font-semibold text-[#F9F6F0]"
+          >
+            {t("settings.boards.fonts.addBtn")}
+          </button>
+        </div>
       </div>
 
       {editingBoard && (
@@ -229,6 +365,74 @@ export default function BoardsSettingsForm() {
             >
               {t("settings.boards.save")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {showFontModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowFontModal(false)}
+        >
+          <div
+            className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-h-[80vh] overflow-y-auto p-6">
+              <p className="mb-4 text-sm font-semibold">
+                {editingFontId ? t("settings.boards.fonts.modal.editTitle") : t("settings.boards.fonts.modal.addTitle")}
+              </p>
+
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="mb-1 block text-sm text-neutral-500">
+                    {t("settings.boards.fonts.field.name")} *
+                  </span>
+                  <input
+                    value={fontForm.name}
+                    onChange={(e) => setFontForm({ ...fontForm, name: e.target.value })}
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-sm text-neutral-500">
+                    {t("settings.boards.fonts.field.fontFamilyName")} *
+                  </span>
+                  <input
+                    value={fontForm.fontFamilyName}
+                    onChange={(e) => setFontForm({ ...fontForm, fontFamilyName: e.target.value })}
+                    placeholder="예: Nanum Gothic"
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {t("settings.boards.fonts.field.fontFamilyNameHint")}
+                  </p>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-sm text-neutral-500">
+                    {t("settings.boards.fonts.field.googleFontUrl")}
+                  </span>
+                  <input
+                    value={fontForm.googleFontUrl}
+                    onChange={(e) => setFontForm({ ...fontForm, googleFontUrl: e.target.value })}
+                    placeholder="https://fonts.googleapis.com/css2?family=..."
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {t("settings.boards.fonts.field.googleFontUrlHint")}
+                  </p>
+                </label>
+              </div>
+
+              <button
+                onClick={handleSaveFont}
+                className="mt-5 w-full cursor-pointer rounded-lg bg-[#383838] py-2.5 text-sm font-semibold text-[#F9F6F0]"
+              >
+                {t("settings.boards.fonts.save")}
+              </button>
+            </div>
           </div>
         </div>
       )}
