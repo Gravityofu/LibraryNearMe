@@ -359,7 +359,9 @@ export default function PublicPostDetailPage() {
         </div>
       )}
 
-      {/* 회색 정보 상자(글쓴이·작성일·조회수 → 가로줄 → 키워드)와 흰색 본문 상자가 하나의 라운드 사각형으로 이어집니다. */}
+      {/* 회색 정보 상자(글쓴이·작성일·조회수)와 가로줄, 키워드 줄, 흰색 본문 상자가 하나의 라운드 사각형으로 이어집니다.
+          가로줄은 상자 끝까지 이어지고, 옅은 회색 배경은 가로줄까지만 나옵니다. 키워드가 없어도 그 줄의 높이만큼
+          빈 공간을 두어서, 키워드가 있는 글과 없는 글의 본문이 항상 같은 높이에서 시작하도록 합니다. */}
       <div className="overflow-hidden rounded-lg border border-neutral-200">
         <div className="bg-neutral-100 px-4 py-3">
           <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
@@ -369,18 +371,21 @@ export default function PublicPostDetailPage() {
               {t("boards.list.col.viewCount")} {post.viewCount}
             </span>
           </div>
+        </div>
 
-          <hr className="my-2 border-neutral-300" />
+        <hr className="border-neutral-300" />
 
-          {post.keywords && post.keywords.length > 0 && (
-            <p className="text-xs" style={{ color: primaryColor || "#3b82f6" }}>
-              {post.keywords.map((k) => `#${k}`).join(" ")}
-            </p>
-          )}
+        <div className="bg-white px-4 pt-2">
+          <p
+            className="min-h-[1.1rem] text-xs font-bold italic"
+            style={{ color: primaryColor || "#3b82f6" }}
+          >
+            {post.keywords && post.keywords.length > 0 ? post.keywords.map((k) => `#${k}`).join(" ") : "\u00A0"}
+          </p>
         </div>
 
         <div
-          className="min-h-[120px] bg-white p-4 text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"
+          className="min-h-[120px] bg-white p-4 pt-1 text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       </div>

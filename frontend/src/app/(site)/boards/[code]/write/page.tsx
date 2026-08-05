@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import SitePageHeader from "@/components/site-page-header";
@@ -47,6 +47,9 @@ export default function PublicBoardWritePage() {
 
   // 관리자(ADMIN/SUPER) 계정은 홈페이지에서 글을 쓰거나 수정·삭제할 수 없습니다.
   const isAdmin = role === "ADMIN" || role === "SUPER";
+
+  // 같은 글(postId)에 대해 비밀번호를 두 번 물어보는 문제를 막기 위한 장치입니다.
+  const loadedPostIdRef = useRef<string | null>(null);
 
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +160,8 @@ export default function PublicBoardWritePage() {
   }, [board?.isMaterialRequest]);
 
   useEffect(() => {
-    if (isEdit) {
+    if (isEdit && loadedPostIdRef.current !== postId) {
+      loadedPostIdRef.current = postId;
       loadExistingPostForEdit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,13 +247,15 @@ export default function PublicBoardWritePage() {
           crumbs={crumbs}
           title={isEdit ? t("boards.write.pageTitleEdit") : t("boards.write.pageTitleNew")}
         />
-        <p className="py-10 text-center text-sm text-neutral-400">
-          {t("boards.public.write.adminNotAllowed")}
-          <br />
-          <Link href={`/boards/${code}`} className="text-blue-600 hover:underline">
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <p className="text-sm text-neutral-400">{t("boards.public.write.adminNotAllowed")}</p>
+          <Link
+            href={`/boards/${code}`}
+            className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+          >
             {t("boards.detail.back")}
           </Link>
-        </p>
+        </div>
       </main>
     );
   }
@@ -258,13 +264,15 @@ export default function PublicBoardWritePage() {
     return (
       <main>
         <SitePageHeader crumbs={crumbs} title={t("boards.write.pageTitleEdit")} />
-        <p className="py-10 text-center text-sm text-neutral-400">
-          {t("boards.public.write.permissionDenied")}
-          <br />
-          <Link href={`/boards/${code}`} className="text-blue-600 hover:underline">
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <p className="text-sm text-neutral-400">{t("boards.public.write.permissionDenied")}</p>
+          <Link
+            href={`/boards/${code}`}
+            className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+          >
             {t("boards.detail.back")}
           </Link>
-        </p>
+        </div>
       </main>
     );
   }

@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Pagination from "@/components/pagination";
 import SitePageHeader from "@/components/site-page-header";
 import { useI18n } from "@/components/language-provider";
+import { useAuth } from "@/components/auth-provider";
 import { getBoardGroupKey } from "@/lib/site-nav";
 import { formatKstDate } from "@/lib/date";
 
@@ -34,6 +35,7 @@ type PostRow = {
 
 export default function PublicBoardListPage() {
   const { t } = useI18n();
+  const { role } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams<{ code: string }>();
@@ -50,6 +52,9 @@ export default function PublicBoardListPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentBoard = boards.find((b) => b.code === code) || null;
   const isThumbnail = currentBoard?.listStyle === "THUMBNAIL";
+  // 관리자(ADMIN/SUPER) 계정으로 로그인했다면, 게시판의 '회원 글쓰기' 설정과 상관없이
+  // 홈페이지에서는 '글쓰기' 버튼 자체를 보여주지 않습니다. (관리자는 관리자 페이지에서만 글을 씁니다.)
+  const isAdmin = role === "ADMIN" || role === "SUPER";
 
   const columnCount = 5 + (currentBoard?.isMaterialRequest ? 1 : 0);
 
@@ -103,7 +108,7 @@ export default function PublicBoardListPage() {
         crumbs={[t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)]}
         title={t(`boards.tabs.${code}`)}
         action={
-          currentBoard?.allowMemberWrite ? (
+          currentBoard?.allowMemberWrite && !isAdmin ? (
             <Link
               href={`/boards/${code}/write`}
               className="shrink-0 rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
