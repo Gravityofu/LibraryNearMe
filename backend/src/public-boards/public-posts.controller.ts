@@ -1,9 +1,10 @@
-import { Controller, ForbiddenException, Get, NotFoundException, Param, Post, Body, Req } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, NotFoundException, BadRequestException, Param, Post, Patch, Delete, Body, Req } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 import { PostsService } from '../posts/posts.service';
 
-// 로그인 없이 누구나 볼 수 있는 글 상세 API + 회원/비회원 글쓰기 API입니다.
+// 로그인 없이 누구나 볼 수 있는 글 상세 API + 회원/비회원 글쓰기·수정·삭제 API입니다.
 @Controller('public/posts')
 export class PublicPostsController {
   constructor(
@@ -21,7 +22,6 @@ export class PublicPostsController {
   }
 
   // 로그인한 회원이면 그 회원의 id를, 로그인하지 않았거나 토큰이 잘못됐으면 null을 돌려줍니다.
-  // (관리자 전용 AdminGuard와 달리, 이 API는 로그인 안 해도 일단 통과시키고 회원인지만 구분합니다.)
   private async getOptionalUserId(req: any): Promise<number | null> {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -31,6 +31,24 @@ export class PublicPostsController {
       return payload.sub;
     } catch {
       return null;
+    }
+  }
+
+  // 글을 수정·삭제해도 되는지 확인합니다. (댓글과 똑같은 방식입니다.)
+  // 회원 글이면 로그인한 회원 본인인지, 비회원 글이면 비밀번호가 맞는지 확인합니다.
+  private async assertPostOwnership(post: any, userId: number | null, guestPassword?: string) {
+    if (post.authorUserId) {
+      if (!userId || post.authorUserId !== userId) {
+        throw new ForbiddenException('본인이 작성한 글만 수정·삭제할 수 있습니다.');
+      }
+    } else {
+      if (!guestPassword || !post.guestPasswordHash) {
+        throw new ForbiddenException('비밀번호를 입력하세요.');
+      }
+      const match = await bcrypt.compare(guestPassword, post.guestPasswordHash);
+      if (!match) {
+        throw new ForbiddenException('비밀번호가 일치하지 않습니다.');
+      }
     }
   }
 
@@ -59,5 +77,53 @@ export class PublicPostsController {
     }
 
     return this.postsService.create(libraryId, authorUserId, body);
+  }
+
+  // 비회원 글을 수정하기 전에, 입력한 비밀번호가 맞는지만 먼저 확인합니다.
+  // (수정 화면을 열기 전에, 여기서 통과해야만 화면을 보여줍니다.)
+  @Post(':id/verify-password')
+  async verifyPassword(@Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const post = await this.prisma.post.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!post) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    if (post.authorUserId) {
+      throw new BadRequestException('회원 글은 비밀번호로 확인하지 않습니다.');
+    }
+    const guestPassword = String(body?.guestPassword || '');
+    const match = post.guestPasswordHash
+      ? await bcrypt.compare(guestPassword, post.guestPasswordHash)
+      : false;
+    if (!match) {
+      throw new ForbiddenException('비밀번호가 일치하지 않습니다.');
+    }
+    return { valid: true };
+  }
+
+  // 홈페이지에서 글 수정. 회원 글이면 로그인 토큰으로, 비회원 글이면 body의 guestPassword로 확인합니다.
+  @Patch(':id')
+  async updatePost(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const post = await this.prisma.post.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!post) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    const userId = await this.getOptionalUserId(req);
+    await this.assertPostOwnership(post, userId, body?.guestPassword);
+    return this.postsService.update(libraryId, post.id, body);
+  }
+
+  // 홈페이지에서 글 삭제. 비회원 글이면 body에 { guestPassword } 를 실어서 호출합니다.
+  @Delete(':id')
+  async removePost(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const post = await this.prisma.post.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!post) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    const userId = await this.getOptionalUserId(req);
+    await this.assertPostOwnership(post, userId, body?.guestPassword);
+    return this.postsService.remove(libraryId, post.id);
   }
 }

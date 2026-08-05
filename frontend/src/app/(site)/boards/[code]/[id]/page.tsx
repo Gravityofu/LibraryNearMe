@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import SitePageHeader from "@/components/site-page-header";
 import ThemedButton from "@/components/themed-button";
 import { useI18n } from "@/components/language-provider";
@@ -21,6 +21,7 @@ type Post = {
   viewCount: number;
   createdAt: string;
   authorName: string;
+  authorUserId: number | null;
   board: {
     allowMemberComment: boolean;
     allowGuestComment: boolean;
@@ -46,6 +47,7 @@ export default function PublicPostDetailPage() {
   const { t } = useI18n();
   const { notify } = useNotify();
   const { token, userId, isLoggedIn } = useAuth();
+  const router = useRouter();
   const params = useParams<{ code: string; id: string }>();
   const { code, id } = params;
 
@@ -101,6 +103,41 @@ export default function PublicPostDetailPage() {
     loadPrimaryColor();
   }, []);
 
+  // 이 글을 지금 로그인한 나(또는 비회원이) 수정/삭제해도 되는 글인지 (버튼을 보여줄지) 판단합니다.
+  function canManagePost(p: Post) {
+    if (p.authorUserId) {
+      return isLoggedIn && userId !== null && p.authorUserId === userId;
+    }
+    return true; // 비회원 글은 일단 버튼을 보여주고, 실제 수정/삭제 시 비밀번호로 확인합니다.
+  }
+
+  async function handleDeletePost() {
+    if (!post) return;
+    let guestPassword = "";
+    if (!post.authorUserId) {
+      const pw = window.prompt(t("boards.public.write.guestPasswordPrompt"));
+      if (!pw) return;
+      guestPassword = pw;
+    }
+    if (!window.confirm(t("boards.public.write.deleteConfirm"))) return;
+
+    const res = await fetch(`${API_URL}/public/posts/${post.id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(post.authorUserId ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(post.authorUserId ? {} : { guestPassword }),
+    });
+    if (res.ok) {
+      notify("✅ " + t("boards.public.write.deleteSuccess"), "success");
+      router.push(`/boards/${code}`);
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("boards.public.write.deleteFail")), "error");
+    }
+  }
+
   async function handleAddComment() {
     if (!commentContent.trim()) {
       return;
@@ -155,14 +192,13 @@ export default function PublicPostDetailPage() {
     if (c.authorUserId) {
       return isLoggedIn && userId !== null && c.authorUserId === userId;
     }
-    return true; // 비회원 댓글은 일단 버튼을 보여주고, 실제 수정/삭제 시 비밀번호로 확인합니다.
+    return true;
   }
 
   async function startEditComment(c: Comment) {
     if (!c.authorUserId) {
       const pw = window.prompt(t("boards.public.comments.guestPasswordPrompt"));
       if (!pw) return;
-      // 비밀번호가 맞는지 서버에 먼저 물어보고, 통과해야만 수정 칸을 엽니다.
       const res = await fetch(`${API_URL}/public/comments/${c.id}/verify-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -239,14 +275,35 @@ export default function PublicPostDetailPage() {
     }
   }
 
-  // 제목과 같은 줄, 오른쪽 끝에 보여줄 "목록으로" 버튼입니다.
+  const canManage = post ? canManagePost(post) : false;
+
+  // 제목과 같은 줄, 오른쪽 끝에 보여줄 버튼들입니다. (수정/삭제는 권한이 있을 때만 보입니다)
   const backButton = (
-    <Link
-      href={`/boards/${code}`}
-      className="shrink-0 rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
-    >
-      ← {t("boards.detail.back")}
-    </Link>
+    <div className="flex shrink-0 items-center gap-2">
+      {canManage && (
+        <>
+          <Link
+            href={`/boards/${code}/write?postId=${id}`}
+            className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+          >
+            {t("boards.list.editBtn")}
+          </Link>
+          <button
+            type="button"
+            onClick={handleDeletePost}
+            className="cursor-pointer rounded-full border border-red-200 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+          >
+            {t("boards.list.deleteBtn")}
+          </button>
+        </>
+      )}
+      <Link
+        href={`/boards/${code}`}
+        className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+      >
+        ← {t("boards.detail.back")}
+      </Link>
+    </div>
   );
 
   if (loading) {

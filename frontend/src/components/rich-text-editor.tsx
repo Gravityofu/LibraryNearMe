@@ -38,6 +38,7 @@ const DEFAULT_FONT_SIZE = 14;
 type Props = {
   value: string;
   onChange: (html: string) => void;
+  imageUploadUrl?: string; // 사진을 올릴 API 주소. 안 주면 관리자 게시판 글쓰기용 주소를 씁니다.
 };
 
 type BoardFont = {
@@ -185,7 +186,7 @@ const EMOJI_CATEGORIES: { key: string; labelKey: string; emojis: string[] }[] = 
 ];
 
 // 게시판 글쓰기에서 공통으로 쓰는 리치 텍스트 에디터입니다.
-export default function RichTextEditor({ value, onChange }: Props) {
+export default function RichTextEditor({ value, onChange, imageUploadUrl }: Props) {
   const { t } = useI18n();
   const { notify } = useNotify();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -314,15 +315,16 @@ export default function RichTextEditor({ value, onChange }: Props) {
     e.target.value = "";
     if (!file || !editor) return;
 
+    // 관리자/로그인한 회원은 토큰을 함께 보내고, 비회원은 토큰 없이 보냅니다.
+    // (비회원용 주소(public-board-image)는 토큰이 없어도 통과되는 주소입니다.)
     const token = localStorage.getItem("token");
-    if (!token) return;
 
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API_URL}/uploads/board-image`, {
+    const res = await fetch(imageUploadUrl || `${API_URL}/uploads/board-image`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
     });
     if (res.ok) {

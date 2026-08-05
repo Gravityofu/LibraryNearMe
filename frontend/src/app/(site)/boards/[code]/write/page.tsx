@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import SitePageHeader from "@/components/site-page-header";
 import ThemedButton from "@/components/themed-button";
+import RichTextEditor from "@/components/rich-text-editor";
 import { useI18n } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import { useNotify } from "@/components/notify-provider";
@@ -21,13 +22,28 @@ type Board = {
   isMaterialRequest: boolean;
 };
 
+type ExistingPost = {
+  id: number;
+  title: string;
+  content: string;
+  authorUserId: number | null;
+  materialRequest: {
+    title: string;
+    requestType: string;
+    author: string | null;
+  } | null;
+};
+
 export default function PublicBoardWritePage() {
   const { t } = useI18n();
   const { notify } = useNotify();
-  const { token, isLoggedIn } = useAuth();
+  const { token, userId, isLoggedIn } = useAuth();
   const router = useRouter();
   const params = useParams<{ code: string }>();
+  const searchParams = useSearchParams();
   const code = params.code;
+  const postId = searchParams.get("postId");
+  const isEdit = !!postId;
 
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +58,12 @@ export default function PublicBoardWritePage() {
   const [materialTitle, setMaterialTitle] = useState("");
   const [requestType, setRequestType] = useState("");
   const [requestAuthor, setRequestAuthor] = useState("");
+
+  // 수정 화면에서만 쓰는 값들입니다.
+  const [existingPost, setExistingPost] = useState<ExistingPost | null>(null);
+  const [checkingPermission, setCheckingPermission] = useState(isEdit);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [editGuestPassword, setEditGuestPassword] = useState("");
 
   async function loadBoard() {
     setLoading(true);
@@ -58,8 +80,60 @@ export default function PublicBoardWritePage() {
     if (res.ok) {
       const data = await res.json();
       setRequestTypeOptions(data.types);
-      if (data.types.length > 0) setRequestType(data.types[0]);
+      if (!requestType && data.types.length > 0) setRequestType(data.types[0]);
     }
+  }
+
+  // 수정 화면일 때: 글을 불러오고, 회원 글이면 본인인지, 비회원 글이면 비밀번호가 맞는지 확인합니다.
+  async function loadExistingPostForEdit() {
+    if (!postId) return;
+    setCheckingPermission(true);
+    const res = await fetch(`${API_URL}/public/posts/${postId}`);
+    if (!res.ok) {
+      setPermissionDenied(true);
+      setCheckingPermission(false);
+      return;
+    }
+    const data = await res.json();
+    setExistingPost(data);
+
+    if (data.authorUserId) {
+      // 회원 글: 로그인한 나 자신이어야 합니다.
+      if (!isLoggedIn || userId !== data.authorUserId) {
+        setPermissionDenied(true);
+        setCheckingPermission(false);
+        return;
+      }
+    } else {
+      // 비회원 글: 비밀번호를 물어보고 서버에 먼저 확인합니다.
+      const pw = window.prompt(t("boards.public.write.guestPasswordPrompt"));
+      if (!pw) {
+        setPermissionDenied(true);
+        setCheckingPermission(false);
+        return;
+      }
+      const verifyRes = await fetch(`${API_URL}/public/posts/${postId}/verify-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestPassword: pw }),
+      });
+      if (!verifyRes.ok) {
+        notify("❌ " + t("boards.public.write.wrongPassword"), "error");
+        setPermissionDenied(true);
+        setCheckingPermission(false);
+        return;
+      }
+      setEditGuestPassword(pw);
+    }
+
+    setTitle(data.title);
+    setContent(data.content);
+    if (data.materialRequest) {
+      setMaterialTitle(data.materialRequest.title || "");
+      setRequestType(data.materialRequest.requestType);
+      setRequestAuthor(data.materialRequest.author || "");
+    }
+    setCheckingPermission(false);
   }
 
   useEffect(() => {
@@ -74,6 +148,13 @@ export default function PublicBoardWritePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board?.isMaterialRequest]);
 
+  useEffect(() => {
+    if (isEdit) {
+      loadExistingPostForEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
   async function handleSave() {
     if (!title.trim()) {
       notify("❌ " + t("boards.write.titleRequired"), "error");
@@ -87,7 +168,7 @@ export default function PublicBoardWritePage() {
       notify("❌ " + t("boards.write.contentRequired"), "error");
       return;
     }
-    if (!isLoggedIn) {
+    if (!isEdit && !isLoggedIn) {
       if (!guestName.trim()) {
         notify("❌ " + t("boards.public.write.guestNameRequired"), "error");
         return;
@@ -98,19 +179,33 @@ export default function PublicBoardWritePage() {
       }
     }
 
-    const body: any = { boardId: board?.id, title, content };
+    const body: any = { title, content };
     if (board?.isMaterialRequest) {
       body.materialTitle = materialTitle;
       body.requestType = requestType;
       body.requestAuthor = requestAuthor;
     }
-    if (!isLoggedIn) {
-      body.guestName = guestName;
-      body.guestPassword = guestPassword;
+
+    let url: string;
+    let method: string;
+    if (isEdit) {
+      url = `${API_URL}/public/posts/${postId}`;
+      method = "PATCH";
+      if (existingPost && !existingPost.authorUserId) {
+        body.guestPassword = editGuestPassword;
+      }
+    } else {
+      url = `${API_URL}/public/posts`;
+      method = "POST";
+      body.boardId = board?.id;
+      if (!isLoggedIn) {
+        body.guestName = guestName;
+        body.guestPassword = guestPassword;
+      }
     }
 
-    const res = await fetch(`${API_URL}/public/posts`, {
-      method: "POST",
+    const res = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
         ...(isLoggedIn ? { Authorization: `Bearer ${token}` } : {}),
@@ -129,8 +224,17 @@ export default function PublicBoardWritePage() {
 
   const crumbs = [t("nav.home"), t(getBoardGroupKey(code)), t(`boards.tabs.${code}`)];
 
-  if (loading) {
+  if (loading || checkingPermission) {
     return <main className="py-10 text-center text-sm text-neutral-400">...</main>;
+  }
+
+  if (isEdit && permissionDenied) {
+    return (
+      <main>
+        <SitePageHeader crumbs={crumbs} title={t("boards.write.pageTitleEdit")} />
+        <p className="py-10 text-center text-sm text-neutral-400">{t("boards.public.write.permissionDenied")}</p>
+      </main>
+    );
   }
 
   if (!board || !board.allowMemberWrite) {
@@ -142,7 +246,7 @@ export default function PublicBoardWritePage() {
     );
   }
 
-  if (!isLoggedIn && !board.allowGuestWrite) {
+  if (!isEdit && !isLoggedIn && !board.allowGuestWrite) {
     return (
       <main>
         <SitePageHeader crumbs={crumbs} title={t("boards.write.pageTitleNew")} />
@@ -162,7 +266,10 @@ export default function PublicBoardWritePage() {
 
   return (
     <main>
-      <SitePageHeader crumbs={crumbs} title={t("boards.write.pageTitleNew")} />
+      <SitePageHeader
+        crumbs={crumbs}
+        title={isEdit ? t("boards.write.pageTitleEdit") : t("boards.write.pageTitleNew")}
+      />
 
       <div className="flex w-full flex-col gap-4">
         <label className="block">
@@ -213,17 +320,16 @@ export default function PublicBoardWritePage() {
           </>
         )}
 
-        <label className="block">
+        <div>
           <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.content")} *</span>
-          <textarea
+          <RichTextEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={10}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+            onChange={setContent}
+            imageUploadUrl={`${API_URL}/uploads/public-board-image`}
           />
-        </label>
+        </div>
 
-        {!isLoggedIn && (
+        {!isEdit && !isLoggedIn && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-sm text-neutral-500">{t("boards.public.write.guestNameLabel")} *</span>
