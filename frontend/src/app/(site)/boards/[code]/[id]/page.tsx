@@ -37,6 +37,7 @@ type Comment = {
   id: number;
   content: string;
   guestName: string | null;
+  authorUserId: number | null;
   createdAt: string;
   authorUser: { name: string } | null;
 };
@@ -44,7 +45,7 @@ type Comment = {
 export default function PublicPostDetailPage() {
   const { t } = useI18n();
   const { notify } = useNotify();
-  const { token, isLoggedIn } = useAuth();
+  const { token, userId, isLoggedIn } = useAuth();
   const params = useParams<{ code: string; id: string }>();
   const { code, id } = params;
 
@@ -57,6 +58,11 @@ export default function PublicPostDetailPage() {
   const [commentContent, setCommentContent] = useState("");
   const [commentGuestName, setCommentGuestName] = useState("");
   const [commentGuestPassword, setCommentGuestPassword] = useState("");
+
+  // 지금 인라인으로 수정 중인 댓글 정보입니다.
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editGuestPassword, setEditGuestPassword] = useState("");
 
   async function loadPost() {
     setLoading(true);
@@ -141,6 +147,84 @@ export default function PublicPostDetailPage() {
     } else {
       const data = await res.json().catch(() => null);
       notify("❌ " + (data?.message || t("boards.public.comments.saveFail")), "error");
+    }
+  }
+
+  // 이 댓글을 지금 로그인한 나 또는 비회원이 수정/삭제해도 되는 댓글인지 (버튼을 보여줄지) 판단합니다.
+  function canManageComment(c: Comment) {
+    if (c.authorUserId) {
+      return isLoggedIn && userId !== null && c.authorUserId === userId;
+    }
+    return true; // 비회원 댓글은 일단 버튼을 보여주고, 실제 수정/삭제 시 비밀번호로 확인합니다.
+  }
+
+  function startEditComment(c: Comment) {
+    if (!c.authorUserId) {
+      const pw = window.prompt(t("boards.public.comments.guestPasswordPrompt"));
+      if (!pw) return;
+      setEditGuestPassword(pw);
+    } else {
+      setEditGuestPassword("");
+    }
+    setEditingCommentId(c.id);
+    setEditContent(c.content);
+  }
+
+  function cancelEditComment() {
+    setEditingCommentId(null);
+    setEditContent("");
+    setEditGuestPassword("");
+  }
+
+  async function submitEditComment(c: Comment) {
+    if (!editContent.trim()) {
+      notify("❌ " + t("boards.public.comments.contentRequired"), "error");
+      return;
+    }
+    const body: any = { content: editContent };
+    if (!c.authorUserId) {
+      body.guestPassword = editGuestPassword;
+    }
+    const res = await fetch(`${API_URL}/public/comments/${c.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(c.authorUserId ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      cancelEditComment();
+      loadComments();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("boards.public.comments.editFail")), "error");
+    }
+  }
+
+  async function handleDeleteComment(c: Comment) {
+    let guestPassword = "";
+    if (!c.authorUserId) {
+      const pw = window.prompt(t("boards.public.comments.guestPasswordPrompt"));
+      if (!pw) return;
+      guestPassword = pw;
+    }
+    if (!window.confirm(t("boards.public.comments.deleteConfirm"))) return;
+
+    const res = await fetch(`${API_URL}/public/comments/${c.id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(c.authorUserId ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(c.authorUserId ? {} : { guestPassword }),
+    });
+    if (res.ok) {
+      if (editingCommentId === c.id) cancelEditComment();
+      loadComments();
+    } else {
+      const data = await res.json().catch(() => null);
+      notify("❌ " + (data?.message || t("boards.public.comments.deleteFail")), "error");
     }
   }
 
@@ -240,11 +324,59 @@ export default function PublicPostDetailPage() {
           <ul className="mb-4 flex flex-col gap-2">
             {comments.map((c) => (
               <li key={c.id} className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
-                <div className="mb-1 text-xs text-neutral-500">
-                  {c.authorUser?.name || c.guestName || t("boards.write.comments.guest")} ·{" "}
-                  {formatKstDateTime(c.createdAt)}
+                <div className="mb-1 flex items-center justify-between text-xs text-neutral-500">
+                  <span>
+                    {c.authorUser?.name || c.guestName || t("boards.write.comments.guest")} ·{" "}
+                    {formatKstDateTime(c.createdAt)}
+                  </span>
+                  {canManageComment(c) && editingCommentId !== c.id && (
+                    <span className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEditComment(c)}
+                        className="cursor-pointer text-neutral-400 hover:text-neutral-700"
+                      >
+                        {t("boards.public.comments.editBtn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComment(c)}
+                        className="cursor-pointer text-red-400 hover:text-red-600"
+                      >
+                        {t("boards.public.comments.deleteBtn")}
+                      </button>
+                    </span>
+                  )}
                 </div>
-                <div className="whitespace-pre-wrap break-words text-sm text-neutral-800">{c.content}</div>
+
+                {editingCommentId === c.id ? (
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelEditComment}
+                        className="cursor-pointer rounded border px-2 py-1 text-xs text-neutral-600"
+                      >
+                        {t("boards.public.comments.cancelBtn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitEditComment(c)}
+                        className="cursor-pointer rounded border border-neutral-300 bg-neutral-800 px-2 py-1 text-xs text-white"
+                      >
+                        {t("boards.public.comments.saveBtn")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap break-words text-sm text-neutral-800">{c.content}</div>
+                )}
               </li>
             ))}
           </ul>
@@ -259,13 +391,6 @@ export default function PublicPostDetailPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            <textarea
-              value={commentContent}
-              onChange={(e) => setCommentContent(e.target.value)}
-              placeholder={t("boards.public.comments.placeholder")}
-              rows={3}
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
-            />
             {!isLoggedIn && (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
@@ -283,6 +408,13 @@ export default function PublicPostDetailPage() {
                 />
               </div>
             )}
+            <textarea
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              placeholder={t("boards.public.comments.placeholder")}
+              rows={3}
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+            />
             <div className="flex justify-end">
               <ThemedButton preset="버튼1" onClick={handleAddComment}>
                 {t("boards.public.comments.submit")}

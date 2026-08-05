@@ -35,7 +35,7 @@ export default function LoginPage() {
     });
     if (res.ok) {
       const data = await res.json();
-      login({ token: data.token, userName: data.user.name, role: data.user.role });
+      login({ token: data.token, userName: data.user.name, role: data.user.role, userId: data.user.id });
       notify(t("login.welcome").replace("{name}", data.user.name), "success");
       router.push(redirectParam || "/");
     } else {

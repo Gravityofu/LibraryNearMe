@@ -186,7 +186,11 @@ function AdminBoardsPageInner() {
               </tr>
             ) : (
               rows.map((row, idx) => (
-                <tr key={row.id} className="hover:bg-neutral-50">
+                <tr
+                  key={row.id}
+                  onClick={() => router.push(`/admin/boards/write?board=${activeTab}&postId=${row.id}`)}
+                  className="cursor-pointer hover:bg-neutral-50"
+                >
                   {/* 번호: 가장 최근 글이 가장 큰 번호가 되도록 계산합니다. */}
                   <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                     {total - ((page - 1) * pageSize + idx)}
@@ -220,13 +224,17 @@ function AdminBoardsPageInner() {
                     <div className="flex gap-2">
                       <Link
                         href={`/admin/boards/write?board=${activeTab}&postId=${row.id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="cursor-pointer rounded border px-2 py-1 text-xs"
                       >
                         {t("boards.list.editBtn")}
                       </Link>
                       <button
                         type="button"
-                        onClick={() => handleDelete(row.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(row.id);
+                        }}
                         className="cursor-pointer rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                       >
                         {t("boards.list.deleteBtn")}

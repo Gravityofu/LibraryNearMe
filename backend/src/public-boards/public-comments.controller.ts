@@ -1,9 +1,9 @@
-import { BadRequestException, Controller, ForbiddenException, Get, NotFoundException, Post, Body, Query, Req } from '@nestjs/common';
+import { BadRequestException, Controller, ForbiddenException, Get, NotFoundException, Post, Patch, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 
-// 로그인 없이도 볼 수 있는 댓글 목록 + 회원/비회원 댓글 작성 API입니다. (홈페이지에서 씁니다)
+// 로그인 없이도 볼 수 있는 댓글 목록 + 회원/비회원 댓글 작성·수정·삭제 API입니다. (홈페이지에서 씁니다)
 @Controller('public/comments')
 export class PublicCommentsController {
   constructor(
@@ -28,6 +28,24 @@ export class PublicCommentsController {
       return payload.sub;
     } catch {
       return null;
+    }
+  }
+
+  // 댓글을 수정하거나 삭제해도 되는지 확인합니다.
+  // 회원 댓글이면 로그인한 회원 본인인지, 비회원 댓글이면 비밀번호가 맞는지 확인합니다.
+  private async assertCommentOwnership(comment: any, userId: number | null, guestPassword?: string) {
+    if (comment.authorUserId) {
+      if (!userId || comment.authorUserId !== userId) {
+        throw new ForbiddenException('본인이 작성한 댓글만 수정·삭제할 수 있습니다.');
+      }
+    } else {
+      if (!guestPassword || !comment.guestPasswordHash) {
+        throw new ForbiddenException('비밀번호를 입력하세요.');
+      }
+      const match = await bcrypt.compare(guestPassword, comment.guestPasswordHash);
+      if (!match) {
+        throw new ForbiddenException('비밀번호가 일치하지 않습니다.');
+      }
     }
   }
 
@@ -99,5 +117,45 @@ export class PublicCommentsController {
       },
       include: { authorUser: { select: { name: true } } },
     });
+  }
+
+  // 댓글 수정. body에 { content, guestPassword? } 를 실어서 호출합니다.
+  @Patch(':id')
+  async update(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const comment = await this.prisma.comment.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
+
+    const content = String(body.content || '').trim();
+    if (!content) {
+      throw new BadRequestException('댓글 내용을 입력하세요.');
+    }
+
+    const userId = await this.getOptionalUserId(req);
+    await this.assertCommentOwnership(comment, userId, body.guestPassword);
+
+    return this.prisma.comment.update({
+      where: { id: comment.id },
+      data: { content },
+      include: { authorUser: { select: { name: true } } },
+    });
+  }
+
+  // 댓글 삭제. 비회원 댓글이면 body에 { guestPassword } 를 실어서 호출합니다.
+  @Delete(':id')
+  async remove(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const comment = await this.prisma.comment.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
+
+    const userId = await this.getOptionalUserId(req);
+    await this.assertCommentOwnership(comment, userId, body?.guestPassword);
+
+    await this.prisma.comment.delete({ where: { id: comment.id } });
+    return { success: true };
   }
 }

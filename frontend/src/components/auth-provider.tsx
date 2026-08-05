@@ -6,12 +6,13 @@ type AuthState = {
   token: string | null;
   userName: string | null;
   role: string | null;
+  userId: number | null;
 };
 
 const AuthContext = createContext<
   (AuthState & {
     isLoggedIn: boolean;
-    login: (d: { token: string; userName: string; role: string }) => void;
+    login: (d: { token: string; userName: string; role: string; userId: number }) => void;
     logout: () => void;
   }) | null
 >(null);
@@ -21,29 +22,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
     userName: null,
     role: null,
+    userId: null,
   });
 
   // 새로고침해도 로그인 유지: 서랍에 저장된 값을 불러옵니다.
   useEffect(() => {
+    const storedUserId = localStorage.getItem("userId");
     setState({
       token: localStorage.getItem("token"),
       userName: localStorage.getItem("userName"),
       role: localStorage.getItem("role"),
+      userId: storedUserId ? parseInt(storedUserId, 10) : null,
     });
   }, []);
 
-  function login(d: { token: string; userName: string; role: string }) {
+  function login(d: { token: string; userName: string; role: string; userId: number }) {
     localStorage.setItem("token", d.token);
     localStorage.setItem("userName", d.userName);
     localStorage.setItem("role", d.role);
-    setState({ token: d.token, userName: d.userName, role: d.role });
+    localStorage.setItem("userId", String(d.userId));
+    setState({ token: d.token, userName: d.userName, role: d.role, userId: d.userId });
   }
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
     localStorage.removeItem("role");
-    setState({ token: null, userName: null, role: null });
+    localStorage.removeItem("userId");
+    setState({ token: null, userName: null, role: null, userId: null });
   }
 
   return (
