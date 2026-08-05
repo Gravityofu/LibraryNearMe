@@ -48,6 +48,13 @@ export default function PublicBoardListPage() {
   const [loading, setLoading] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
 
+  // '자주 묻는 질문' 게시판 아코디언에서 쓰는 상태입니다.
+  // expandedId: 지금 펼쳐져 있는 질문의 글 번호 (하나만 펼쳐집니다)
+  // faqDetails: 한 번 불러온 질문의 키워드·본문을 글 번호별로 저장해서, 다시 펼 때 또 불러오지 않게 합니다.
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [faqDetails, setFaqDetails] = useState<Record<number, { content: string; keywords: string[] }>>({});
+  const [faqLoadingId, setFaqLoadingId] = useState<number | null>(null);
+
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentBoard = boards.find((b) => b.code === code) || null;
@@ -102,6 +109,29 @@ export default function PublicBoardListPage() {
     router.push(`/boards/${code}?page=${p}`);
   }
 
+  // '자주 묻는 질문' 아코디언용: 이 글의 키워드·본문을 처음 펼칠 때만 서버에서 불러옵니다.
+  // (기존에 있는 "글 상세 조회" API를 그대로 재사용합니다. 이 API를 부르면 조회수가 1 올라갑니다.)
+  async function loadFaqDetail(id: number) {
+    if (faqDetails[id]) return;
+    setFaqLoadingId(id);
+    const res = await fetch(`${API_URL}/public/posts/${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      setFaqDetails((prev) => ({ ...prev, [id]: { content: data.content, keywords: data.keywords || [] } }));
+    }
+    setFaqLoadingId(null);
+  }
+
+  // 질문을 클릭했을 때: 이미 펼쳐진 질문을 다시 누르면 접고, 아니면 그 질문만 펼칩니다.
+  function toggleFaq(id: number) {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    loadFaqDetail(id);
+  }
+
   return (
     <main>
       <SitePageHeader
@@ -119,7 +149,59 @@ export default function PublicBoardListPage() {
         }
       />
 
-      {isThumbnail ? (
+      {code === "faq" ? (
+        // '자주 묻는 질문' 게시판: 질문을 누르면 그 아래로 아코디언 형태로 답변이 펼쳐집니다.
+        <div className="flex flex-col divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+          {loading ? (
+            <p className="px-4 py-6 text-center text-sm text-neutral-400">...</p>
+          ) : rows.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-neutral-400">{t("boards.list.empty")}</p>
+          ) : (
+            rows.map((row) => {
+              const isOpen = expandedId === row.id;
+              const detail = faqDetails[row.id];
+              return (
+                <div key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleFaq(row.id)}
+                    className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                  >
+                    <span>{row.title}</span>
+                    <span
+                      className={`shrink-0 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    >
+                      ⌄
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-neutral-100 bg-neutral-50 px-4 py-3">
+                      {faqLoadingId === row.id && !detail ? (
+                        <p className="text-xs text-neutral-400">...</p>
+                      ) : (
+                        <>
+                          <p
+                            className="min-h-[1.1rem] text-xs font-bold italic"
+                            style={{ color: primaryColor || "#3b82f6" }}
+                          >
+                            {detail?.keywords && detail.keywords.length > 0
+                              ? detail.keywords.map((k) => `#${k}`).join(" ")
+                              : "\u00A0"}
+                          </p>
+                          <div
+                            className="mt-2 text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 [&_th]:border [&_th]:border-neutral-300 [&_th]:bg-neutral-50 [&_th]:p-2"
+                            dangerouslySetInnerHTML={{ __html: detail?.content || "" }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : isThumbnail ? (
         // 썸네일형 게시판: 카드형 목록 (한 행에 3개)
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {loading ? (
