@@ -158,10 +158,21 @@ export default function PublicPostDetailPage() {
     return true; // 비회원 댓글은 일단 버튼을 보여주고, 실제 수정/삭제 시 비밀번호로 확인합니다.
   }
 
-  function startEditComment(c: Comment) {
+  async function startEditComment(c: Comment) {
     if (!c.authorUserId) {
       const pw = window.prompt(t("boards.public.comments.guestPasswordPrompt"));
       if (!pw) return;
+      // 비밀번호가 맞는지 서버에 먼저 물어보고, 통과해야만 수정 칸을 엽니다.
+      const res = await fetch(`${API_URL}/public/comments/${c.id}/verify-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestPassword: pw }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        notify("❌ " + (data?.message || t("boards.public.comments.wrongPassword")), "error");
+        return;
+      }
       setEditGuestPassword(pw);
     } else {
       setEditGuestPassword("");

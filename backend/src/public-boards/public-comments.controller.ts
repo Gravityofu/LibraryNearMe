@@ -119,6 +119,28 @@ export class PublicCommentsController {
     });
   }
 
+  // 비회원 댓글을 수정하기 전에, 입력한 비밀번호가 맞는지만 먼저 확인합니다.
+  // (여기서 통과해야만 화면에서 수정 칸을 열어줍니다.)
+  @Post(':id/verify-password')
+  async verifyPassword(@Param('id') id: string, @Body() body: any) {
+    const libraryId = await this.getLibraryId();
+    const comment = await this.prisma.comment.findFirst({ where: { id: parseInt(id, 10), libraryId } });
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
+    if (comment.authorUserId) {
+      throw new BadRequestException('회원 댓글은 비밀번호로 확인하지 않습니다.');
+    }
+    const guestPassword = String(body?.guestPassword || '');
+    const match = comment.guestPasswordHash
+      ? await bcrypt.compare(guestPassword, comment.guestPasswordHash)
+      : false;
+    if (!match) {
+      throw new ForbiddenException('비밀번호가 일치하지 않습니다.');
+    }
+    return { valid: true };
+  }
+
   // 댓글 수정. body에 { content, guestPassword? } 를 실어서 호출합니다.
   @Patch(':id')
   async update(@Req() req: any, @Param('id') id: string, @Body() body: any) {

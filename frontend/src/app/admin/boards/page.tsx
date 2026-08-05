@@ -221,25 +221,16 @@ function AdminBoardsPageInner() {
                     </td>
                   )}
                   <td className="whitespace-nowrap px-4 py-2.5">
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/admin/boards/write?board=${activeTab}&postId=${row.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="cursor-pointer rounded border px-2 py-1 text-xs"
-                      >
-                        {t("boards.list.editBtn")}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(row.id);
-                        }}
-                        className="cursor-pointer rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                      >
-                        {t("boards.list.deleteBtn")}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(row.id);
+                      }}
+                      className="cursor-pointer rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                    >
+                      {t("boards.list.deleteBtn")}
+                    </button>
                   </td>
                 </tr>
               ))
