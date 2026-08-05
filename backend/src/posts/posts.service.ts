@@ -9,10 +9,6 @@ export const MATERIAL_REQUEST_STATUSES = ['REQUESTED', 'PURCHASING', 'PURCHASED'
 const PAGE_SIZE = 15; // 목록형 게시판 한 페이지당 글 개수
 const THUMBNAIL_PAGE_SIZE = 9; // 썸네일형 게시판 한 페이지당 글 개수 (3개씩 3줄)
 
-// 글쓴이의 "실제 이름"을 그대로 보여줘도 되는 게시판 코드입니다. (회원/비회원이 직접 쓰는 게시판)
-// 그 외의 게시판은 전부 관리자가 작성하므로, 글쓴이 자리에 관리자 이름 대신 도서관 이름을 보여줍니다.
-const AUTHOR_REAL_NAME_BOARD_CODES = ['openBoard', 'materialRequest'];
-
 @Injectable()
 export class PostsService {
   constructor(
@@ -38,10 +34,11 @@ export class PostsService {
     return keywords.split(',').map((k) => k.trim()).filter(Boolean);
   }
 
-  // 글쓴이 자리에 보여줄 이름을 정합니다.
-  // openBoard/materialRequest는 실제 작성자 이름을, 그 외의 게시판은 도서관 이름을 돌려줍니다.
-  private async getDisplayAuthorName(libraryId: number, boardCode: string, realName: string): Promise<string> {
-    if (AUTHOR_REAL_NAME_BOARD_CODES.includes(boardCode)) {
+  // 홈페이지에서 글쓴이 자리에 보여줄 이름을 정합니다.
+  // 글쓴이가 관리자(ADMIN/SUPER) 계정이면 "도서관 이름"을, 그 외(회원/비회원)면 실제 이름을 돌려줍니다.
+  // 관리자 페이지 화면은 이 함수를 쓰지 않고 항상 실제 이름을 그대로 보여줍니다.
+  private async getDisplayAuthorName(libraryId: number, authorRole: string | null, realName: string): Promise<string> {
+    if (authorRole !== 'ADMIN' && authorRole !== 'SUPER') {
       return realName;
     }
     const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
@@ -60,7 +57,7 @@ export class PostsService {
     return { types: types.map((t) => t.value), statuses: MATERIAL_REQUEST_STATUSES };
   }
 
-  // 글 목록 조회 (페이지 단위). 최신 글이 위로 오도록 정렬합니다. (관리자용)
+  // 글 목록 조회 (페이지 단위). 최신 글이 위로 오도록 정렬합니다. (관리자용 - 항상 실제 이름을 보여줍니다)
   async list(libraryId: number, boardId: number, page: number) {
     const board = await this.prisma.board.findFirst({ where: { id: boardId, libraryId } });
     if (!board) {
@@ -110,7 +107,7 @@ export class PostsService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where: { libraryId, boardId: board.id },
-        include: { authorUser: { select: { name: true } }, materialRequest: true },
+        include: { authorUser: { select: { name: true, role: true } }, materialRequest: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -118,29 +115,31 @@ export class PostsService {
       this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
     ]);
 
-    const isRealNameBoard = AUTHOR_REAL_NAME_BOARD_CODES.includes(board.code);
     const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
 
     return {
       board,
-      items: items.map((p) => ({
-        id: p.id,
-        title: p.title,
-        thumbnailUrl: this.resolveThumbnailUrl(p.thumbnailUrl, board.defaultThumbnailUrl, library?.defaultThumbnailUrl),
-        contentExcerpt: this.stripHtmlExcerpt(p.content),
-        keywords: this.parseKeywords(p.keywords),
-        authorName: isRealNameBoard ? p.authorUser?.name || p.guestName || '' : library?.name || '',
-        viewCount: p.viewCount,
-        createdAt: p.createdAt,
-        materialRequestStatus: p.materialRequest?.status || null,
-      })),
+      items: items.map((p) => {
+        const isAdminAuthor = p.authorUser?.role === 'ADMIN' || p.authorUser?.role === 'SUPER';
+        return {
+          id: p.id,
+          title: p.title,
+          thumbnailUrl: this.resolveThumbnailUrl(p.thumbnailUrl, board.defaultThumbnailUrl, library?.defaultThumbnailUrl),
+          contentExcerpt: this.stripHtmlExcerpt(p.content),
+          keywords: this.parseKeywords(p.keywords),
+          authorName: isAdminAuthor ? library?.name || '' : p.authorUser?.name || p.guestName || '',
+          viewCount: p.viewCount,
+          createdAt: p.createdAt,
+          materialRequestStatus: p.materialRequest?.status || null,
+        };
+      }),
       total,
       page,
       pageSize,
     };
   }
 
-  // 글 하나 상세 조회. (관리자용 - 조회수가 올라가지 않습니다)
+  // 글 하나 상세 조회. (관리자용 - 조회수가 올라가지 않고, 항상 실제 이름을 보여줍니다)
   async findOne(libraryId: number, id: number) {
     const post = await this.prisma.post.findFirst({
       where: { id, libraryId },
@@ -156,7 +155,7 @@ export class PostsService {
   async findOnePublic(libraryId: number, id: number) {
     const post = await this.prisma.post.findFirst({
       where: { id, libraryId },
-      include: { board: true, authorUser: { select: { name: true } }, materialRequest: true },
+      include: { board: true, authorUser: { select: { name: true, role: true } }, materialRequest: true },
     });
     if (!post) {
       throw new NotFoundException('글을 찾을 수 없습니다.');
@@ -164,7 +163,7 @@ export class PostsService {
     await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
 
     const realName = post.authorUser?.name || post.guestName || '';
-    const authorName = await this.getDisplayAuthorName(libraryId, post.board.code, realName);
+    const authorName = await this.getDisplayAuthorName(libraryId, post.authorUser?.role ?? null, realName);
 
     return {
       ...post,

@@ -21,16 +21,24 @@ export class PublicPostsController {
     return library.id;
   }
 
-  // 로그인한 회원이면 그 회원의 id를, 로그인하지 않았거나 토큰이 잘못됐으면 null을 돌려줍니다.
-  private async getOptionalUserId(req: any): Promise<number | null> {
+  // 로그인한 사용자면 { userId, role }을, 로그인하지 않았거나 토큰이 잘못됐으면 null을 돌려줍니다.
+  private async getOptionalAuthUser(req: any): Promise<{ userId: number; role: string } | null> {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!token) return null;
     try {
       const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET });
-      return payload.sub;
+      return { userId: payload.sub, role: payload.role };
     } catch {
       return null;
+    }
+  }
+
+  // 관리자(ADMIN/SUPER) 계정은 홈페이지에서 글쓰기·수정·삭제를 할 수 없습니다.
+  // 관리자는 관리자 페이지에서만 글을 관리해야 합니다.
+  private assertNotAdmin(authUser: { userId: number; role: string } | null) {
+    if (authUser && (authUser.role === 'ADMIN' || authUser.role === 'SUPER')) {
+      throw new ForbiddenException('관리자 계정은 홈페이지에서 글을 작성·수정·삭제할 수 없습니다. 관리자 페이지를 이용해 주세요.');
     }
   }
 
@@ -59,7 +67,7 @@ export class PublicPostsController {
   }
 
   // 홈페이지에서 글쓰기. 게시판이 회원 글쓰기를 허용해야 하고, 비회원이라면 그 게시판이
-  // 비회원 글쓰기까지 허용해야만 저장됩니다.
+  // 비회원 글쓰기까지 허용해야만 저장됩니다. 관리자 계정은 이용할 수 없습니다.
   @Post()
   async createPost(@Req() req: any, @Body() body: any) {
     const libraryId = await this.getLibraryId();
@@ -71,12 +79,13 @@ export class PublicPostsController {
       throw new ForbiddenException('이 게시판은 글쓰기를 지원하지 않습니다.');
     }
 
-    const authorUserId = await this.getOptionalUserId(req);
-    if (!authorUserId && !board.allowGuestWrite) {
+    const authUser = await this.getOptionalAuthUser(req);
+    this.assertNotAdmin(authUser);
+    if (!authUser && !board.allowGuestWrite) {
       throw new ForbiddenException('로그인이 필요합니다.');
     }
 
-    return this.postsService.create(libraryId, authorUserId, body);
+    return this.postsService.create(libraryId, authUser?.userId ?? null, body);
   }
 
   // 비회원 글을 수정하기 전에, 입력한 비밀번호가 맞는지만 먼저 확인합니다.
@@ -102,6 +111,7 @@ export class PublicPostsController {
   }
 
   // 홈페이지에서 글 수정. 회원 글이면 로그인 토큰으로, 비회원 글이면 body의 guestPassword로 확인합니다.
+  // 관리자 계정은 이용할 수 없습니다.
   @Patch(':id')
   async updatePost(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     const libraryId = await this.getLibraryId();
@@ -109,12 +119,14 @@ export class PublicPostsController {
     if (!post) {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
-    const userId = await this.getOptionalUserId(req);
-    await this.assertPostOwnership(post, userId, body?.guestPassword);
+    const authUser = await this.getOptionalAuthUser(req);
+    this.assertNotAdmin(authUser);
+    await this.assertPostOwnership(post, authUser?.userId ?? null, body?.guestPassword);
     return this.postsService.update(libraryId, post.id, body);
   }
 
   // 홈페이지에서 글 삭제. 비회원 글이면 body에 { guestPassword } 를 실어서 호출합니다.
+  // 관리자 계정은 이용할 수 없습니다.
   @Delete(':id')
   async removePost(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     const libraryId = await this.getLibraryId();
@@ -122,8 +134,9 @@ export class PublicPostsController {
     if (!post) {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
-    const userId = await this.getOptionalUserId(req);
-    await this.assertPostOwnership(post, userId, body?.guestPassword);
+    const authUser = await this.getOptionalAuthUser(req);
+    this.assertNotAdmin(authUser);
+    await this.assertPostOwnership(post, authUser?.userId ?? null, body?.guestPassword);
     return this.postsService.remove(libraryId, post.id);
   }
 }

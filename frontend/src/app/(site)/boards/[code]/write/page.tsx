@@ -37,13 +37,16 @@ type ExistingPost = {
 export default function PublicBoardWritePage() {
   const { t } = useI18n();
   const { notify } = useNotify();
-  const { token, userId, isLoggedIn } = useAuth();
+  const { token, userId, isLoggedIn, role } = useAuth();
   const router = useRouter();
   const params = useParams<{ code: string }>();
   const searchParams = useSearchParams();
   const code = params.code;
   const postId = searchParams.get("postId");
   const isEdit = !!postId;
+
+  // 관리자(ADMIN/SUPER) 계정은 홈페이지에서 글을 쓰거나 수정·삭제할 수 없습니다.
+  const isAdmin = role === "ADMIN" || role === "SUPER";
 
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +90,11 @@ export default function PublicBoardWritePage() {
   // 수정 화면일 때: 글을 불러오고, 회원 글이면 본인인지, 비회원 글이면 비밀번호가 맞는지 확인합니다.
   async function loadExistingPostForEdit() {
     if (!postId) return;
+    // 관리자는 애초에 홈페이지에서 수정할 수 없으므로, 비밀번호를 묻지 않고 바로 멈춥니다.
+    if (isAdmin) {
+      setCheckingPermission(false);
+      return;
+    }
     setCheckingPermission(true);
     const res = await fetch(`${API_URL}/public/posts/${postId}`);
     if (!res.ok) {
@@ -228,11 +236,35 @@ export default function PublicBoardWritePage() {
     return <main className="py-10 text-center text-sm text-neutral-400">...</main>;
   }
 
+  if (isAdmin) {
+    return (
+      <main>
+        <SitePageHeader
+          crumbs={crumbs}
+          title={isEdit ? t("boards.write.pageTitleEdit") : t("boards.write.pageTitleNew")}
+        />
+        <p className="py-10 text-center text-sm text-neutral-400">
+          {t("boards.public.write.adminNotAllowed")}
+          <br />
+          <Link href={`/boards/${code}`} className="text-blue-600 hover:underline">
+            {t("boards.detail.back")}
+          </Link>
+        </p>
+      </main>
+    );
+  }
+
   if (isEdit && permissionDenied) {
     return (
       <main>
         <SitePageHeader crumbs={crumbs} title={t("boards.write.pageTitleEdit")} />
-        <p className="py-10 text-center text-sm text-neutral-400">{t("boards.public.write.permissionDenied")}</p>
+        <p className="py-10 text-center text-sm text-neutral-400">
+          {t("boards.public.write.permissionDenied")}
+          <br />
+          <Link href={`/boards/${code}`} className="text-blue-600 hover:underline">
+            {t("boards.detail.back")}
+          </Link>
+        </p>
       </main>
     );
   }

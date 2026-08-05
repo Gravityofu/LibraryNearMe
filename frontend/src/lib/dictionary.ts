@@ -526,6 +526,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.boards.listStyleThumbnail": "썸네일형",
     "settings.boards.yes": "가능",
     "settings.boards.no": "불가능",
+    "settings.boards.field.allowMemberWrite": "회원 글쓰기 허용",
     "settings.boards.field.allowGuestWrite": "비회원 글쓰기 허용",
     "settings.boards.field.allowGuestWriteHint": "회원만 글을 쓸 수 있는 게시판이라 이 설정은 사용할 수 없습니다.",
     "settings.boards.field.allowMemberComment": "회원 댓글 허용",
@@ -621,6 +622,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.detail.back": "목록으로",
 
     "boards.public.write.notAllowed": "글쓰기를 지원하지 않는 게시판입니다.",
+    "boards.public.write.adminNotAllowed": "관리자 계정은 홈페이지에서 글을 쓸 수 없습니다. 관리자 페이지를 이용해 주세요.",
     "boards.public.write.loginRequired": "로그인이 필요한 게시판입니다.",
     "boards.public.write.loginLink": "로그인하러 가기",
     "boards.public.write.guestNameLabel": "작성자 이름",
@@ -1390,6 +1392,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.boards.listStyleThumbnail": "Thumbnail",
     "settings.boards.yes": "Allowed",
     "settings.boards.no": "Not Allowed",
+    "settings.boards.field.allowMemberWrite": "Allow Member Write",
     "settings.boards.field.allowGuestWrite": "Can non-members write posts?",
     "settings.boards.field.allowGuestWriteHint": "This setting is unavailable because only members can write on this board.",
     "settings.boards.field.allowMemberComment": "Allow Member Comments",
@@ -1485,6 +1488,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.detail.back": "Back to list",
 
     "boards.public.write.notAllowed": "This board doesn't support writing posts.",
+    "boards.public.write.adminNotAllowed": "Admin accounts can't write, edit, or delete posts on the homepage. Please use the admin panel instead.",
     "boards.public.write.loginRequired": "You need to log in to write on this board.",
     "boards.public.write.loginLink": "Go to login",
     "boards.public.write.guestNameLabel": "Your name",

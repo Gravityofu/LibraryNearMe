@@ -46,7 +46,7 @@ type Comment = {
 export default function PublicPostDetailPage() {
   const { t } = useI18n();
   const { notify } = useNotify();
-  const { token, userId, isLoggedIn } = useAuth();
+  const { token, userId, isLoggedIn, role } = useAuth();
   const router = useRouter();
   const params = useParams<{ code: string; id: string }>();
   const { code, id } = params;
@@ -104,7 +104,12 @@ export default function PublicPostDetailPage() {
   }, []);
 
   // 이 글을 지금 로그인한 나(또는 비회원이) 수정/삭제해도 되는 글인지 (버튼을 보여줄지) 판단합니다.
+  // 관리자(ADMIN/SUPER)로 로그인했다면, 이 글이 누구의 글이든 홈페이지에서는 수정/삭제 버튼을 보여주지 않습니다.
+  // (관리자는 관리자 페이지에서만 글을 관리해야 하기 때문입니다.)
   function canManagePost(p: Post) {
+    if (role === "ADMIN" || role === "SUPER") {
+      return false;
+    }
     if (p.authorUserId) {
       return isLoggedIn && userId !== null && p.authorUserId === userId;
     }

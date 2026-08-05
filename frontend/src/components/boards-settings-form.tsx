@@ -95,6 +95,7 @@ export default function BoardsSettingsForm() {
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [allowMemberWriteValue, setAllowMemberWriteValue] = useState(false);
   const [allowGuestWriteValue, setAllowGuestWriteValue] = useState(false);
   const [allowMemberCommentValue, setAllowMemberCommentValue] = useState(true);
   const [allowGuestCommentValue, setAllowGuestCommentValue] = useState(false);
@@ -140,10 +141,19 @@ export default function BoardsSettingsForm() {
 
   function openEditModal(board: Board) {
     setEditingBoard(board);
+    setAllowMemberWriteValue(board.allowMemberWrite);
     setAllowGuestWriteValue(board.allowGuestWrite);
     setAllowMemberCommentValue(board.allowMemberComment);
     setAllowGuestCommentValue(board.allowGuestComment);
     setDefaultThumbnailUrlValue(board.defaultThumbnailUrl || "");
+  }
+
+  // '회원 글쓰기'를 끄면, 의미가 없어지는 '비회원 글쓰기'도 화면에서 함께 꺼줍니다.
+  function handleAllowMemberWriteChange(v: boolean) {
+    setAllowMemberWriteValue(v);
+    if (!v) {
+      setAllowGuestWriteValue(false);
+    }
   }
 
   // 게시판 기본 썸네일 사진을 올리고, 성공하면 그 주소를 입력창 상태에 채워 넣습니다.
@@ -177,6 +187,7 @@ export default function BoardsSettingsForm() {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
+        allowMemberWrite: allowMemberWriteValue,
         allowGuestWrite: allowGuestWriteValue,
         allowMemberComment: allowMemberCommentValue,
         allowGuestComment: allowGuestCommentValue,
@@ -362,17 +373,30 @@ export default function BoardsSettingsForm() {
             <div className="flex flex-col gap-4">
               <div>
                 <span className="mb-1 block text-sm text-neutral-500">
+                  {t("settings.boards.field.allowMemberWrite")}
+                </span>
+                <ChoiceCardGroup
+                  name="allowMemberWrite"
+                  value={allowMemberWriteValue}
+                  onChange={handleAllowMemberWriteChange}
+                  yesLabel={t("settings.boards.yes")}
+                  noLabel={t("settings.boards.no")}
+                />
+              </div>
+
+              <div>
+                <span className="mb-1 block text-sm text-neutral-500">
                   {t("settings.boards.field.allowGuestWrite")}
                 </span>
                 <ChoiceCardGroup
                   name="allowGuestWrite"
                   value={allowGuestWriteValue}
                   onChange={setAllowGuestWriteValue}
-                  disabled={!editingBoard.allowMemberWrite}
+                  disabled={!allowMemberWriteValue}
                   yesLabel={t("settings.boards.yes")}
                   noLabel={t("settings.boards.no")}
                 />
-                {!editingBoard.allowMemberWrite && (
+                {!allowMemberWriteValue && (
                   <p className="mt-1 text-xs text-neutral-400">
                     {t("settings.boards.field.allowGuestWriteHint")}
                   </p>
