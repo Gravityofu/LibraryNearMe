@@ -18,6 +18,8 @@ export default function LibrarySettingsForm() {
   const [footerVersion, setFooterVersion] = useState("1.0.0");
   const [footerCopyright, setFooterCopyright] = useState("ⓒ 2026 Gravityofu");
   const [scanMode, setScanMode] = useState("SINGLE");
+  const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState("");
+  const [defaultMaterialCoverUrl, setDefaultMaterialCoverUrl] = useState("");
 
   useEffect(() => {
     fetch(`${API_URL}/library`)
@@ -30,9 +32,42 @@ export default function LibrarySettingsForm() {
           setFooterVersion(data.footerVersion || "1.0.0");
           setFooterCopyright(data.footerCopyright || "ⓒ 2026 Gravityofu");
           setScanMode(data.scanMode || "SINGLE");
+          setDefaultThumbnailUrl(data.defaultThumbnailUrl || "");
+          setDefaultMaterialCoverUrl(data.defaultMaterialCoverUrl || "");
         }
       });
   }, []);
+
+  // 사진 파일을 골라서 올리고, 성공하면 그 주소를 넘겨준 setter(입력창 상태)에 채워 넣습니다.
+  async function uploadThumbnail(file: File, setter: (url: string) => void) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_URL}/uploads/board-image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setter(data.url);
+    } else {
+      notify("❌ " + t("admin.settings.thumbnailUploadFail"), "error");
+    }
+  }
+
+  function handleThumbnailFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) uploadThumbnail(file, setDefaultThumbnailUrl);
+  }
+
+  function handleMaterialCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) uploadThumbnail(file, setDefaultMaterialCoverUrl);
+  }
 
   async function handleSave() {
     const token = localStorage.getItem("token");
@@ -47,6 +82,8 @@ export default function LibrarySettingsForm() {
         footerVersion,
         footerCopyright,
         scanMode,
+        defaultThumbnailUrl,
+        defaultMaterialCoverUrl,
       }),
     });
     if (res.ok) {
@@ -93,6 +130,59 @@ export default function LibrarySettingsForm() {
           </select>
           <span className="text-xs text-neutral-400">{t("admin.settings.scanMode.hint")}</span>
         </div>
+
+        <div className="flex flex-col gap-2">
+          <Label>{t("admin.settings.defaultThumbnailUrl")}</Label>
+          <span className="text-xs text-neutral-400">{t("admin.settings.defaultThumbnailHint")}</span>
+          {defaultThumbnailUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={defaultThumbnailUrl} alt="" className="h-20 w-20 rounded-lg object-cover" />
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              onChange={handleThumbnailFileChange}
+              className="text-xs"
+            />
+            {defaultThumbnailUrl && (
+              <button
+                type="button"
+                onClick={() => setDefaultThumbnailUrl("")}
+                className="cursor-pointer text-xs text-red-500 hover:underline"
+              >
+                {t("admin.settings.thumbnailRemove")}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label>{t("admin.settings.defaultMaterialCoverUrl")}</Label>
+          <span className="text-xs text-neutral-400">{t("admin.settings.defaultMaterialCoverHint")}</span>
+          {defaultMaterialCoverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={defaultMaterialCoverUrl} alt="" className="h-20 w-20 rounded-lg object-cover" />
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              onChange={handleMaterialCoverFileChange}
+              className="text-xs"
+            />
+            {defaultMaterialCoverUrl && (
+              <button
+                type="button"
+                onClick={() => setDefaultMaterialCoverUrl("")}
+                className="cursor-pointer text-xs text-red-500 hover:underline"
+              >
+                {t("admin.settings.thumbnailRemove")}
+              </button>
+            )}
+          </div>
+        </div>
+
         <Button className="cursor-pointer" onClick={handleSave}>
           {t("admin.settings.save")}
         </Button>

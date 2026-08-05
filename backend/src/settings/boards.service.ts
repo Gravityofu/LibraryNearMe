@@ -58,6 +58,10 @@ export class BoardsService {
       updateData.allowGuestComment = !!data.allowGuestComment;
     }
 
+    if (data.defaultThumbnailUrl !== undefined) {
+      updateData.defaultThumbnailUrl = data.defaultThumbnailUrl || null;
+    }
+
     return this.prisma.board.update({ where: { id }, data: updateData });
   }
 }

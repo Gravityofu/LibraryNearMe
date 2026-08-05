@@ -48,6 +48,12 @@ export class PostsService {
     return library?.name || realName;
   }
 
+  // 글에 썸네일(첨부 사진)이 없을 때 대신 쓸 사진을 정합니다.
+  // 우선순위: 글 자체의 썸네일 → 게시판 기본 썸네일 → 도서관 기본 썸네일 → 없음
+  private resolveThumbnailUrl(postThumbnailUrl: string | null, boardDefault: string | null, libraryDefault: string | null | undefined): string | null {
+    return postThumbnailUrl || boardDefault || libraryDefault || null;
+  }
+
   // '자료를 신청합니다' 게시판 글쓰기 화면의 드롭다운에 쓸 목록을 내려줍니다. (자료 종류는 설정 > 자료 메뉴에서 관리합니다.)
   async getMaterialRequestOptions(libraryId: number) {
     const types = await this.materialRequestTypesService.list(libraryId);
@@ -60,6 +66,7 @@ export class PostsService {
     if (!board) {
       throw new NotFoundException('게시판을 찾을 수 없습니다.');
     }
+    const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
@@ -77,7 +84,7 @@ export class PostsService {
       items: items.map((p) => ({
         id: p.id,
         title: p.title,
-        thumbnailUrl: p.thumbnailUrl,
+        thumbnailUrl: this.resolveThumbnailUrl(p.thumbnailUrl, board.defaultThumbnailUrl, library?.defaultThumbnailUrl),
         authorName: p.authorUser?.name || p.guestName || '',
         viewCount: p.viewCount,
         createdAt: p.createdAt,
@@ -112,14 +119,14 @@ export class PostsService {
     ]);
 
     const isRealNameBoard = AUTHOR_REAL_NAME_BOARD_CODES.includes(board.code);
-    const library = isRealNameBoard ? null : await this.prisma.library.findUnique({ where: { id: libraryId } });
+    const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
 
     return {
       board,
       items: items.map((p) => ({
         id: p.id,
         title: p.title,
-        thumbnailUrl: p.thumbnailUrl,
+        thumbnailUrl: this.resolveThumbnailUrl(p.thumbnailUrl, board.defaultThumbnailUrl, library?.defaultThumbnailUrl),
         contentExcerpt: this.stripHtmlExcerpt(p.content),
         keywords: this.parseKeywords(p.keywords),
         authorName: isRealNameBoard ? p.authorUser?.name || p.guestName || '' : library?.name || '',

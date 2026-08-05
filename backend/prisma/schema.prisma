@@ -32,6 +32,8 @@ model Library {
   maxSubjectKeywords Int   @default(10)                      // ← 추가: 자료 등록 시 주제어 최대 입력 개수
   scanMode     String   @default("SINGLE")                   // ← 추가: 스캔 방식 "SINGLE"(단일 태그) | "SDK"(다중 태그, 추후 지원)
   maxReservationQueueSize Int?                                // ← 추가: 그룹(자료+권/호)당 동시 예약 허용 인원. 비어있으면 무제한
+  defaultThumbnailUrl     String?                              // ← 추가: 게시판 글에 사진이 없을 때 대신 쓸 기본 썸네일
+  defaultMaterialCoverUrl String?                              // ← 추가: 자료에 표지 사진이 없을 때 대신 쓸 기본 표지
   createdAt    DateTime @default(now())
 
   users        User[]             // 이 도서관에 속한 사용자들 (연결고리)
@@ -388,6 +390,7 @@ model Board {
   allowGuestWrite    Boolean  @default(false)  // allowMemberWrite가 true일 때만 의미 있음: 비회원(비로그인)도 글을 쓸 수 있는지
   allowMemberComment Boolean  @default(true)   // 로그인한 회원이 이 게시판에 댓글을 쓸 수 있는지
   allowGuestComment  Boolean  @default(false)  // 이 게시판의 댓글을 비회원(비로그인)도 쓸 수 있는지
+  defaultThumbnailUrl String?                  // ← 추가: 이 게시판의 기본 썸네일 (없으면 도서관 기본 썸네일을 씁니다)
 
   isMaterialRequest Boolean  @default(false)  // "자료를 신청합니다" 게시판인지 (추가 입력 필드 + 처리 상태 기능이 붙습니다)
 

@@ -257,6 +257,12 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.scanMode.single": "단일 태그 인식 (바코드 / RFID 단일 태그)",
     "admin.settings.scanMode.sdk": "다중 태그 인식 (제조사 SDK 연동, 추후 지원 예정)",
     "admin.settings.scanMode.hint": "대출/반납 화면에서 등록번호를 입력받는 방식이에요. '다중 태그 인식'은 지금은 선택만 가능하고, 실제 리더기 연동 기능은 나중에 추가될 예정이에요.",
+    "admin.settings.defaultThumbnailUrl": "글 기본 썸네일",
+    "admin.settings.defaultThumbnailHint": "게시판 글에 사진이 없을 때 대신 보여줄 사진입니다. 특정 게시판만 다른 사진을 쓰려면 설정 > 게시판에서 그 게시판에 따로 등록하면 됩니다.",
+    "admin.settings.defaultMaterialCoverUrl": "자료 기본 표지",
+    "admin.settings.defaultMaterialCoverHint": "등록한 자료에 표지 사진이 없을 때 대신 쓸 사진입니다. (자료검색 화면은 아직 준비 중이라, 지금은 등록만 할 수 있어요.)",
+    "admin.settings.thumbnailUploadFail": "사진 업로드에 실패했습니다.",
+    "admin.settings.thumbnailRemove": "사진 삭제",
     "footer.terms": "이용 약관",
     "footer.privacy": "개인정보 처리방침",
 
@@ -528,6 +534,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.boards.saveSuccess": "저장되었습니다.",
     "settings.boards.saveFail": "저장에 실패했습니다.",
     "settings.boards.loadFail": "게시판 목록을 불러오지 못했습니다.",
+    "settings.boards.field.defaultThumbnailUrl": "이 게시판의 기본 썸네일",
+    "settings.boards.field.defaultThumbnailUrlHint": "이 게시판 글에 사진이 없을 때 대신 보여줄 사진입니다. 등록하지 않으면 설정 > 도서관에 등록한 기본 썸네일을 대신 씁니다.",
 
     "settings.boards.fonts.title": "게시판 글꼴",
     "settings.boards.fonts.desc": "게시판 글쓰기 화면의 글꼴 드롭다운에 나오는 항목입니다. Pretendard는 기본 글꼴이라 삭제할 수 없습니다.",
@@ -1113,6 +1121,12 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "admin.settings.scanMode.single": "Single-tag recognition (barcode / RFID single tag)",
     "admin.settings.scanMode.sdk": "Multi-tag recognition (vendor SDK integration, coming later)",
     "admin.settings.scanMode.hint": "This controls how registration numbers are entered on the loan/return screens. 'Multi-tag recognition' can be selected now, but the actual reader integration will be added later.",
+    "admin.settings.defaultThumbnailUrl": "Default Post Thumbnail",
+    "admin.settings.defaultThumbnailHint": "Shown instead when a board post has no photo. To use a different image for one specific board, register it separately under Settings > Boards.",
+    "admin.settings.defaultMaterialCoverUrl": "Default Material Cover",
+    "admin.settings.defaultMaterialCoverHint": "Shown instead when a registered material has no cover photo. (The material search page isn't built yet, so for now this only lets you register the image.)",
+    "admin.settings.thumbnailUploadFail": "Image upload failed.",
+    "admin.settings.thumbnailRemove": "Remove Image",
     "footer.terms": "Terms of Use",
     "footer.privacy": "Privacy Policy",
 
@@ -1384,6 +1398,8 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "settings.boards.saveSuccess": "Saved.",
     "settings.boards.saveFail": "Save failed.",
     "settings.boards.loadFail": "Failed to load boards.",
+    "settings.boards.field.defaultThumbnailUrl": "Default Thumbnail for This Board",
+    "settings.boards.field.defaultThumbnailUrlHint": "Shown instead when a post on this board has no photo. If not set, the library-wide default thumbnail (Settings > Library) is used instead.",
 
     "settings.boards.fonts.title": "Board Fonts",
     "settings.boards.fonts.desc": "Options shown in the font dropdown on the board writing screen. Pretendard is the default and cannot be deleted.",

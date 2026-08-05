@@ -23,6 +23,8 @@ export class LibraryService {
     maxSubjectKeywords?: number;
     scanMode?: string;
     maxReservationQueueSize?: number | null;
+    defaultThumbnailUrl?: string;
+    defaultMaterialCoverUrl?: string;
   }) {
     const library = await this.prisma.library.findFirst();
     if (!library) return null;
@@ -47,6 +49,10 @@ export class LibraryService {
           data.maxReservationQueueSize === undefined
             ? undefined
             : data.maxReservationQueueSize,
+        defaultThumbnailUrl:
+          data.defaultThumbnailUrl !== undefined ? data.defaultThumbnailUrl || null : undefined,
+        defaultMaterialCoverUrl:
+          data.defaultMaterialCoverUrl !== undefined ? data.defaultMaterialCoverUrl || null : undefined,
       },
     });
   }

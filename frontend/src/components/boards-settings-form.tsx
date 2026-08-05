@@ -15,6 +15,7 @@ type Board = {
   allowGuestWrite: boolean;
   allowMemberComment: boolean;
   allowGuestComment: boolean;
+  defaultThumbnailUrl: string | null;
   isMaterialRequest: boolean;
 };
 
@@ -97,6 +98,7 @@ export default function BoardsSettingsForm() {
   const [allowGuestWriteValue, setAllowGuestWriteValue] = useState(false);
   const [allowMemberCommentValue, setAllowMemberCommentValue] = useState(true);
   const [allowGuestCommentValue, setAllowGuestCommentValue] = useState(false);
+  const [defaultThumbnailUrlValue, setDefaultThumbnailUrlValue] = useState("");
 
   // 게시판 글꼴 목록입니다.
   const [fonts, setFonts] = useState<BoardFont[]>([]);
@@ -141,6 +143,29 @@ export default function BoardsSettingsForm() {
     setAllowGuestWriteValue(board.allowGuestWrite);
     setAllowMemberCommentValue(board.allowMemberComment);
     setAllowGuestCommentValue(board.allowGuestComment);
+    setDefaultThumbnailUrlValue(board.defaultThumbnailUrl || "");
+  }
+
+  // 게시판 기본 썸네일 사진을 올리고, 성공하면 그 주소를 입력창 상태에 채워 넣습니다.
+  async function handleBoardThumbnailFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_URL}/uploads/board-image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setDefaultThumbnailUrlValue(data.url);
+    } else {
+      notify("❌ " + t("admin.settings.thumbnailUploadFail"), "error");
+    }
   }
 
   async function handleSave() {
@@ -155,6 +180,7 @@ export default function BoardsSettingsForm() {
         allowGuestWrite: allowGuestWriteValue,
         allowMemberComment: allowMemberCommentValue,
         allowGuestComment: allowGuestCommentValue,
+        defaultThumbnailUrl: defaultThumbnailUrlValue,
       }),
     });
     if (res.ok) {
@@ -377,6 +403,34 @@ export default function BoardsSettingsForm() {
                   yesLabel={t("settings.boards.yes")}
                   noLabel={t("settings.boards.no")}
                 />
+              </div>
+
+              <div>
+                <span className="mb-1 block text-sm text-neutral-500">
+                  {t("settings.boards.field.defaultThumbnailUrl")}
+                </span>
+                <p className="mb-2 text-xs text-neutral-400">{t("settings.boards.field.defaultThumbnailUrlHint")}</p>
+                {defaultThumbnailUrlValue && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={defaultThumbnailUrlValue} alt="" className="mb-2 h-16 w-16 rounded-lg object-cover" />
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={handleBoardThumbnailFileChange}
+                    className="text-xs"
+                  />
+                  {defaultThumbnailUrlValue && (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultThumbnailUrlValue("")}
+                      className="cursor-pointer text-xs text-red-500 hover:underline"
+                    >
+                      {t("admin.settings.thumbnailRemove")}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
