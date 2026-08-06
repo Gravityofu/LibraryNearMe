@@ -17,6 +17,7 @@ type Board = {
   code: string;
   name: string;
   listStyle: "LIST" | "THUMBNAIL";
+  thumbnailRatio: "WIDE" | "TALL";
   isMaterialRequest: boolean;
   allowMemberWrite: boolean;
 };
@@ -59,6 +60,7 @@ export default function PublicBoardListPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentBoard = boards.find((b) => b.code === code) || null;
   const isThumbnail = currentBoard?.listStyle === "THUMBNAIL";
+  const isTallThumbnail = currentBoard?.thumbnailRatio === "TALL";
   // 관리자(ADMIN/SUPER) 계정으로 로그인했다면, 게시판의 '회원 글쓰기' 설정과 상관없이
   // 홈페이지에서는 '글쓰기' 버튼 자체를 보여주지 않습니다. (관리자는 관리자 페이지에서만 글을 씁니다.)
   const isAdmin = role === "ADMIN" || role === "SUPER";
@@ -202,8 +204,8 @@ export default function PublicBoardListPage() {
           )}
         </div>
       ) : isThumbnail ? (
-        // 썸네일형 게시판: 카드형 목록 (한 행에 3개)
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        // 썸네일형 게시판: 카드형 목록 (가로형은 한 행에 3개, 세로형은 한 행에 4개)
+        <div className={`grid grid-cols-1 gap-4 ${isTallThumbnail ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
           {loading ? (
             <p className="col-span-full py-10 text-center text-sm text-neutral-400">...</p>
           ) : rows.length === 0 ? (
@@ -215,7 +217,7 @@ export default function PublicBoardListPage() {
                 href={`/boards/${code}/${row.id}`}
                 className="flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white hover:shadow-sm"
               >
-                <div className="aspect-square w-full bg-neutral-100">
+                <div className={`w-full bg-neutral-100 ${isTallThumbnail ? "aspect-[3/4]" : "aspect-video"}`}>
                   {row.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={row.thumbnailUrl} alt="" className="h-full w-full object-cover" />

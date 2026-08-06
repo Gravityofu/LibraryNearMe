@@ -11,6 +11,7 @@ type Board = {
   code: string;
   name: string;
   listStyle: "LIST" | "THUMBNAIL";
+  thumbnailRatio: "WIDE" | "TALL";
   allowMemberWrite: boolean;
   allowGuestWrite: boolean;
   allowMemberComment: boolean;
@@ -95,6 +96,8 @@ export default function BoardsSettingsForm() {
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [listStyleValue, setListStyleValue] = useState<"LIST" | "THUMBNAIL">("LIST");
+  const [thumbnailRatioValue, setThumbnailRatioValue] = useState<"WIDE" | "TALL">("WIDE");
   const [allowMemberWriteValue, setAllowMemberWriteValue] = useState(false);
   const [allowGuestWriteValue, setAllowGuestWriteValue] = useState(false);
   const [allowMemberCommentValue, setAllowMemberCommentValue] = useState(true);
@@ -141,6 +144,8 @@ export default function BoardsSettingsForm() {
 
   function openEditModal(board: Board) {
     setEditingBoard(board);
+    setListStyleValue(board.listStyle);
+    setThumbnailRatioValue(board.thumbnailRatio === "TALL" ? "TALL" : "WIDE");
     setAllowMemberWriteValue(board.allowMemberWrite);
     setAllowGuestWriteValue(board.allowGuestWrite);
     setAllowMemberCommentValue(board.allowMemberComment);
@@ -187,6 +192,8 @@ export default function BoardsSettingsForm() {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
+        listStyle: listStyleValue,
+        thumbnailRatio: thumbnailRatioValue,
         allowMemberWrite: allowMemberWriteValue,
         allowGuestWrite: allowGuestWriteValue,
         allowMemberComment: allowMemberCommentValue,
@@ -371,6 +378,34 @@ export default function BoardsSettingsForm() {
             <p className="mb-4 text-sm font-semibold">{editingBoard.name}</p>
 
             <div className="flex flex-col gap-4">
+              <div>
+                <span className="mb-1 block text-sm text-neutral-500">
+                  {t("settings.boards.field.listStyle")}
+                </span>
+                <ChoiceCardGroup
+                  name="listStyle"
+                  value={listStyleValue === "THUMBNAIL"}
+                  onChange={(v) => setListStyleValue(v ? "THUMBNAIL" : "LIST")}
+                  yesLabel={t("settings.boards.listStyleThumbnail")}
+                  noLabel={t("settings.boards.listStyleList")}
+                />
+              </div>
+
+              {listStyleValue === "THUMBNAIL" && (
+                <div>
+                  <span className="mb-1 block text-sm text-neutral-500">
+                    {t("settings.boards.field.thumbnailRatio")}
+                  </span>
+                  <ChoiceCardGroup
+                    name="thumbnailRatio"
+                    value={thumbnailRatioValue === "TALL"}
+                    onChange={(v) => setThumbnailRatioValue(v ? "TALL" : "WIDE")}
+                    yesLabel={t("settings.boards.thumbnailRatioTall")}
+                    noLabel={t("settings.boards.thumbnailRatioWide")}
+                  />
+                </div>
+              )}
+
               <div>
                 <span className="mb-1 block text-sm text-neutral-500">
                   {t("settings.boards.field.allowMemberWrite")}

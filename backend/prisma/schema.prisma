@@ -386,6 +386,7 @@ model Board {
   code              String   // 내부적으로 구분하는 코드 (예: "notice", "openBoard", "materialRequest")
   name              String   // 화면에 보이는 게시판 이름 (예: "공지")
   listStyle         String   @default("LIST")   // "LIST"(제목 목록형) | "THUMBNAIL"(썸네일형)
+  thumbnailRatio    String   @default("WIDE")   // ← 추가: 썸네일형일 때만 의미 있음. "WIDE"(가로형, 한 줄 3개) | "TALL"(세로형, 한 줄 4개)
   order             Int      @default(0)
 
   allowMemberWrite   Boolean  @default(false)  // 회원이 글을 쓸 수 있는 게시판인지 (열린 게시판, 자료를 신청합니다만 true)

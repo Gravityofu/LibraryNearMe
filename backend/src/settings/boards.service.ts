@@ -45,6 +45,14 @@ export class BoardsService {
 
     const updateData: any = {};
 
+    if (data.listStyle === 'LIST' || data.listStyle === 'THUMBNAIL') {
+      updateData.listStyle = data.listStyle;
+    }
+
+    if (data.thumbnailRatio === 'WIDE' || data.thumbnailRatio === 'TALL') {
+      updateData.thumbnailRatio = data.thumbnailRatio;
+    }
+
     if (data.allowMemberWrite !== undefined) {
       updateData.allowMemberWrite = !!data.allowMemberWrite;
     }

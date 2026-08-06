@@ -7,7 +7,8 @@ import { MaterialRequestTypesService } from '../settings/material-request-types.
 export const MATERIAL_REQUEST_STATUSES = ['REQUESTED', 'PURCHASING', 'PURCHASED', 'NOT_PURCHASED'];
 
 const PAGE_SIZE = 15; // 목록형 게시판 한 페이지당 글 개수
-const THUMBNAIL_PAGE_SIZE = 9; // 썸네일형 게시판 한 페이지당 글 개수 (3개씩 3줄)
+const THUMBNAIL_PAGE_SIZE_WIDE = 9; // 썸네일형(가로형) 한 페이지당 글 개수 (3개씩 3줄)
+const THUMBNAIL_PAGE_SIZE_TALL = 8; // 썸네일형(세로형) 한 페이지당 글 개수 (4개씩 2줄)
 
 @Injectable()
 export class PostsService {
@@ -156,7 +157,12 @@ export class PostsService {
       throw new NotFoundException('게시판을 찾을 수 없습니다.');
     }
 
-    const pageSize = board.listStyle === 'THUMBNAIL' ? THUMBNAIL_PAGE_SIZE : PAGE_SIZE;
+    const pageSize =
+      board.listStyle === 'THUMBNAIL'
+        ? board.thumbnailRatio === 'TALL'
+          ? THUMBNAIL_PAGE_SIZE_TALL
+          : THUMBNAIL_PAGE_SIZE_WIDE
+        : PAGE_SIZE;
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
