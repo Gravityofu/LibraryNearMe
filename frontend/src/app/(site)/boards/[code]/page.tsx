@@ -217,12 +217,12 @@ export default function PublicBoardListPage() {
                 href={`/boards/${code}/${row.id}`}
                 className="flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white hover:shadow-sm"
               >
-                <div className={`w-full bg-neutral-100 ${isTallThumbnail ? "aspect-[3/4]" : "aspect-video"}`}>
+                <div className={`w-full bg-white ${isTallThumbnail ? "aspect-[3/4]" : "aspect-video"}`}>
                   {row.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={row.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={row.thumbnailUrl} alt="" className="h-full w-full object-contain" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-neutral-300">
+                    <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-xs text-neutral-300">
                       {t("boards.list.col.thumbnail")}
                     </div>
                   )}
@@ -235,11 +235,14 @@ export default function PublicBoardListPage() {
                   {code === "openBoard" && (
                     <p className="text-right text-xs text-neutral-400">{row.authorName}</p>
                   )}
-                  {row.keywords && row.keywords.length > 0 && (
-                    <p className="line-clamp-3 text-xs" style={{ color: primaryColor || "#3b82f6" }}>
-                      {row.keywords.map((k) => `#${k}`).join(" ")}
-                    </p>
-                  )}
+                  <p
+                    className="line-clamp-3 min-h-[1rem] text-xs"
+                    style={{ color: primaryColor || "#3b82f6" }}
+                  >
+                    {row.keywords && row.keywords.length > 0
+                      ? row.keywords.map((k) => `#${k}`).join(" ")
+                      : "\u00A0"}
+                  </p>
                 </div>
               </Link>
             ))
