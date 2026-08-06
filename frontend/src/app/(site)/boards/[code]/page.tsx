@@ -229,9 +229,9 @@ export default function PublicBoardListPage() {
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-3">
                   <h3 className="line-clamp-1 text-sm font-bold">{row.title}</h3>
-                  {row.contentExcerpt && (
-                    <p className="line-clamp-2 text-xs text-neutral-500">{row.contentExcerpt}</p>
-                  )}
+                  <p className="line-clamp-2 min-h-[2rem] text-xs text-neutral-500">
+                    {row.contentExcerpt || "\u00A0"}
+                  </p>
                   {code === "openBoard" && (
                     <p className="text-right text-xs text-neutral-400">{row.authorName}</p>
                   )}
