@@ -61,6 +61,14 @@ function AdminBoardWritePageInner() {
   const [maxKeywords, setMaxKeywords] = useState(10);
   const keywordInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // '스크랩' 게시판일 때만 쓰는 값들입니다.
+  const [scrapSource, setScrapSource] = useState<"naver" | "other">("naver");
+  const [scrapUrl, setScrapUrl] = useState("");
+  const [scrapMedia, setScrapMedia] = useState("");
+  const [scrapReporter, setScrapReporter] = useState("");
+  const [scrapDate, setScrapDate] = useState("");
+  const [scrapFetching, setScrapFetching] = useState(false);
+
   // '자료를 신청합니다' 게시판일 때만 쓰는 값들입니다.
   const [requestTypeOptions, setRequestTypeOptions] = useState<string[]>([]);
   const [statusOptions, setStatusOptions] = useState<string[]>([]);
@@ -134,8 +142,70 @@ function AdminBoardWritePageInner() {
         setRequestAuthor(data.materialRequest.author || "");
         setStatus(data.materialRequest.status);
       }
+      setScrapUrl(data.scrapSourceUrl || "");
+      setScrapMedia(data.scrapMedia || "");
+      setScrapReporter(data.scrapReporter || "");
+      setScrapDate(data.scrapDate || "");
     } else {
       notify("❌ " + t("boards.write.loadFail"), "error");
+    }
+  }
+
+  // HTML 태그에 넣을 문자를 안전하게 바꿔줍니다. (< > & 등)
+  function escapeHtml(text: string) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // 스크랩 정보를 글 '내용'에 들어갈 HTML로 만듭니다.
+  function buildScrapContentHtml() {
+    const lines: string[] = [];
+    if (scrapMedia.trim()) lines.push(`<p>${t("boards.write.scrap.media")}: ${escapeHtml(scrapMedia.trim())}</p>`);
+    if (scrapReporter.trim())
+      lines.push(`<p>${t("boards.write.scrap.reporter")}: ${escapeHtml(scrapReporter.trim())}</p>`);
+    if (scrapDate.trim()) lines.push(`<p>${t("boards.write.scrap.date")}: ${escapeHtml(scrapDate.trim())}</p>`);
+    if (scrapUrl.trim()) {
+      lines.push(
+        `<p><a href="${escapeHtml(scrapUrl.trim())}" target="_blank" rel="noopener noreferrer">${t(
+          "boards.write.scrap.originalLink",
+        )}</a></p>`,
+      );
+    }
+    return lines.join("");
+  }
+
+  // '가져오기' 버튼: 기사 주소로 제목/매체/기자/날짜를 자동으로 읽어옵니다.
+  async function handleFetchScrap() {
+    if (!scrapUrl.trim()) {
+      notify("❌ " + t("boards.write.scrap.urlRequired"), "error");
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setScrapFetching(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/scrap/fetch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ source: scrapSource, url: scrapUrl.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTitle(data.title || "");
+        setScrapMedia(data.media || "");
+        setScrapReporter(data.reporter || "");
+        setScrapDate(data.date || "");
+        notify("✅ " + t("boards.write.scrap.fetchSuccess"), "success");
+      } else {
+        notify("❌ " + data.message, "error");
+      }
+    } catch {
+      notify("❌ " + t("boards.write.scrap.urlRequired"), "error");
+    } finally {
+      setScrapFetching(false);
     }
   }
 
@@ -210,7 +280,12 @@ function AdminBoardWritePageInner() {
       notify("❌ " + t("boards.write.materialTitleRequired"), "error");
       return;
     }
-    if (!content.trim()) {
+    const isScrap = board?.code === "scrap";
+    if (isScrap && !scrapUrl.trim()) {
+      notify("❌ " + t("boards.write.scrap.urlRequired"), "error");
+      return;
+    }
+    if (!isScrap && !content.trim()) {
       notify("❌ " + t("boards.write.contentRequired"), "error");
       return;
     }
@@ -220,12 +295,22 @@ function AdminBoardWritePageInner() {
 
     const keywordsValue = keywordWords.map((w) => w.trim()).filter(Boolean).join(",");
 
-    const body: any = { title, content, keywords: keywordsValue };
+    const body: any = {
+      title,
+      content: isScrap ? buildScrapContentHtml() : content,
+      keywords: keywordsValue,
+    };
     if (board.isMaterialRequest) {
       body.materialTitle = materialTitle;
       body.requestType = requestType;
       body.requestAuthor = requestAuthor;
       body.status = status;
+    }
+    if (isScrap) {
+      body.scrapSourceUrl = scrapUrl.trim();
+      body.scrapMedia = scrapMedia.trim();
+      body.scrapReporter = scrapReporter.trim();
+      body.scrapDate = scrapDate.trim();
     }
     if (!isEdit) {
       body.boardId = board.id;
@@ -378,17 +463,82 @@ function AdminBoardWritePageInner() {
           </>
         )}
 
-        <div>
-          <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.content")} *</span>
-          {board?.listStyle === "THUMBNAIL" && (
-            <p className="mb-2 text-xs text-neutral-400">
-              {board.thumbnailRatio === "TALL"
-                ? t("boards.write.thumbnailHint.tall")
-                : t("boards.write.thumbnailHint.wide")}
-            </p>
-          )}
-          <RichTextEditor value={content} onChange={setContent} />
-        </div>
+        {board?.code === "scrap" ? (
+          <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+            <div>
+              <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.scrap.sourceLabel")}</span>
+              <div className="flex gap-4">
+                <label className="flex cursor-pointer items-center gap-1 text-sm">
+                  <input
+                    type="radio"
+                    checked={scrapSource === "naver"}
+                    onChange={() => setScrapSource("naver")}
+                  />
+                  {t("boards.write.scrap.sourceNaver")}
+                </label>
+                <label className="flex cursor-pointer items-center gap-1 text-sm">
+                  <input
+                    type="radio"
+                    checked={scrapSource === "other"}
+                    onChange={() => setScrapSource("other")}
+                  />
+                  {t("boards.write.scrap.sourceOther")}
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={scrapUrl}
+                onChange={(e) => setScrapUrl(e.target.value)}
+                placeholder={t("boards.write.scrap.urlPlaceholder")}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+              />
+              <ThemedButton preset="버튼2" onClick={handleFetchScrap}>
+                {scrapFetching ? t("boards.write.scrap.fetching") : t("boards.write.scrap.fetchBtn")}
+              </ThemedButton>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.scrap.media")}</span>
+                <input
+                  value={scrapMedia}
+                  onChange={(e) => setScrapMedia(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.scrap.reporter")}</span>
+                <input
+                  value={scrapReporter}
+                  onChange={(e) => setScrapReporter(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.scrap.date")}</span>
+                <input
+                  value={scrapDate}
+                  onChange={(e) => setScrapDate(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.content")} *</span>
+            {board?.listStyle === "THUMBNAIL" && (
+              <p className="mb-2 text-xs text-neutral-400">
+                {board?.thumbnailRatio === "TALL"
+                  ? t("boards.write.thumbnailHint.tall")
+                  : t("boards.write.thumbnailHint.wide")}
+              </p>
+            )}
+            <RichTextEditor value={content} onChange={setContent} />
+          </div>
+        )}
 
         <div className="flex justify-end">
           <ThemedButton preset="버튼1" onClick={handleSave}>

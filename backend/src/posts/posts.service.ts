@@ -289,6 +289,12 @@ export class PostsService {
 
     const thumbnailUrl = this.extractFirstImage(content);
 
+    // '스크랩' 게시판일 때만 쓰는 정보입니다. (기사 원문 주소·매체·기자·날짜)
+    const scrapSourceUrl = data.scrapSourceUrl ? String(data.scrapSourceUrl).trim() : null;
+    const scrapMedia = data.scrapMedia ? String(data.scrapMedia).trim() : null;
+    const scrapReporter = data.scrapReporter ? String(data.scrapReporter).trim() : null;
+    const scrapDate = data.scrapDate ? String(data.scrapDate).trim() : null;
+
     return this.prisma.post.create({
       data: {
         libraryId,
@@ -300,6 +306,10 @@ export class PostsService {
         authorUserId: authorUserId || undefined,
         guestName,
         guestPasswordHash,
+        scrapSourceUrl,
+        scrapMedia,
+        scrapReporter,
+        scrapDate,
         ...(materialRequestData
           ? { materialRequest: { create: materialRequestData } }
           : {}),
@@ -367,9 +377,25 @@ export class PostsService {
       });
     }
 
+    const scrapSourceUrl =
+      data.scrapSourceUrl !== undefined ? String(data.scrapSourceUrl).trim() || null : existing.scrapSourceUrl;
+    const scrapMedia = data.scrapMedia !== undefined ? String(data.scrapMedia).trim() || null : existing.scrapMedia;
+    const scrapReporter =
+      data.scrapReporter !== undefined ? String(data.scrapReporter).trim() || null : existing.scrapReporter;
+    const scrapDate = data.scrapDate !== undefined ? String(data.scrapDate).trim() || null : existing.scrapDate;
+
     return this.prisma.post.update({
       where: { id },
-      data: { title, content, keywords: keywords || null, thumbnailUrl },
+      data: {
+        title,
+        content,
+        keywords: keywords || null,
+        thumbnailUrl,
+        scrapSourceUrl,
+        scrapMedia,
+        scrapReporter,
+        scrapDate,
+      },
       include: { materialRequest: true },
     });
   }

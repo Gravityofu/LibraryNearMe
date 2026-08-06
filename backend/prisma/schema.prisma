@@ -418,6 +418,10 @@ model Post {
   content           String    // 리치 텍스트 에디터로 작성한 본문 (HTML 형태로 저장)
   keywords          String?   // 키워드 (MARC 653과 같은 역할). 쉼표로 여러 개를 구분해서 저장합니다.
   thumbnailUrl      String?   // 썸네일형 게시판에서 목록에 보여줄 대표 이미지
+  scrapSourceUrl    String?   // 스크랩 게시판: 원문 기사 주소
+  scrapMedia        String?   // 스크랩 게시판: 매체명
+  scrapReporter     String?   // 스크랩 게시판: 기자명
+  scrapDate         String?   // 스크랩 게시판: 기사 날짜 (원문에 나온 형태 그대로 문자로 저장)
 
   authorUserId      Int?                             // 회원(또는 관리자)이 쓴 글이면 채워짐
   authorUser        User?     @relation(fields: [authorUserId], references: [id])
