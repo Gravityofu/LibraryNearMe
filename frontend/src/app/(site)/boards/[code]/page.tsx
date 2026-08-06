@@ -218,7 +218,7 @@ export default function PublicBoardListPage() {
                 className="flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white hover:shadow-sm"
               >
                 <div
-                  className="relative w-full shrink-0 overflow-hidden bg-white"
+                  className="relative w-full shrink-0 overflow-hidden bg-neutral-100"
                   style={{ paddingTop: isTallThumbnail ? "133.33%" : "56.25%" }}
                 >
                   {row.thumbnailUrl ? (
@@ -226,7 +226,7 @@ export default function PublicBoardListPage() {
                     <img
                       src={row.thumbnailUrl}
                       alt=""
-                      className="absolute inset-0 h-full w-full object-contain"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 text-xs text-neutral-300">
