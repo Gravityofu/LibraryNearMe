@@ -29,8 +29,9 @@ type Board = {
   code: string;
   name: string;
   isMaterialRequest: boolean;
+  listStyle: "LIST" | "THUMBNAIL";
+  thumbnailRatio: "WIDE" | "TALL";
 };
-
 type Comment = {
   id: number;
   content: string;
@@ -379,6 +380,13 @@ function AdminBoardWritePageInner() {
 
         <div>
           <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.content")} *</span>
+          {board?.listStyle === "THUMBNAIL" && (
+            <p className="mb-2 text-xs text-neutral-400">
+              {board.thumbnailRatio === "TALL"
+                ? t("boards.write.thumbnailHint.tall")
+                : t("boards.write.thumbnailHint.wide")}
+            </p>
+          )}
           <RichTextEditor value={content} onChange={setContent} />
         </div>
 
