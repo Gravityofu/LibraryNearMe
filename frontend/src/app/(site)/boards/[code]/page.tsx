@@ -217,7 +217,7 @@ export default function PublicBoardListPage() {
                 href={`/boards/${code}/${row.id}`}
                 className="flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white hover:shadow-sm"
               >
-                <div className={`w-full bg-white ${isTallThumbnail ? "aspect-[3/4]" : "aspect-video"}`}>
+                <div className={`w-full bg-white ${isTallThumbnail ? "aspect-[3/4]" : "aspect-[16/9]"}`}>
                   {row.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={row.thumbnailUrl} alt="" className="h-full w-full object-contain" />
