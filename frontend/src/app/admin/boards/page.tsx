@@ -41,6 +41,7 @@ type PostRow = {
   viewCount: number;
   createdAt: string;
   materialRequestStatus: string | null;
+  referenceCount: number;
 };
 
 function AdminBoardsPageInner() {
@@ -64,9 +65,9 @@ function AdminBoardsPageInner() {
   const pageSize = 15;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  // 표에 실제로 몇 개의 칼럼이 나오는지 계산합니다. (번호/제목/작성자/작성일/조회수/관리 = 기본 6개 + 사진(썸네일형) + 처리상태(자료신청))
+  // 표에 실제로 몇 개의 칼럼이 나오는지 계산합니다. (번호/제목/작성자/작성일/조회수/참고자료/관리 = 기본 7개 + 사진(썸네일형) + 처리상태(자료신청))
   const columnCount =
-    6 + (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) + (currentBoard?.isMaterialRequest ? 1 : 0);
+    7 + (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) + (currentBoard?.isMaterialRequest ? 1 : 0);
 
   // 주소(?board=)를 지금 보고 있는 탭과 맞춰 둡니다. (브레드크럼이 탭에 맞게 나오도록 하기 위함입니다.)
   useEffect(() => {
@@ -168,6 +169,7 @@ function AdminBoardsPageInner() {
               {currentBoard?.isMaterialRequest && (
                 <th className="px-4 py-2.5">{t("boards.list.col.status")}</th>
               )}
+              <th className="px-4 py-2.5">{t("boards.list.col.reference")}</th>
               <th className="px-4 py-2.5">{t("boards.list.col.action")}</th>
             </tr>
           </thead>
@@ -220,6 +222,18 @@ function AdminBoardsPageInner() {
                       {row.materialRequestStatus ? t(`boards.status.${row.materialRequestStatus}`) : "-"}
                     </td>
                   )}
+                  <td className="whitespace-nowrap px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/boards/reference?board=${activeTab}&postId=${row.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="cursor-pointer rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-50"
+                      >
+                        {t("boards.list.referenceBtn")}
+                      </Link>
+                      <span className="text-xs text-neutral-400">({row.referenceCount})</span>
+                    </div>
+                  </td>
                   <td className="whitespace-nowrap px-4 py-2.5">
                     <button
                       type="button"

@@ -98,6 +98,50 @@ export class MaterialsService {
     });
   }
 
+  // 참고자료 등록 모달의 '자료' 탭 검색입니다. 제목·저자·출판사·키워드(주제어)로 각각 검색할 수 있고
+  // 아무것도 입력하지 않으면 등록순(오래된 것부터)으로 모든 자료가 나옵니다.
+  async searchForReference(
+    libraryId: number,
+    filters: { title?: string; creator?: string; publisher?: string; subject?: string },
+    page: number,
+  ) {
+    const pageSize = 10;
+    const AND: any[] = [];
+    if (filters.title) AND.push({ title: { contains: filters.title, mode: "insensitive" } });
+    if (filters.creator) AND.push({ creator: { contains: filters.creator, mode: "insensitive" } });
+    if (filters.publisher) AND.push({ publisher: { contains: filters.publisher, mode: "insensitive" } });
+    if (filters.subject) AND.push({ subject: { contains: filters.subject, mode: "insensitive" } });
+
+    const where: any = { libraryId };
+    if (AND.length > 0) where.AND = AND;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.material.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.material.count({ where }),
+    ]);
+
+    const materialTypes = await this.prisma.materialType.findMany({ where: { libraryId } });
+    const typeNameMap = new Map(materialTypes.map((t) => [t.code, t.nameKo]));
+
+    return {
+      items: items.map((m) => ({
+        id: m.id,
+        typeLabel: typeNameMap.get(m.type) || m.type,
+        title: m.title,
+        author: m.creator || "",
+        publisher: m.publisher || "",
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   // 자료 하나 + 그 자료의 소장 부수 목록을 함께 가져오기
   async getMaterialWithCopies(libraryId: number, id: number) {
     const material = await this.prisma.material.findFirst({

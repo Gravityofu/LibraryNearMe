@@ -35,6 +35,8 @@ import { UploadsController } from './uploads/uploads.controller';
 import { UploadsService } from './uploads/uploads.service';
 import { PostsController } from './posts/posts.controller';
 import { PostsService } from './posts/posts.service';
+import { PostReferencesController } from './posts/post-references.controller';
+import { PostReferencesService } from './posts/post-references.service';
 import { MaterialRequestTypesController } from './settings/material-request-types.controller';
 import { MaterialRequestTypesService } from './settings/material-request-types.service';
 import { BoardFontsController } from './settings/board-fonts.controller';
@@ -72,6 +74,7 @@ import { PublicCommentsController } from './public-boards/public-comments.contro
     BoardsController,
     UploadsController,
     PostsController,
+    PostReferencesController,
     MaterialRequestTypesController,
     BoardFontsController,
     CommentsController,
@@ -97,6 +100,7 @@ import { PublicCommentsController } from './public-boards/public-comments.contro
     BoardsService,
     UploadsService,
     PostsService,
+    PostReferencesService,
     MaterialRequestTypesService,
     BoardFontsService,
     CommentsService,

@@ -52,6 +52,7 @@ model Library {
   comments      Comment[]      // ← 추가 (댓글)
   materialRequestTypes MaterialRequestType[] // ← 추가 (자료신청 자료 종류 목록)
   boardFonts    BoardFont[]    // ← 추가 (게시판 글꼴 목록)
+  postReferences PostReference[] // ← 추가 (게시판 글의 참고자료 목록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -147,6 +148,7 @@ model Material {
   updatedAt   DateTime @updatedAt
 
   copies      Copy[]
+  postReferences PostReference[] // ← 추가 (이 자료가 참고자료로 등록된 게시글 목록)
 
   @@index([libraryId])
 }
@@ -428,6 +430,8 @@ model Post {
 
   comments          Comment[]
   materialRequest   MaterialRequest?
+  references        PostReference[] @relation("PostReferenceOwner")   // ← 추가 (이 글에 등록된 참고자료 목록)
+  referencedInPosts PostReference[] @relation("PostReferenceTarget")  // ← 추가 (이 글이 다른 글의 참고자료로 등록된 목록)
 
   @@index([libraryId])
   @@index([boardId])
@@ -506,4 +510,29 @@ model BoardFont {
   createdAt      DateTime @default(now())
 
   @@unique([libraryId, fontFamilyName])
+}
+
+// 게시판 글에 등록하는 '참고자료'입니다. 자료(Material) 또는 다른 게시판의 글(Post) 중
+// 하나를 가리킵니다. (둘 다 채워지거나 둘 다 비어있으면 안 됩니다.)
+model PostReference {
+  id               Int      @id @default(autoincrement())
+
+  libraryId        Int
+  library          Library  @relation(fields: [libraryId], references: [id])
+
+  postId           Int                                              // 참고자료가 등록되는 대상 글
+  post             Post     @relation("PostReferenceOwner", fields: [postId], references: [id])
+
+  order            Int      @default(0)                             // 화면에 보여줄 순서 (드래그로 바뀝니다)
+
+  materialId       Int?
+  material         Material? @relation(fields: [materialId], references: [id])
+
+  referencedPostId Int?
+  referencedPost   Post?    @relation("PostReferenceTarget", fields: [referencedPostId], references: [id])
+
+  createdAt        DateTime @default(now())
+
+  @@index([libraryId])
+  @@index([postId])
 }

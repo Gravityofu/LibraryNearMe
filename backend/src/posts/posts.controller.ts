@@ -19,6 +19,25 @@ export class PostsController {
     return this.postsService.list(req.user.libraryId, parseInt(boardId, 10), parseInt(page, 10) || 1);
   }
 
+  @Get('for-reference')
+  @UseGuards(AdminGuard)
+  searchForReference(
+    @Req() req: any,
+    @Query('excludePostId') excludePostId: string,
+    @Query('title') title?: string,
+    @Query('author') author?: string,
+    @Query('content') content?: string,
+    @Query('subject') subject?: string,
+    @Query('page') page = '1',
+  ) {
+    return this.postsService.searchForReference(
+      req.user.libraryId,
+      parseInt(excludePostId, 10) || 0,
+      { title, author, content, subject },
+      parseInt(page, 10) || 1,
+    );
+  }
+
   @Get(':id')
   @UseGuards(AdminGuard)
   findOne(@Req() req: any, @Param('id') id: string) {

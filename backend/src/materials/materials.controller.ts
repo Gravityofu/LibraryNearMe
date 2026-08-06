@@ -32,6 +32,23 @@ export class MaterialsController {
     return this.materialsService.searchMaterials(req.user.libraryId, search);
   }
 
+  @Get('for-reference')
+  @UseGuards(AdminGuard)
+  searchForReference(
+    @Req() req: any,
+    @Query('title') title?: string,
+    @Query('creator') creator?: string,
+    @Query('publisher') publisher?: string,
+    @Query('subject') subject?: string,
+    @Query('page') page = '1',
+  ) {
+    return this.materialsService.searchForReference(
+      req.user.libraryId,
+      { title, creator, publisher, subject },
+      parseInt(page, 10) || 1,
+    );
+  }
+
   @Get(':id')
   @UseGuards(AdminGuard)
   getOne(@Req() req: any, @Param('id') id: string) {

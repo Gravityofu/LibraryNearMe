@@ -51,6 +51,55 @@ export class PostsService {
     return postThumbnailUrl || boardDefault || libraryDefault || null;
   }
 
+  // 참고자료 등록 모달의 '게시판' 탭 검색입니다. 제목·작성자·내용·키워드로 각각 검색할 수 있고,
+  // 지금 참고자료를 등록하려는 그 글 자신(excludePostId)은 검색 결과에서 뺍니다.
+  // 아무것도 입력하지 않으면 등록순(오래된 것부터)으로 모든 게시판의 모든 글이 나옵니다.
+  async searchForReference(
+    libraryId: number,
+    excludePostId: number,
+    filters: { title?: string; author?: string; content?: string; subject?: string },
+    page: number,
+  ) {
+    const pageSize = 10;
+    const AND: any[] = [{ id: { not: excludePostId } }];
+    if (filters.title) AND.push({ title: { contains: filters.title, mode: 'insensitive' } });
+    if (filters.content) AND.push({ content: { contains: filters.content, mode: 'insensitive' } });
+    if (filters.subject) AND.push({ keywords: { contains: filters.subject, mode: 'insensitive' } });
+    if (filters.author) {
+      AND.push({
+        OR: [
+          { authorUser: { name: { contains: filters.author, mode: 'insensitive' } } },
+          { guestName: { contains: filters.author, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    const where = { libraryId, AND };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where,
+        include: { board: true, authorUser: { select: { name: true } } },
+        orderBy: { createdAt: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      items: items.map((p) => ({
+        id: p.id,
+        boardName: p.board.name,
+        authorName: p.authorUser?.name || p.guestName || '',
+        title: p.title,
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   // '자료를 신청합니다' 게시판 글쓰기 화면의 드롭다운에 쓸 목록을 내려줍니다. (자료 종류는 설정 > 자료 메뉴에서 관리합니다.)
   async getMaterialRequestOptions(libraryId: number) {
     const types = await this.materialRequestTypesService.list(libraryId);
@@ -68,7 +117,11 @@ export class PostsService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where: { libraryId, boardId },
-        include: { authorUser: { select: { name: true } }, materialRequest: true },
+        include: {
+          authorUser: { select: { name: true } },
+          materialRequest: true,
+          _count: { select: { references: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
@@ -87,6 +140,7 @@ export class PostsService {
         createdAt: p.createdAt,
         materialRequestTitle: p.materialRequest?.title || null,
         materialRequestStatus: p.materialRequest?.status || null,
+        referenceCount: p._count.references,
       })),
       total,
       page,
