@@ -239,9 +239,9 @@ export default function PublicBoardListPage() {
                   <p className="line-clamp-2 min-h-[2rem] text-xs text-neutral-500">
                     {row.contentExcerpt || "\u00A0"}
                   </p>
-                  {code === "openBoard" && (
-                    <p className="text-right text-xs text-neutral-400">{row.authorName}</p>
-                  )}
+                  <p className="min-h-[1rem] text-right text-xs text-neutral-400">
+                    {code === "openBoard" ? row.authorName : "\u00A0"}
+                  </p>
                   <p
                     className="line-clamp-3 min-h-[1rem] text-xs"
                     style={{ color: primaryColor || "#3b82f6" }}
