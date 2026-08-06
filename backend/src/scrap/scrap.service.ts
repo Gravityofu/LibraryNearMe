@@ -53,6 +53,23 @@ export class ScrapService {
     return m ? m[0] : null;
   }
 
+  // class 속성 안에 이 이름이 포함된 태그를 페이지에서 하나씩 찾아보면서, 태그 바로 뒤에
+  // 실제 글자(공백이 아닌 내용)가 있는 첫 번째 자리를 찾아서 그 글자를 돌려줍니다.
+  // (같은 class 이름이 여러 군데 있고, 그중 일부는 글자 없이 다른 태그로 바로 이어지는
+  // 경우가 있어서, 그런 자리는 건너뛰고 진짜 글자가 있는 자리를 찾습니다.)
+  private findTextAfterClassToken(html: string, classToken: string): string | null {
+    const re = new RegExp(
+      `<[a-zA-Z0-9]+[^>]*class=["'][^"']*\\b${classToken}\\b[^"']*["'][^>]*>\\s*([^<\\s][^<]*)`,
+      'gi',
+    );
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const text = m[1].trim();
+      if (text) return this.decodeHtmlEntities(text);
+    }
+    return null;
+  }
+
   // 네이버 뉴스 화면에만 있는 표시(매체 로고 alt글자, 기자명, 작성시각)를 최대한 찾아봅니다.
   // (네이버가 화면 구조를 바꾸면 이 부분이 안 맞을 수도 있는데, 그런 경우에도
   // 위에서 이미 찾은 일반 정보(og:title 등)는 그대로 살아있습니다.)
@@ -69,9 +86,11 @@ export class ScrapService {
       if (m) date = m[1];
     }
 
-    // 기자명: 'media_end_head_journalist_name'이 포함된 태그 바로 뒤에 나오는 글자를 꺼냅니다.
-    const reporterMatch = html.match(/media_end_head_journalist_name[^"']*["'][^>]*>\s*([^<]+)</i);
-    if (reporterMatch) reporter = this.decodeHtmlEntities(reporterMatch[1]);
+    // 기자명: 'media_end_head_journalist_name'이 포함된 태그가 페이지에 여러 군데 있을 수 있어서,
+    // 첫 번째 자리만 보지 않고 하나씩 확인하면서 실제로 이름 글자가 바로 뒤에 있는 첫 번째 자리를 씁니다.
+    // (어떤 자리는 이름 없이 바로 다른 태그로 이어지기도 해서, 그런 자리는 건너뜁니다.)
+    const reporter2 = this.findTextAfterClassToken(html, 'media_end_head_journalist_name');
+    if (reporter2) reporter = reporter2;
 
     // 매체명: 'media_end_head_top_logo'가 포함된 태그를 통째로 찾은 뒤, 그 태그 바로 다음
     // 400글자 안에서 이미지의 alt 글자(로고 이미지의 대체 텍스트, 보통 언론사 이름)를 꺼냅니다.
