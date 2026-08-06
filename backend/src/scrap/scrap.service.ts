@@ -44,18 +44,63 @@ export class ScrapService {
       .trim();
   }
 
+  // class 속성 안에 이 이름이 '포함'되어 있는 태그 하나를 통째로 찾습니다.
+  // (예전에는 이 이름과 완전히 똑같아야만 찾을 수 있었는데, 그러면 뒤에 다른 이름이
+  // 하나라도 더 붙어있는 경우 못 찾는 문제가 있었습니다. 이제는 그런 경우에도 찾습니다.)
+  private findTagByClassToken(html: string, classToken: string): string | null {
+    const re = new RegExp(`<[a-zA-Z0-9]+[^>]*class=["'][^"']*\\b${classToken}\\b[^"']*["'][^>]*>`, 'i');
+    const m = html.match(re);
+    return m ? m[0] : null;
+  }
+
   // 네이버 뉴스 화면에만 있는 표시(매체 로고 alt글자, 기자명, 작성시각)를 최대한 찾아봅니다.
   // (네이버가 화면 구조를 바꾸면 이 부분이 안 맞을 수도 있는데, 그런 경우에도
   // 위에서 이미 찾은 일반 정보(og:title 등)는 그대로 살아있습니다.)
   private findNaverExtras(html: string) {
-    const mediaMatch = html.match(/media_end_head_top_logo[^>]*>\s*<img[^>]+alt=["']([^"']+)["']/i);
-    const reporterMatch = html.match(/media_end_head_journalist_name["'][^>]*>\s*([^<]+)</i);
-    const dateMatch = html.match(/media_end_head_info_datestamp_time["'][^>]*data-date-time=["']([^"']+)["']/i);
-    return {
-      media: mediaMatch ? this.decodeHtmlEntities(mediaMatch[1]) : null,
-      reporter: reporterMatch ? this.decodeHtmlEntities(reporterMatch[1]) : null,
-      date: dateMatch ? dateMatch[1] : null,
-    };
+    let media: string | null = null;
+    let reporter: string | null = null;
+    let date: string | null = null;
+
+    // 날짜: 'media_end_head_info_datestamp_time'이 포함된 태그를 통째로 찾은 뒤,
+    // 그 안에서 data-date-time 속성 값을 꺼냅니다.
+    const dateTag = this.findTagByClassToken(html, 'media_end_head_info_datestamp_time');
+    if (dateTag) {
+      const m = dateTag.match(/data-date-time=["']([^"']+)["']/i);
+      if (m) date = m[1];
+    }
+
+    // 기자명: 'media_end_head_journalist_name'이 포함된 태그 바로 뒤에 나오는 글자를 꺼냅니다.
+    const reporterMatch = html.match(/media_end_head_journalist_name[^"']*["'][^>]*>\s*([^<]+)</i);
+    if (reporterMatch) reporter = this.decodeHtmlEntities(reporterMatch[1]);
+
+    // 매체명: 'media_end_head_top_logo'가 포함된 태그를 통째로 찾은 뒤, 그 태그 바로 다음
+    // 400글자 안에서 이미지의 alt 글자(로고 이미지의 대체 텍스트, 보통 언론사 이름)를 꺼냅니다.
+    // (예전에는 '>' 바로 뒤에 <img가 나와야만 찾을 수 있었는데, 태그와 이미지 사이에
+    // 다른 요소가 껴 있으면 못 찾는 문제가 있었습니다. 이제는 그런 경우에도 찾습니다.)
+    const logoTag = this.findTagByClassToken(html, 'media_end_head_top_logo');
+    if (logoTag) {
+      const startIndex = html.indexOf(logoTag);
+      const nearby = html.slice(startIndex, startIndex + 400);
+      const m = nearby.match(/alt=["']([^"']+)["']/i);
+      if (m) media = this.decodeHtmlEntities(m[1]);
+    }
+
+    // 그래도 매체를 못 찾았다면, 서버 실행 중인 터미널 화면에 그 부분 HTML을 그대로
+    // 출력해줍니다. (사용자에게는 보이지 않고, 개발자 확인용입니다.) 혹시 이번 수정으로도
+    // 매체가 계속 비어있으면, 이 로그를 확인해서 원인을 더 정확히 찾을 수 있습니다.
+    if (!media) {
+      const hintIndex = html.indexOf('media_end_head_top');
+      if (hintIndex >= 0) {
+        console.log(
+          '[스크랩] 매체명을 찾지 못했습니다. 아래 내용을 개발자에게 전달해 주세요:\n',
+          html.slice(hintIndex, hintIndex + 500),
+        );
+      } else {
+        console.log('[스크랩] 매체명을 찾지 못했습니다. (media_end_head_top 관련 표시 자체가 페이지에 없습니다.)');
+      }
+    }
+
+    return { media, reporter, date };
   }
 
   // 기사 주소로 정보를 가져옵니다.
