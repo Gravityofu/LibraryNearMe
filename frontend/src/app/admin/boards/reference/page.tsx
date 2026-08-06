@@ -144,7 +144,9 @@ function AdminBoardReferencePageInner() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ postId, orderedIds: next.map((r) => r.id) }),
     });
-    if (!res.ok) {
+    if (res.ok) {
+      notify("✅ " + t("boards.reference.reorderSuccess"), "success");
+    } else {
       notify("❌ " + t("boards.reference.reorderFail"), "error");
       loadReferences();
     }
