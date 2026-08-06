@@ -217,12 +217,19 @@ export default function PublicBoardListPage() {
                 href={`/boards/${code}/${row.id}`}
                 className="flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white hover:shadow-sm"
               >
-                <div className={`w-full bg-white ${isTallThumbnail ? "aspect-[3/4]" : "aspect-[16/9]"}`}>
+                <div
+                  className="relative w-full shrink-0 overflow-hidden bg-white"
+                  style={{ paddingTop: isTallThumbnail ? "133.33%" : "56.25%" }}
+                >
                   {row.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={row.thumbnailUrl} alt="" className="h-full w-full object-contain" />
+                    <img
+                      src={row.thumbnailUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-xs text-neutral-300">
+                    <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 text-xs text-neutral-300">
                       {t("boards.list.col.thumbnail")}
                     </div>
                   )}
