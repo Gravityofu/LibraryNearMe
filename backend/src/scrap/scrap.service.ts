@@ -7,15 +7,16 @@ import { Injectable } from '@nestjs/common';
 // 추가로 한 번 더 찾아봅니다.
 @Injectable()
 export class ScrapService {
+
   // HTML 문자열 안에서 <meta property="이름" content="값"> 형태를 찾습니다.
   private findMetaByProperty(html: string, property: string): string | null {
     const patterns = [
-      new RegExp(`<meta[^>]+property=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i'),
-      new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*property=["']${property}["']`, 'i'),
+      new RegExp(`<meta[^>]+property=["']${property}["'][^>]*content=(["'])([\\s\\S]*?)\\1`, 'i'),
+      new RegExp(`<meta[^>]+content=(["'])([\\s\\S]*?)\\1[^>]*property=["']${property}["']`, 'i'),
     ];
     for (const re of patterns) {
       const m = html.match(re);
-      if (m) return this.decodeHtmlEntities(m[1]);
+      if (m) return this.decodeHtmlEntities(m[2]);
     }
     return null;
   }
@@ -23,24 +24,30 @@ export class ScrapService {
   // HTML 문자열 안에서 <meta name="이름" content="값"> 형태를 찾습니다.
   private findMetaByName(html: string, name: string): string | null {
     const patterns = [
-      new RegExp(`<meta[^>]+name=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i'),
-      new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*name=["']${name}["']`, 'i'),
+      new RegExp(`<meta[^>]+name=["']${name}["'][^>]*content=(["'])([\\s\\S]*?)\\1`, 'i'),
+      new RegExp(`<meta[^>]+content=(["'])([\\s\\S]*?)\\1[^>]*name=["']${name}["']`, 'i'),
     ];
     for (const re of patterns) {
       const m = html.match(re);
-      if (m) return this.decodeHtmlEntities(m[1]);
+      if (m) return this.decodeHtmlEntities(m[2]);
     }
     return null;
   }
 
-  // HTML에 흔히 섞여 있는 &amp; &quot; 같은 기호를 원래 글자로 되돌립니다.
+  // HTML에 흔히 섞여 있는 &amp; &quot; 같은 기호나 &#160; 같은 숫자 코드를 원래 글자로 되돌립니다.
   private decodeHtmlEntities(text: string): string {
     return text
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+      .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(parseInt(code, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/gi, (_match, code) => String.fromCharCode(parseInt(code, 16)))
+      .replace(/\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 
