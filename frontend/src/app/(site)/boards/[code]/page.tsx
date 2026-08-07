@@ -165,8 +165,6 @@ export default function PublicBoardListPage() {
           </Link>
         </p>
       ) : code === "faq" ? (
-
-      {code === "faq" ? (
         // '자주 묻는 질문' 게시판: 질문을 누르면 그 아래로 아코디언 형태로 답변이 펼쳐집니다.
         <div className="flex flex-col divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white">
           {loading ? (
