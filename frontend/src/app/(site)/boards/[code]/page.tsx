@@ -272,19 +272,19 @@ export default function PublicBoardListPage() {
       ) : (
         // 목록형 게시판: 표 형태
         <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[560px] table-fixed text-left text-sm">
             <thead className="bg-neutral-100 text-neutral-500">
               <tr>
-                <th className="px-4 py-2.5">{t("boards.list.col.no")}</th>
-                <th className="px-4 py-2.5">{t("boards.list.col.title")}</th>
-                <th className="px-4 py-2.5">{t("boards.list.col.author")}</th>
-                <th className="px-4 py-2.5">{t("boards.list.col.createdAt")}</th>
-                <th className="px-4 py-2.5">{t("boards.list.col.viewCount")}</th>
+                <th className="w-[8%] px-4 py-2.5 text-center">{t("boards.list.col.no")}</th>
+                <th className="px-4 py-2.5 text-center">{t("boards.list.col.title")}</th>
+                <th className="w-[14%] px-4 py-2.5 text-center">{t("boards.list.col.author")}</th>
+                <th className="w-[14%] px-4 py-2.5 text-center">{t("boards.list.col.createdAt")}</th>
+                <th className="w-[10%] px-4 py-2.5 text-center">{t("boards.list.col.viewCount")}</th>
                 {currentBoard?.isMaterialRequest && (
-                  <th className="px-4 py-2.5">{t("boards.list.col.status")}</th>
+                  <th className="w-[12%] px-4 py-2.5 text-center">{t("boards.list.col.status")}</th>
                 )}
                 {(code === "refService" || code === "counsel") && (
-                  <th className="px-4 py-2.5">{t("boards.list.col.answer")}</th>
+                  <th className="w-[10%] px-4 py-2.5 text-center">{t("boards.list.col.answer")}</th>
                 )}
               </tr>
             </thead>
@@ -308,17 +308,17 @@ export default function PublicBoardListPage() {
                     onClick={() => router.push(`/boards/${code}/${row.id}`)}
                     className="cursor-pointer hover:bg-neutral-50"
                   >
-                    <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                       {total - ((page - 1) * pageSize + idx)}
                     </td>
-                    <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">{row.title}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.authorName}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                    <td className="truncate px-4 py-2.5 text-center font-medium">{row.title}</td>
+                    <td className="truncate px-4 py-2.5 text-center text-neutral-500">{row.authorName}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                       {formatKstDate(row.createdAt)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.viewCount}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">{row.viewCount}</td>
                     {currentBoard?.isMaterialRequest && (
-                      <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                         {row.materialRequestStatus ? t(`boards.status.${row.materialRequestStatus}`) : "-"}
                       </td>
                     )}

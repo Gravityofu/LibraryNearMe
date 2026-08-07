@@ -163,23 +163,25 @@ function AdminBoardsPageInner() {
       )}
 
       <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-neutral-100 text-neutral-500">
+        <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+          <thead className="bg-neutral-100 text-neutral-500">            
             <tr>
-              <th className="px-4 py-2.5">{t("boards.list.col.no")}</th>
+              <th className="w-[6%] px-4 py-2.5 text-center">{t("boards.list.col.no")}</th>
               {currentBoard?.listStyle === "THUMBNAIL" && (
-                <th className="px-4 py-2.5">{t("boards.list.col.thumbnail")}</th>
+                <th className="w-[10%] px-4 py-2.5 text-center">{t("boards.list.col.thumbnail")}</th>
               )}
-              <th className="px-4 py-2.5">{t("boards.list.col.title")}</th>
-              <th className="px-4 py-2.5">{t("boards.list.col.author")}</th>
-              <th className="px-4 py-2.5">{t("boards.list.col.createdAt")}</th>
-              <th className="px-4 py-2.5">{t("boards.list.col.viewCount")}</th>
+              <th className="px-4 py-2.5 text-center">{t("boards.list.col.title")}</th>
+              <th className="w-[12%] px-4 py-2.5 text-center">{t("boards.list.col.author")}</th>
+              <th className="w-[12%] px-4 py-2.5 text-center">{t("boards.list.col.createdAt")}</th>
+              <th className="w-[8%] px-4 py-2.5 text-center">{t("boards.list.col.viewCount")}</th>
               {currentBoard?.isMaterialRequest && (
-                <th className="px-4 py-2.5">{t("boards.list.col.status")}</th>
+                <th className="w-[10%] px-4 py-2.5 text-center">{t("boards.list.col.status")}</th>
               )}
-              <th className="px-4 py-2.5">{t("boards.list.col.reference")}</th>
-              {isQnaBoard && <th className="px-4 py-2.5">{t("boards.list.col.answer")}</th>}
-              <th className="px-4 py-2.5">{t("boards.list.col.action")}</th>
+              <th className="w-[12%] px-4 py-2.5 text-center">{t("boards.list.col.reference")}</th>
+              {isQnaBoard && (
+                <th className="w-[8%] px-4 py-2.5 text-center">{t("boards.list.col.answer")}</th>
+              )}
+              <th className="w-[10%] px-4 py-2.5 text-center">{t("boards.list.col.action")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -203,36 +205,36 @@ function AdminBoardsPageInner() {
                   className="cursor-pointer hover:bg-neutral-50"
                 >
                   {/* 번호: 가장 최근 글이 가장 큰 번호가 되도록 계산합니다. */}
-                  <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                     {total - ((page - 1) * pageSize + idx)}
                   </td>
                   {currentBoard?.listStyle === "THUMBNAIL" && (
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 text-center">
                       {row.thumbnailUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={row.thumbnailUrl}
                           alt=""
-                          className="h-12 w-12 rounded-lg object-cover"
+                          className="mx-auto h-12 w-12 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-lg bg-neutral-100" />
+                        <div className="mx-auto h-12 w-12 rounded-lg bg-neutral-100" />
                       )}
                     </td>
                   )}
-                  <td className="max-w-[320px] truncate px-4 py-2.5 font-medium">{row.title}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.authorName}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                  <td className="truncate px-4 py-2.5 text-center font-medium">{row.title}</td>
+                  <td className="truncate px-4 py-2.5 text-center text-neutral-500">{row.authorName}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                     {new Date(row.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">{row.viewCount}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">{row.viewCount}</td>
                   {currentBoard?.isMaterialRequest && (
-                    <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-center text-neutral-500">
                       {row.materialRequestStatus ? t(`boards.status.${row.materialRequestStatus}`) : "-"}
                     </td>
                   )}
-                  <td className="whitespace-nowrap px-4 py-2.5">
-                    <div className="flex items-center gap-2">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <Link
                         href={`/admin/boards/reference?board=${activeTab}&postId=${row.id}`}
                         onClick={(e) => e.stopPropagation()}
@@ -248,7 +250,7 @@ function AdminBoardsPageInner() {
                       {row.answered ? "✅" : "❌"}
                     </td>
                   )}
-                  <td className="whitespace-nowrap px-4 py-2.5">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-center">
                     <button
                       type="button"
                       onClick={(e) => {
