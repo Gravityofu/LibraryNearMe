@@ -56,6 +56,12 @@ export class PostsController {
     return this.postsService.update(req.user.libraryId, parseInt(id, 10), body);
   }
 
+  @Patch(':id/answer')
+  @UseGuards(AdminGuard)
+  saveAnswer(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.postsService.saveAnswer(req.user.libraryId, parseInt(id, 10), body);
+  }
+
   @Delete(':id')
   @UseGuards(AdminGuard)
   remove(@Req() req: any, @Param('id') id: string) {

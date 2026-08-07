@@ -32,6 +32,7 @@ type PostRow = {
   viewCount: number;
   createdAt: string;
   materialRequestStatus: string | null;
+  answered: boolean;
 };
 
 export default function PublicBoardListPage() {
@@ -282,6 +283,9 @@ export default function PublicBoardListPage() {
                 {currentBoard?.isMaterialRequest && (
                   <th className="px-4 py-2.5">{t("boards.list.col.status")}</th>
                 )}
+                {(code === "refService" || code === "counsel") && (
+                  <th className="px-4 py-2.5">{t("boards.list.col.answer")}</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -316,6 +320,11 @@ export default function PublicBoardListPage() {
                     {currentBoard?.isMaterialRequest && (
                       <td className="whitespace-nowrap px-4 py-2.5 text-neutral-500">
                         {row.materialRequestStatus ? t(`boards.status.${row.materialRequestStatus}`) : "-"}
+                      </td>
+                    )}
+                    {(code === "refService" || code === "counsel") && (
+                      <td className="whitespace-nowrap px-4 py-2.5 text-center text-base">
+                        {row.answered ? "✅" : "❌"}
                       </td>
                     )}
                   </tr>

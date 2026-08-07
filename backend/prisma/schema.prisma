@@ -422,6 +422,9 @@ model Post {
   scrapMedia        String?   // 스크랩 게시판: 매체명
   scrapReporter     String?   // 스크랩 게시판: 기자명
   scrapDate         String?   // 스크랩 게시판: 기사 날짜 (원문에 나온 형태 그대로 문자로 저장)
+  answerContent     String?   // 참고서비스·1:1상담: 관리자가 쓴 답변 내용
+  answerKeywords    String?   // 참고서비스·1:1상담: 답변의 키워드 (1:1상담은 쓰지 않음)
+  answeredAt        DateTime? // 답변을 마지막으로 저장한 시각. 이 값이 있으면 '답변이 등록된 글'입니다.
 
   authorUserId      Int?                             // 회원(또는 관리자)이 쓴 글이면 채워짐
   authorUser        User?     @relation(fields: [authorUserId], references: [id])

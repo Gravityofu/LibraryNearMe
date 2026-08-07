@@ -22,6 +22,9 @@ type Post = {
   createdAt: string;
   authorName: string;
   authorUserId: number | null;
+  answerContent: string | null;
+  answerKeywords: string[];
+  answeredAt: string | null;
   board: {
     code: string;
     allowMemberComment: boolean;
@@ -111,6 +114,9 @@ export default function PublicPostDetailPage() {
   // (관리자는 관리자 페이지에서만 글을 관리해야 하기 때문입니다.)
   function canManagePost(p: Post) {
     if (role === "ADMIN" || role === "SUPER") {
+      return false;
+    }
+    if (p.answeredAt) {
       return false;
     }
     if (p.authorUserId) {
@@ -392,6 +398,30 @@ export default function PublicPostDetailPage() {
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       </div>
+
+      {/* 답변 박스 - 질문 박스와 구분되도록 다른 색으로 보여줍니다. 답변이 없으면 아예 나오지 않습니다. */}
+      {post.answerContent && (
+        <div className="mt-4 overflow-hidden rounded-lg border border-blue-200 bg-blue-50">
+          <div className="px-4 py-3">
+            <h2 className="text-sm font-bold text-blue-700">{t("boards.detail.answerTitle")}</h2>
+          </div>
+          <hr className="border-blue-200" />
+          {post.answerKeywords && post.answerKeywords.length > 0 && (
+            <div className="px-4 pt-2">
+              <p
+                className="min-h-[1.1rem] text-xs font-bold italic"
+                style={{ color: primaryColor || "#3b82f6" }}
+              >
+                {post.answerKeywords.map((k) => `#${k}`).join(" ")}
+              </p>
+            </div>
+          )}
+          <div
+            className="min-h-[80px] p-4 pt-2 text-sm leading-7 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-600 [&_a]:underline [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-blue-200 [&_td]:p-2 [&_th]:border [&_th]:border-blue-200 [&_th]:bg-blue-100 [&_th]:p-2"
+            dangerouslySetInnerHTML={{ __html: post.answerContent }}
+          />
+        </div>
+      )}
 
       {/* 댓글 영역 ('1:1 상담' 게시판은 댓글 기능이 없습니다) */}
       {post.board.code !== "counsel" && (

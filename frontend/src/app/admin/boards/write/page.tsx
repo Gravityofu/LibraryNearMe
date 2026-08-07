@@ -62,6 +62,12 @@ function AdminBoardWritePageInner() {
   const [maxKeywords, setMaxKeywords] = useState(10);
   const keywordInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // '참고서비스'·'1:1 상담' 게시판일 때만 쓰는, 답변 관련 값들입니다.
+  const [answerContent, setAnswerContent] = useState("");
+  const [answerKeywordWords, setAnswerKeywordWords] = useState<string[]>([""]);
+  const [answeredAt, setAnsweredAt] = useState<string | null>(null);
+  const answerKeywordInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   // '스크랩' 게시판일 때만 쓰는 값들입니다.
   const [scrapSource, setScrapSource] = useState<"naver" | "other">("naver");
   const [scrapUrl, setScrapUrl] = useState("");
@@ -149,6 +155,12 @@ function AdminBoardWritePageInner() {
       setScrapReporter(data.scrapReporter || "");
       setScrapDate(data.scrapDate || "");
       setScrapThumbnailUrl(data.thumbnailUrl || "");
+      setAnswerContent(data.answerContent || "");
+      const existingAnswerKeywords = data.answerKeywords
+        ? String(data.answerKeywords).split(",").map((w: string) => w.trim()).filter(Boolean)
+        : [];
+      setAnswerKeywordWords(existingAnswerKeywords.length > 0 ? existingAnswerKeywords : [""]);
+      setAnsweredAt(data.answeredAt || null);
     } else {
       notify("❌ " + t("boards.write.loadFail"), "error");
     }
@@ -222,6 +234,66 @@ function AdminBoardWritePageInner() {
       notify("❌ " + t("boards.write.scrap.urlRequired"), "error");
     } finally {
       setScrapFetching(false);
+    }
+  }
+
+  // 답변 키워드 칸 하나의 내용이 바뀔 때
+  function updateAnswerKeywordWord(index: number, value: string) {
+    setAnswerKeywordWords((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  function handleAnswerKeywordKeyDown(e: KeyboardEvent<HTMLInputElement>, index: number) {
+    if (e.key === " ") {
+      e.preventDefault();
+      const isLast = index === answerKeywordWords.length - 1;
+      const hasText = answerKeywordWords[index].trim().length > 0;
+      if (isLast && hasText && answerKeywordWords.length < maxKeywords) {
+        setAnswerKeywordWords((prev) => [...prev, ""]);
+        setTimeout(() => answerKeywordInputRefs.current[index + 1]?.focus(), 0);
+      }
+    } else if (e.key === "Backspace" && answerKeywordWords[index] === "" && index > 0) {
+      e.preventDefault();
+      setAnswerKeywordWords((prev) => prev.filter((_, i) => i !== index));
+      setTimeout(() => answerKeywordInputRefs.current[index - 1]?.focus(), 0);
+    }
+  }
+
+  function removeAnswerKeywordWord(index: number) {
+    setAnswerKeywordWords((prev) => {
+      if (prev.length === 1) return [""];
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  // '답변 저장' 버튼: 질문 저장과는 별개로, 답변만 따로 저장합니다.
+  async function handleSaveAnswer() {
+    if (!answerContent.trim()) {
+      notify("❌ " + t("boards.write.answer.contentRequired"), "error");
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token || !postId) return;
+
+    const body: any = { answerContent };
+    if (board?.code === "refService") {
+      body.answerKeywords = answerKeywordWords.map((w) => w.trim()).filter(Boolean).join(",");
+    }
+
+    const res = await fetch(`${API_URL}/posts/${postId}/answer`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setAnsweredAt(data.answeredAt);
+      notify("✅ " + t("boards.write.answer.saveSuccess"), "success");
+    } else {
+      notify("❌ " + t("boards.write.answer.saveFail"), "error");
     }
   }
 
@@ -393,6 +465,7 @@ function AdminBoardWritePageInner() {
           />
         </label>
 
+        {board?.code !== "counsel" && (
         <label className="block">
           <span className="mb-1 block text-sm text-neutral-500">
             {t("boards.write.field.keywords")} ({keywordWords.filter((w) => w.trim()).length}/{maxKeywords})
@@ -425,6 +498,7 @@ function AdminBoardWritePageInner() {
           </div>
           <p className="mt-1 text-xs text-neutral-400">{t("boards.write.keywordsHint")}</p>
         </label>
+        )}
 
         {board?.isMaterialRequest && (
           <>
@@ -569,6 +643,59 @@ function AdminBoardWritePageInner() {
             {t("boards.write.save")}
           </ThemedButton>
         </div>
+
+        {/* 답변 영역 - 참고서비스·1:1상담 게시판의 글 수정 화면에서만 보입니다. */}
+        {isEdit && (board?.code === "refService" || board?.code === "counsel") && (
+          <div className="mt-4 border-t border-neutral-200 pt-4">
+            <h2 className="mb-3 text-sm font-bold text-neutral-700">{t("boards.write.answer.title")}</h2>
+
+            {board?.code === "refService" && (
+              <label className="mb-4 block">
+                <span className="mb-1 block text-sm text-neutral-500">{t("boards.write.field.keywords")}</span>
+                <div className="flex flex-wrap gap-2">
+                  {answerKeywordWords.map((word, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white pr-1"
+                    >
+                      <input
+                        ref={(el) => {
+                          answerKeywordInputRefs.current[i] = el;
+                        }}
+                        value={word}
+                        onChange={(e) => updateAnswerKeywordWord(i, e.target.value)}
+                        onKeyDown={(e) => handleAnswerKeywordKeyDown(e, i)}
+                        className="w-24 rounded-lg border-0 px-3 py-2 text-sm focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAnswerKeywordWord(i)}
+                        className="cursor-pointer rounded px-1 text-sm leading-none text-neutral-400 hover:text-red-500"
+                        title={t("boards.write.keywordRemove")}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </label>
+            )}
+
+            <RichTextEditor value={answerContent} onChange={setAnswerContent} />
+
+            {answeredAt && (
+              <p className="mt-2 text-xs text-neutral-400">
+                {t("boards.write.answer.lastSavedAt")}: {new Date(answeredAt).toLocaleString()}
+              </p>
+            )}
+
+            <div className="mt-3 flex justify-end">
+              <ThemedButton preset="버튼1" onClick={handleSaveAnswer}>
+                {t("boards.write.answer.save")}
+              </ThemedButton>
+            </div>
+          </div>
+        )}
 
         {/* 댓글 관리 - 글 수정 화면에서만 보입니다. */}
         {isEdit && (

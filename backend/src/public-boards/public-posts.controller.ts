@@ -120,6 +120,9 @@ export class PublicPostsController {
     if (!post) {
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
+    if (post.answeredAt) {
+      throw new ForbiddenException('답변이 등록된 글은 수정할 수 없습니다.');
+    }
     const authUser = await this.getOptionalAuthUser(req);
     this.assertNotAdmin(authUser);
     await this.assertPostOwnership(post, authUser?.userId ?? null, body?.guestPassword);
@@ -134,6 +137,9 @@ export class PublicPostsController {
     const post = await this.prisma.post.findFirst({ where: { id: parseInt(id, 10), libraryId } });
     if (!post) {
       throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    if (post.answeredAt) {
+      throw new ForbiddenException('답변이 등록된 글은 삭제할 수 없습니다.');
     }
     const authUser = await this.getOptionalAuthUser(req);
     this.assertNotAdmin(authUser);

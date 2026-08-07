@@ -43,6 +43,7 @@ type PostRow = {
   createdAt: string;
   materialRequestStatus: string | null;
   referenceCount: number;
+  answered: boolean;
 };
 
 function AdminBoardsPageInner() {
@@ -67,8 +68,12 @@ function AdminBoardsPageInner() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // 표에 실제로 몇 개의 칼럼이 나오는지 계산합니다. (번호/제목/작성자/작성일/조회수/참고자료/관리 = 기본 7개 + 사진(썸네일형) + 처리상태(자료신청))
+  const isQnaBoard = currentBoard?.code === "refService" || currentBoard?.code === "counsel";
   const columnCount =
-    7 + (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) + (currentBoard?.isMaterialRequest ? 1 : 0);
+    7 +
+    (currentBoard?.listStyle === "THUMBNAIL" ? 1 : 0) +
+    (currentBoard?.isMaterialRequest ? 1 : 0) +
+    (isQnaBoard ? 1 : 0);
 
   // 주소(?board=)를 지금 보고 있는 탭과 맞춰 둡니다. (브레드크럼이 탭에 맞게 나오도록 하기 위함입니다.)
   useEffect(() => {
@@ -173,6 +178,7 @@ function AdminBoardsPageInner() {
                 <th className="px-4 py-2.5">{t("boards.list.col.status")}</th>
               )}
               <th className="px-4 py-2.5">{t("boards.list.col.reference")}</th>
+              {isQnaBoard && <th className="px-4 py-2.5">{t("boards.list.col.answer")}</th>}
               <th className="px-4 py-2.5">{t("boards.list.col.action")}</th>
             </tr>
           </thead>
@@ -237,6 +243,11 @@ function AdminBoardsPageInner() {
                       <span className="text-xs text-neutral-400">({row.referenceCount})</span>
                     </div>
                   </td>
+                  {isQnaBoard && (
+                    <td className="whitespace-nowrap px-4 py-2.5 text-center text-base">
+                      {row.answered ? "✅" : "❌"}
+                    </td>
+                  )}
                   <td className="whitespace-nowrap px-4 py-2.5">
                     <button
                       type="button"

@@ -142,6 +142,7 @@ export class PostsService {
         materialRequestTitle: p.materialRequest?.title || null,
         materialRequestStatus: p.materialRequest?.status || null,
         referenceCount: p._count.references,
+        answered: !!p.answerContent,
       })),
       total,
       page,
@@ -197,6 +198,7 @@ export class PostsService {
           viewCount: p.viewCount,
           createdAt: p.createdAt,
           materialRequestStatus: p.materialRequest?.status || null,
+          answered: !!p.answerContent,
         };
       }),
       total,
@@ -240,6 +242,7 @@ export class PostsService {
       ...post,
       viewCount: post.viewCount + 1,
       keywords: this.parseKeywords(post.keywords),
+      answerKeywords: this.parseKeywords(post.answerKeywords),
       authorName,
     };
   }
@@ -414,6 +417,40 @@ export class PostsService {
         scrapDate,
       },
       include: { materialRequest: true },
+    });
+  }
+
+  // 참고서비스·1:1상담 게시판 글에 관리자가 답변을 등록/수정합니다.
+  // 저장할 때마다 answeredAt(답변 작성 시간)이 지금 시각으로 새로 갱신됩니다.
+  // (질문 내용을 고치는 것과는 별개의 저장 동작입니다.)
+  async saveAnswer(libraryId: number, id: number, data: any) {
+    const existing = await this.prisma.post.findFirst({
+      where: { id, libraryId },
+      include: { board: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    if (existing.board.code !== 'refService' && existing.board.code !== 'counsel') {
+      throw new BadRequestException('이 게시판은 답변 기능을 지원하지 않습니다.');
+    }
+
+    const answerContent = String(data.answerContent || '').trim();
+    if (!answerContent) {
+      throw new BadRequestException('답변 내용을 입력하세요.');
+    }
+
+    // '1:1 상담'은 답변에 키워드가 없습니다.
+    const answerKeywords =
+      existing.board.code === 'refService' ? String(data.answerKeywords || '').trim() || null : null;
+
+    return this.prisma.post.update({
+      where: { id },
+      data: {
+        answerContent,
+        answerKeywords,
+        answeredAt: new Date(),
+      },
     });
   }
 
