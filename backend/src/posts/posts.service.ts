@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 import { MaterialRequestTypesService } from '../settings/material-request-types.service';
@@ -151,11 +151,17 @@ export class PostsService {
 
   // 글 목록 조회 - 누구나 볼 수 있는 홈페이지용입니다. 게시판 코드(예: "notice")로 찾습니다.
   // 썸네일형 게시판은 한 페이지에 9개, 목록형 게시판은 15개씩 보여줍니다.
-  async listPublic(libraryId: number, boardCode: string, page: number) {
+  async listPublic(libraryId: number, boardCode: string, page: number, viewerUserId: number | null) {
     const board = await this.prisma.board.findFirst({ where: { code: boardCode, libraryId } });
     if (!board) {
       throw new NotFoundException('게시판을 찾을 수 없습니다.');
     }
+
+    // '1:1 상담' 게시판은 로그인한 회원만 볼 수 있고, 그중에서도 본인이 쓴 글만 보입니다.
+    if (board.code === 'counsel' && !viewerUserId) {
+      throw new ForbiddenException('로그인이 필요합니다.');
+    }
+    const ownerFilter = board.code === 'counsel' ? { authorUserId: viewerUserId! } : {};
 
     const pageSize =
       board.listStyle === 'THUMBNAIL'
@@ -166,13 +172,13 @@ export class PostsService {
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
-        where: { libraryId, boardId: board.id },
+        where: { libraryId, boardId: board.id, ...ownerFilter },
         include: { authorUser: { select: { name: true, role: true } }, materialRequest: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.post.count({ where: { libraryId, boardId: board.id } }),
+      this.prisma.post.count({ where: { libraryId, boardId: board.id, ...ownerFilter } }),
     ]);
 
     const library = await this.prisma.library.findUnique({ where: { id: libraryId } });
@@ -211,13 +217,18 @@ export class PostsService {
     return post;
   }
 
-  // 글 하나 상세 조회 - 누구나 볼 수 있는 홈페이지용입니다. 볼 때마다 조회수가 1 올라갑니다.
-  async findOnePublic(libraryId: number, id: number) {
+  // 글 하나 상세 조회 - 홈페이지용입니다. 볼 때마다 조회수가 1 올라갑니다.
+  // ('1:1 상담' 게시판 글은 아무나 볼 수 있는 게 아니라, 글쓴이 본인만 볼 수 있습니다.)
+  async findOnePublic(libraryId: number, id: number, viewerUserId: number | null) {
     const post = await this.prisma.post.findFirst({
       where: { id, libraryId },
       include: { board: true, authorUser: { select: { name: true, role: true } }, materialRequest: true },
     });
     if (!post) {
+      throw new NotFoundException('글을 찾을 수 없습니다.');
+    }
+    if (post.board.code === 'counsel' && post.authorUserId !== viewerUserId) {
+      // 다른 사람의 상담 글이라는 사실 자체를 알려주지 않기 위해, 없는 글과 똑같은 오류로 처리합니다.
       throw new NotFoundException('글을 찾을 수 없습니다.');
     }
     await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });

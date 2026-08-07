@@ -8,7 +8,7 @@ export const INFO_BOARD_CODES = ["newArrivals", "collection", "refService", "scr
 export const ABOUT_BOARD_CODES = ["faq"];
 
 // '내 도서관' 메뉴 밑에 보여줄 게시판들
-export const MYSHELF_BOARD_CODES = ["materialRequest"];
+export const MYSHELF_BOARD_CODES = ["materialRequest", "counsel"];
 
 // 나머지는 전부 '커뮤니티' 메뉴 밑에 보여줍니다 (공지, 소식, 열린 게시판)
 

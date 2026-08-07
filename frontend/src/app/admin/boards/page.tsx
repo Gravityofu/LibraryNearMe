@@ -23,6 +23,7 @@ const BOARD_CODES = [
   "openBoard",
   "faq",
   "materialRequest",
+  "counsel",
 ];
 
 type Board = {
@@ -148,11 +149,13 @@ function AdminBoardsPageInner() {
         </TabsList>
       </Tabs>
 
-      <div className="mt-4 flex items-center justify-end">
-        <Link href={`/admin/boards/write?board=${activeTab}`}>
-          <ThemedButton preset="버튼1">{t("boards.list.writeBtn")}</ThemedButton>
-        </Link>
-      </div>
+      {activeTab !== "counsel" && (
+        <div className="mt-4 flex items-center justify-end">
+          <Link href={`/admin/boards/write?board=${activeTab}`}>
+            <ThemedButton preset="버튼1">{t("boards.list.writeBtn")}</ThemedButton>
+          </Link>
+        </div>
+      )}
 
       <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full min-w-[720px] text-left text-sm">

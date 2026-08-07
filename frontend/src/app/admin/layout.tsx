@@ -55,6 +55,7 @@ const BOARDS_TAB_CRUMB_MAP: Record<string, string> = {
   openBoard: "boards.tabs.openBoard",
   faq: "boards.tabs.faq",
   materialRequest: "boards.tabs.materialRequest",
+  counsel: "boards.tabs.counsel",
 };
 
 // 브레드크럼만 따로 떼어낸 부분입니다. 주소의 ?tab= 값을 읽어야 해서(useSearchParams)

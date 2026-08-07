@@ -574,6 +574,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.tabs.openBoard": "열린 게시판",
     "boards.tabs.faq": "자주 묻는 질문",
     "boards.tabs.materialRequest": "자료를 신청합니다",
+    "boards.tabs.counsel": "1:1 상담",
 
     "boards.list.col.no": "번호",
     "boards.list.col.thumbnail": "사진",
@@ -591,6 +592,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.list.deleteBtn": "삭제",
     "boards.list.deleteConfirm": "정말 삭제하시겠어요?",
     "boards.list.empty": "작성된 글이 없습니다.",
+    "boards.list.loginRequired": "로그인이 필요한 게시판입니다.",
     "boards.list.loadFail": "글 목록을 불러오지 못했습니다.",
     "boards.list.deleteSuccess": "삭제되었습니다.",
     "boards.list.deleteFail": "삭제에 실패했습니다.",
@@ -1491,6 +1493,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.tabs.openBoard": "Open Board",
     "boards.tabs.faq": "FAQ",
     "boards.tabs.materialRequest": "Material Requests",
+    "boards.tabs.counsel": "1:1 Counseling",
 
     "boards.list.col.no": "No.",
     "boards.list.col.thumbnail": "Photo",
@@ -1508,6 +1511,7 @@ export const dictionary: Record<Lang, Record<string, string>> = {
     "boards.list.deleteBtn": "Delete",
     "boards.list.deleteConfirm": "Delete this post?",
     "boards.list.empty": "No posts yet.",
+    "boards.list.loginRequired": "You need to log in to view this board.",
     "boards.list.loadFail": "Failed to load posts.",
     "boards.list.deleteSuccess": "Deleted.",
     "boards.list.deleteFail": "Delete failed.",

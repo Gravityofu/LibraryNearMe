@@ -23,6 +23,7 @@ type Post = {
   authorName: string;
   authorUserId: number | null;
   board: {
+    code: string;
     allowMemberComment: boolean;
     allowGuestComment: boolean;
   };
@@ -68,7 +69,9 @@ export default function PublicPostDetailPage() {
 
   async function loadPost() {
     setLoading(true);
-    const res = await fetch(`${API_URL}/public/posts/${id}`);
+    const res = await fetch(`${API_URL}/public/posts/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (res.ok) {
       setPost(await res.json());
     } else {
@@ -390,7 +393,8 @@ export default function PublicPostDetailPage() {
         />
       </div>
 
-      {/* 댓글 영역 */}
+      {/* 댓글 영역 ('1:1 상담' 게시판은 댓글 기능이 없습니다) */}
+      {post.board.code !== "counsel" && (
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-neutral-700">
           {t("boards.write.comments.title")} ({comments.length})
@@ -501,6 +505,7 @@ export default function PublicPostDetailPage() {
           </div>
         )}
       </div>
+      )}
     </main>
   );
 }

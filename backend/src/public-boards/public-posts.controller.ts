@@ -61,9 +61,10 @@ export class PublicPostsController {
   }
 
   @Get(':id')
-  async getPost(@Param('id') id: string) {
+  async getPost(@Req() req: any, @Param('id') id: string) {
     const libraryId = await this.getLibraryId();
-    return this.postsService.findOnePublic(libraryId, parseInt(id, 10));
+    const authUser = await this.getOptionalAuthUser(req);
+    return this.postsService.findOnePublic(libraryId, parseInt(id, 10), authUser?.userId ?? null);
   }
 
   // 홈페이지에서 글쓰기. 게시판이 회원 글쓰기를 허용해야 하고, 비회원이라면 그 게시판이

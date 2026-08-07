@@ -14,20 +14,35 @@ const DEFAULT_BOARDS = [
   { code: 'openBoard', name: '열린 게시판', listStyle: 'THUMBNAIL', allowMemberWrite: true, isMaterialRequest: false },
   { code: 'faq', name: '자주 묻는 질문', listStyle: 'LIST', allowMemberWrite: false, isMaterialRequest: false },
   { code: 'materialRequest', name: '자료를 신청합니다', listStyle: 'LIST', allowMemberWrite: true, isMaterialRequest: true },
+  { code: 'counsel', name: '1:1 상담', listStyle: 'LIST', allowMemberWrite: true, isMaterialRequest: false },
 ];
 
 @Injectable()
 export class BoardsService {
   constructor(private prisma: PrismaService) {}
 
-  // 목록 조회. 이 도서관에 게시판이 하나도 없으면, 기본 10개를 자동으로 채워 넣습니다.
+  // 목록 조회. 이 도서관에 게시판이 하나도 없으면, 기본 게시판들을 자동으로 채워 넣습니다.
+  // 이미 게시판이 있는 도서관이라도, DEFAULT_BOARDS에 새로 추가된 게시판(예: '1:1 상담')이
+  // 아직 없다면 그것만 추가로 채워 넣습니다. (나중에 새 기본 게시판을 추가할 때마다
+  // 이 방식으로 기존 도서관에도 자동으로 반영됩니다.)
   async list(libraryId: number) {
-    const count = await this.prisma.board.count({ where: { libraryId } });
-    if (count === 0) {
+    const existingBoards = await this.prisma.board.findMany({ where: { libraryId } });
+
+    if (existingBoards.length === 0) {
       await this.prisma.board.createMany({
         data: DEFAULT_BOARDS.map((b, i) => ({ ...b, libraryId, order: i })),
       });
+    } else {
+      const existingCodes = existingBoards.map((b) => b.code);
+      const missingBoards = DEFAULT_BOARDS.filter((b) => !existingCodes.includes(b.code));
+      if (missingBoards.length > 0) {
+        const maxOrder = existingBoards.reduce((max, b) => Math.max(max, b.order), -1);
+        await this.prisma.board.createMany({
+          data: missingBoards.map((b, i) => ({ ...b, libraryId, order: maxOrder + 1 + i })),
+        });
+      }
     }
+
     return this.prisma.board.findMany({
       where: { libraryId },
       orderBy: { order: 'asc' },

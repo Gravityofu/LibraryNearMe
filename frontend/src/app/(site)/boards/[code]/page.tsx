@@ -36,7 +36,7 @@ type PostRow = {
 
 export default function PublicBoardListPage() {
   const { t } = useI18n();
-  const { role } = useAuth();
+  const { role, token, isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams<{ code: string }>();
@@ -74,7 +74,9 @@ export default function PublicBoardListPage() {
 
   async function loadPosts() {
     setLoading(true);
-    const res = await fetch(`${API_URL}/public/boards/${code}/posts?page=${page}`);
+    const res = await fetch(`${API_URL}/public/boards/${code}/posts?page=${page}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (res.ok) {
       const data = await res.json();
       setRows(data.items);
@@ -150,6 +152,19 @@ export default function PublicBoardListPage() {
           ) : undefined
         }
       />
+
+      {code === "counsel" && !isLoggedIn ? (
+        <p className="py-10 text-center text-sm text-neutral-400">
+          {t("boards.list.loginRequired")}
+          <br />
+          <Link
+            href={`/login?redirect=${encodeURIComponent(`/boards/${code}`)}`}
+            className="text-blue-600 hover:underline"
+          >
+            {t("boards.public.write.loginLink")}
+          </Link>
+        </p>
+      ) : code === "faq" ? (
 
       {code === "faq" ? (
         // '자주 묻는 질문' 게시판: 질문을 누르면 그 아래로 아코디언 형태로 답변이 펼쳐집니다.

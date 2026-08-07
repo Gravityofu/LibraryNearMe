@@ -22,6 +22,7 @@ const BOARD_CODES = [
   "openBoard",
   "faq",
   "materialRequest",
+  "counsel",
 ];
 
 type Board = {
