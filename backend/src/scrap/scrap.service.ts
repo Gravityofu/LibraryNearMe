@@ -172,6 +172,7 @@ export class ScrapService {
 
     let title = this.findMetaByProperty(html, 'og:title');
     let media = this.findMetaByProperty(html, 'og:site_name');
+    const thumbnailUrl = this.findMetaByProperty(html, 'og:image');
     let date =
       this.findMetaByProperty(html, 'article:published_time') ||
       this.findMetaByName(html, 'date') ||
@@ -202,6 +203,13 @@ export class ScrapService {
       };
     }
 
-    return { ok: true, title, media: media || '', reporter: reporter || '', date: date || '' };
+    return {
+      ok: true,
+      title,
+      media: media || '',
+      reporter: reporter || '',
+      date: date || '',
+      thumbnailUrl: thumbnailUrl || '',
+    };
   }
 }

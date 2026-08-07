@@ -67,6 +67,7 @@ function AdminBoardWritePageInner() {
   const [scrapMedia, setScrapMedia] = useState("");
   const [scrapReporter, setScrapReporter] = useState("");
   const [scrapDate, setScrapDate] = useState("");
+  const [scrapThumbnailUrl, setScrapThumbnailUrl] = useState("");
   const [scrapFetching, setScrapFetching] = useState(false);
 
   // '자료를 신청합니다' 게시판일 때만 쓰는 값들입니다.
@@ -146,6 +147,7 @@ function AdminBoardWritePageInner() {
       setScrapMedia(data.scrapMedia || "");
       setScrapReporter(data.scrapReporter || "");
       setScrapDate(data.scrapDate || "");
+      setScrapThumbnailUrl(data.thumbnailUrl || "");
     } else {
       notify("❌ " + t("boards.write.loadFail"), "error");
     }
@@ -198,11 +200,24 @@ function AdminBoardWritePageInner() {
         setScrapMedia(data.media || "");
         setScrapReporter(data.reporter || "");
         setScrapDate(data.date || "");
+        setScrapThumbnailUrl(data.thumbnailUrl || "");
         notify("✅ " + t("boards.write.scrap.fetchSuccess"), "success");
       } else {
+        // 가져오기에 실패하면, 화면에 남아있던 이전 가져오기 결과를 지웁니다.
+        // (기사 주소 칸은 방금 입력하신 값 그대로 두고 건드리지 않습니다.)
+        setTitle("");
+        setScrapMedia("");
+        setScrapReporter("");
+        setScrapDate("");
+        setScrapThumbnailUrl("");
         notify("❌ " + data.message, "error");
       }
     } catch {
+      setTitle("");
+      setScrapMedia("");
+      setScrapReporter("");
+      setScrapDate("");
+      setScrapThumbnailUrl("");
       notify("❌ " + t("boards.write.scrap.urlRequired"), "error");
     } finally {
       setScrapFetching(false);
@@ -311,6 +326,7 @@ function AdminBoardWritePageInner() {
       body.scrapMedia = scrapMedia.trim();
       body.scrapReporter = scrapReporter.trim();
       body.scrapDate = scrapDate.trim();
+      body.scrapThumbnailUrl = scrapThumbnailUrl.trim();
     }
     if (!isEdit) {
       body.boardId = board.id;
@@ -498,6 +514,13 @@ function AdminBoardWritePageInner() {
                 {scrapFetching ? t("boards.write.scrap.fetching") : t("boards.write.scrap.fetchBtn")}
               </ThemedButton>
             </div>
+
+            {scrapThumbnailUrl && (
+              <div className="h-40 w-full max-w-xs overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={scrapThumbnailUrl} alt="" className="h-full w-full object-contain" />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">

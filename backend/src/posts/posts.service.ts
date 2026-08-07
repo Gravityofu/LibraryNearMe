@@ -287,7 +287,10 @@ export class PostsService {
       };
     }
 
-    const thumbnailUrl = this.extractFirstImage(content);
+    const thumbnailUrl =
+      data.scrapThumbnailUrl !== undefined
+        ? String(data.scrapThumbnailUrl).trim() || null
+        : this.extractFirstImage(content);
 
     // '스크랩' 게시판일 때만 쓰는 정보입니다. (기사 원문 주소·매체·기자·날짜)
     const scrapSourceUrl = data.scrapSourceUrl ? String(data.scrapSourceUrl).trim() : null;
@@ -337,7 +340,10 @@ export class PostsService {
       throw new BadRequestException('내용을 입력하세요.');
     }
     const keywords = data.keywords !== undefined ? String(data.keywords).trim() : existing.keywords;
-    const thumbnailUrl = this.extractFirstImage(content);
+    const thumbnailUrl =
+      data.scrapThumbnailUrl !== undefined
+        ? String(data.scrapThumbnailUrl).trim() || null
+        : this.extractFirstImage(content);
 
     if (existing.board.isMaterialRequest) {
       const materialTitle =
