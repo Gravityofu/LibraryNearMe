@@ -12,6 +12,7 @@ import MaterialTypesSettingsForm from "@/components/material-types-settings-form
 import MemberTypesSettingsForm from "@/components/member-types-settings-form";
 import LoanSettingsForm from "@/components/loan-settings-form";
 import BoardsSettingsForm from "@/components/boards-settings-form";
+import NotificationSettingsForm from "@/components/notification-settings-form";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -27,7 +28,16 @@ type KormarcTag = {
 const EMPTY_TAG = { tag: "", fieldName: "", indicators: "", subfieldCodes: "", example: "" };
 
 // 이 순서가 곧 탭이 화면에 나오는 순서입니다. 왼쪽 사이드바에서 '설정'을 누르면 맨 앞(library)이 기본으로 열립니다.
-const SETTINGS_TABS = ["library", "design", "materialTypes", "copyOptions", "kormarcTags", "loan", "boards"];
+const SETTINGS_TABS = [
+  "library",
+  "design",
+  "materialTypes",
+  "copyOptions",
+  "kormarcTags",
+  "loan",
+  "boards",
+  "notifications",
+];
 
 function AdminSettingsPageInner() {
   const { notify } = useNotify();
@@ -147,6 +157,7 @@ function AdminSettingsPageInner() {
           <TabsTrigger value="kormarcTags">{t("settings.tabs.kormarcTags")}</TabsTrigger>
           <TabsTrigger value="loan">{t("settings.tabs.loan")}</TabsTrigger>
           <TabsTrigger value="boards">{t("settings.tabs.boards")}</TabsTrigger>
+          <TabsTrigger value="notifications">{t("settings.tabs.notifications")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="library" className="mt-4">
@@ -220,6 +231,10 @@ function AdminSettingsPageInner() {
 
         <TabsContent value="boards" className="mt-4">
           <BoardsSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-4">
+          <NotificationSettingsForm />
         </TabsContent>
       </Tabs>
 

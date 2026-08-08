@@ -41,6 +41,8 @@ import { ScrapController } from './scrap/scrap.controller';
 import { ScrapService } from './scrap/scrap.service';
 import { MaterialRequestTypesController } from './settings/material-request-types.controller';
 import { MaterialRequestTypesService } from './settings/material-request-types.service';
+import { NotificationTemplatesController } from './settings/notification-templates.controller';
+import { NotificationTemplatesService } from './settings/notification-templates.service';
 import { BoardFontsController } from './settings/board-fonts.controller';
 import { BoardFontsService } from './settings/board-fonts.service';
 import { CommentsController } from './comments/comments.controller';
@@ -79,6 +81,7 @@ import { PublicCommentsController } from './public-boards/public-comments.contro
     PostReferencesController,
     ScrapController,
     MaterialRequestTypesController,
+    NotificationTemplatesController,
     BoardFontsController,
     CommentsController,
     PublicBoardsController,
@@ -106,6 +109,7 @@ import { PublicCommentsController } from './public-boards/public-comments.contro
     PostReferencesService,
     ScrapService,
     MaterialRequestTypesService,
+    NotificationTemplatesService,
     BoardFontsService,
     CommentsService,
   ],

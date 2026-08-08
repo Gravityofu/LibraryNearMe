@@ -18,6 +18,7 @@ type Board = {
   allowGuestComment: boolean;
   defaultThumbnailUrl: string | null;
   isMaterialRequest: boolean;
+  notifyEnabled: boolean;
 };
 
 type BoardFont = {
@@ -103,6 +104,7 @@ export default function BoardsSettingsForm() {
   const [allowMemberCommentValue, setAllowMemberCommentValue] = useState(true);
   const [allowGuestCommentValue, setAllowGuestCommentValue] = useState(false);
   const [defaultThumbnailUrlValue, setDefaultThumbnailUrlValue] = useState("");
+  const [notifyEnabledValue, setNotifyEnabledValue] = useState(false);
 
   // 게시판 글꼴 목록입니다.
   const [fonts, setFonts] = useState<BoardFont[]>([]);
@@ -151,6 +153,7 @@ export default function BoardsSettingsForm() {
     setAllowMemberCommentValue(board.allowMemberComment);
     setAllowGuestCommentValue(board.allowGuestComment);
     setDefaultThumbnailUrlValue(board.defaultThumbnailUrl || "");
+    setNotifyEnabledValue(board.notifyEnabled);
   }
 
   // '회원 글쓰기'를 끄면, 의미가 없어지는 '비회원 글쓰기'도 화면에서 함께 꺼줍니다.
@@ -199,6 +202,7 @@ export default function BoardsSettingsForm() {
         allowMemberComment: allowMemberCommentValue,
         allowGuestComment: allowGuestCommentValue,
         defaultThumbnailUrl: defaultThumbnailUrlValue,
+        notifyEnabled: notifyEnabledValue,
       }),
     });
     if (res.ok) {
@@ -463,6 +467,26 @@ export default function BoardsSettingsForm() {
                   noLabel={t("settings.boards.no")}
                 />
               </div>
+
+              {(editingBoard.isMaterialRequest ||
+                editingBoard.code === "refService" ||
+                editingBoard.code === "counsel") && (
+                <div>
+                  <span className="mb-1 block text-sm text-neutral-500">
+                    {t("settings.boards.field.notifyEnabled")}
+                  </span>
+                  <ChoiceCardGroup
+                    name="notifyEnabled"
+                    value={notifyEnabledValue}
+                    onChange={setNotifyEnabledValue}
+                    yesLabel={t("settings.boards.yes")}
+                    noLabel={t("settings.boards.no")}
+                  />
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {t("settings.boards.field.notifyEnabledHint")}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <span className="mb-1 block text-sm text-neutral-500">

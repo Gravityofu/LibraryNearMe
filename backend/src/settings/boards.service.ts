@@ -95,6 +95,10 @@ export class BoardsService {
       updateData.defaultThumbnailUrl = data.defaultThumbnailUrl || null;
     }
 
+    if (data.notifyEnabled !== undefined) {
+      updateData.notifyEnabled = !!data.notifyEnabled;
+    }
+
     return this.prisma.board.update({ where: { id }, data: updateData });
   }
 }

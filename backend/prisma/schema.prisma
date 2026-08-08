@@ -53,6 +53,7 @@ model Library {
   materialRequestTypes MaterialRequestType[] // ← 추가 (자료신청 자료 종류 목록)
   boardFonts    BoardFont[]    // ← 추가 (게시판 글꼴 목록)
   postReferences PostReference[] // ← 추가 (게시판 글의 참고자료 목록)
+  notificationTemplates NotificationTemplate[] // ← 추가 (알림 문구 템플릿 목록)
 }
 
 // 사용자 (회원 / 관리자 / 슈퍼계정 모두 여기에 담습니다)
@@ -396,6 +397,7 @@ model Board {
   defaultThumbnailUrl String?                  // ← 추가: 이 게시판의 기본 썸네일 (없으면 도서관 기본 썸네일을 씁니다)
 
   isMaterialRequest Boolean  @default(false)  // "자료를 신청합니다" 게시판인지 (추가 입력 필드 + 처리 상태 기능이 붙습니다)
+  notifyEnabled     Boolean  @default(false)  // ← 추가: 이 게시판에서 '이메일로 알림 받기' 기능을 쓸지 여부
 
   createdAt         DateTime @default(now())
 
@@ -483,6 +485,23 @@ model MaterialRequest {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// "자료를 신청합니다" 게시판의 처리상태(구입 진행 중/구입 완료/미구입)가 바뀌었을 때,
+// 신청자에게 보여줄 안내 문구입니다. 설정 > 알림 메뉴에서 관리자가 수정할 수 있습니다.
+// (아직 실제로 이메일을 보내지는 않습니다. 문구를 미리 준비해두는 단계입니다.)
+model NotificationTemplate {
+  id        Int      @id @default(autoincrement())
+
+  libraryId Int
+  library   Library  @relation(fields: [libraryId], references: [id])
+
+  status    String   // PURCHASING(구입 진행 중) | PURCHASED(구입 완료) | NOT_PURCHASED(미구입)
+  message   String   @default("") // 안내 문구. "{title}" 부분은 실제로 보여질 때 자료 제목으로 바뀝니다.
+
+  createdAt DateTime @default(now())
+
+  @@unique([libraryId, status])
 }
 
 // "자료를 신청합니다" 게시판 글쓰기에서 고를 수 있는 '자료 종류' 드롭다운 항목들입니다.
